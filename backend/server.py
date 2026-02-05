@@ -80,6 +80,11 @@ class User(UserBase):
     created_at: datetime = Field(default_factory=datetime.utcnow)
     role: str = "user"  # "user" | "admin"
     status: str = "active"  # "active" | "banned" | "shadowbanned"
+    displayName: Optional[str] = None
+    avatarUrl: Optional[str] = None
+    bio: Optional[str] = None
+    city: Optional[str] = None
+    showCity: bool = False
     rocket10_completed: bool = False
     rocket10_day: int = 0
     rocket10_start_date: Optional[datetime] = None
@@ -94,12 +99,24 @@ class UserResponse(BaseModel):
     id: str
     email: str
     name: str
+    displayName: Optional[str] = None
+    avatarUrl: Optional[str] = None
+    bio: Optional[str] = None
+    city: Optional[str] = None
+    showCity: bool = False
     created_at: datetime
     role: str = "user"
     status: str = "active"
     rocket10_completed: bool
     streak_days: int
     followed_categories: List[str]
+
+class ProfileUpdate(BaseModel):
+    displayName: str
+    bio: Optional[str] = None
+    city: Optional[str] = None
+    showCity: Optional[bool] = False
+    avatarUrl: Optional[str] = None
 
 class TokenResponse(BaseModel):
     access_token: str
