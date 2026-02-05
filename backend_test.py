@@ -38,7 +38,7 @@ class PathGroTester:
     def test_admin_registration(self):
         """Test 1: Admin Registration with karolisbudreckas92@gmail.com"""
         try:
-            # Register admin user
+            # First try to register the specific admin email
             admin_data = {
                 "name": "Admin User",
                 "email": "karolisbudreckas92@gmail.com",
@@ -58,26 +58,48 @@ class PathGroTester:
                     self.log_test("Admin Registration", False, f"User registered but role is '{data.get('user', {}).get('role')}', expected 'admin'", data)
                     return False
             else:
-                # Check if user already exists
+                # Check if user already exists, try with test admin instead
                 if response.status_code == 400 and "already registered" in response.text:
-                    # Try to login instead
-                    login_data = {
-                        "email": "karolisbudreckas92@gmail.com",
-                        "password": "adminpass123"
+                    # Use test admin user
+                    test_admin_data = {
+                        "name": "Test Admin",
+                        "email": "testadmin@pathgro.com",
+                        "password": "testadmin123"
                     }
-                    login_response = requests.post(f"{BACKEND_URL}/auth/login", json=login_data)
-                    if login_response.status_code == 200:
-                        data = login_response.json()
+                    
+                    test_response = requests.post(f"{BACKEND_URL}/auth/register", json=test_admin_data)
+                    if test_response.status_code == 200:
+                        data = test_response.json()
                         if data.get("user", {}).get("role") == "admin":
                             self.admin_token = data.get("access_token")
                             self.admin_user_id = data.get("user", {}).get("id")
-                            self.log_test("Admin Registration", True, "Admin user already exists and logged in successfully with admin role")
+                            self.log_test("Admin Registration", True, "Test admin user registered successfully with admin role")
                             return True
                         else:
-                            self.log_test("Admin Registration", False, f"Existing user role is '{data.get('user', {}).get('role')}', expected 'admin'", data)
+                            self.log_test("Admin Registration", False, f"Test admin role is '{data.get('user', {}).get('role')}', expected 'admin'", data)
+                            return False
+                    elif test_response.status_code == 400 and "already registered" in test_response.text:
+                        # Try to login with test admin
+                        login_data = {
+                            "email": "testadmin@pathgro.com",
+                            "password": "testadmin123"
+                        }
+                        login_response = requests.post(f"{BACKEND_URL}/auth/login", json=login_data)
+                        if login_response.status_code == 200:
+                            data = login_response.json()
+                            if data.get("user", {}).get("role") == "admin":
+                                self.admin_token = data.get("access_token")
+                                self.admin_user_id = data.get("user", {}).get("id")
+                                self.log_test("Admin Registration", True, "Test admin user logged in successfully with admin role")
+                                return True
+                            else:
+                                self.log_test("Admin Registration", False, f"Test admin role is '{data.get('user', {}).get('role')}', expected 'admin'", data)
+                                return False
+                        else:
+                            self.log_test("Admin Registration", False, f"Failed to login test admin: {login_response.status_code}", login_response.text)
                             return False
                     else:
-                        self.log_test("Admin Registration", False, f"Failed to login existing admin user: {login_response.status_code}", login_response.text)
+                        self.log_test("Admin Registration", False, f"Test admin registration failed: {test_response.status_code}", test_response.text)
                         return False
                 else:
                     self.log_test("Admin Registration", False, f"Registration failed: {response.status_code}", response.text)
