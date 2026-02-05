@@ -1139,6 +1139,58 @@ async def upload_avatar(file: UploadFile = FastAPIFile(...), user: dict = Depend
     
     return {"url": avatar_url, "message": "Avatar uploaded successfully"}
 
+class AvatarBase64Upload(BaseModel):
+    image: str
+    mimeType: str = "image/jpeg"
+
+@api_router.post("/users/me/avatar-base64")
+async def upload_avatar_base64(data: AvatarBase64Upload, user: dict = Depends(require_auth)):
+    """Upload avatar image as base64"""
+    import base64
+    import os
+    
+    # Decode base64
+    try:
+        image_data = base64.b64decode(data.image)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid base64 image")
+    
+    # Limit file size (2MB)
+    if len(image_data) > 2 * 1024 * 1024:
+        raise HTTPException(status_code=400, detail="File too large (max 2MB)")
+    
+    # Create uploads directory if it doesn't exist
+    upload_dir = "/app/backend/uploads/avatars"
+    os.makedirs(upload_dir, exist_ok=True)
+    
+    # Determine file extension from mimeType
+    ext = 'jpg'
+    if 'png' in data.mimeType:
+        ext = 'png'
+    elif 'gif' in data.mimeType:
+        ext = 'gif'
+    elif 'webp' in data.mimeType:
+        ext = 'webp'
+    
+    # Generate unique filename
+    filename = f"{user['id']}_{str(uuid.uuid4())[:8]}.{ext}"
+    filepath = os.path.join(upload_dir, filename)
+    
+    # Save file
+    with open(filepath, 'wb') as f:
+        f.write(image_data)
+    
+    # Generate URL (served via static files)
+    avatar_url = f"/api/uploads/avatars/{filename}"
+    
+    # Update user record
+    await db.users.update_one(
+        {"id": user["id"]},
+        {"$set": {"avatarUrl": avatar_url}}
+    )
+    
+    return {"url": avatar_url, "message": "Avatar uploaded successfully"}
+
 # ===================== REPORT =====================
 
 @api_router.post("/problems/{problem_id}/report")
