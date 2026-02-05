@@ -93,48 +93,71 @@ export default function ProblemDetail() {
   const handleRelate = async () => {
     if (!problem) return;
     
+    // Optimistic update
+    const wasRelated = problem.user_has_related;
+    setProblem({ 
+      ...problem, 
+      user_has_related: !wasRelated, 
+      relates_count: wasRelated ? problem.relates_count - 1 : problem.relates_count + 1 
+    });
+
     try {
-      if (problem.user_has_related) {
+      if (wasRelated) {
         await api.unrelateToProblem(problem.id);
-        setProblem({ ...problem, user_has_related: false, relates_count: problem.relates_count - 1 });
       } else {
         await api.relateToProblem(problem.id);
-        setProblem({ ...problem, user_has_related: true, relates_count: problem.relates_count + 1 });
+        showToast('Relates +1 ❤️');
       }
     } catch (error) {
-      console.error('Error toggling relate:', error);
+      // Rollback
+      setProblem({ 
+        ...problem, 
+        user_has_related: wasRelated, 
+        relates_count: problem.relates_count 
+      });
+      showToast('Failed to update', true);
     }
   };
 
   const handleSave = async () => {
     if (!problem) return;
     
+    // Optimistic update
+    const wasSaved = problem.user_has_saved;
+    setProblem({ ...problem, user_has_saved: !wasSaved });
+
     try {
-      if (problem.user_has_saved) {
+      if (wasSaved) {
         await api.unsaveProblem(problem.id);
-        setProblem({ ...problem, user_has_saved: false });
+        showToast('Removed from saved');
       } else {
         await api.saveProblem(problem.id);
-        setProblem({ ...problem, user_has_saved: true });
+        showToast('Saved 🔖');
       }
     } catch (error) {
-      console.error('Error toggling save:', error);
+      setProblem({ ...problem, user_has_saved: wasSaved });
+      showToast('Failed to save', true);
     }
   };
 
   const handleFollow = async () => {
     if (!problem) return;
     
+    // Optimistic update
+    const wasFollowing = problem.user_is_following;
+    setProblem({ ...problem, user_is_following: !wasFollowing });
+
     try {
-      if (problem.user_is_following) {
+      if (wasFollowing) {
         await api.unfollowProblem(problem.id);
-        setProblem({ ...problem, user_is_following: false });
+        showToast('Unfollowed');
       } else {
         await api.followProblem(problem.id);
-        setProblem({ ...problem, user_is_following: true });
+        showToast('Following 🔔');
       }
     } catch (error) {
-      console.error('Error toggling follow:', error);
+      setProblem({ ...problem, user_is_following: wasFollowing });
+      showToast('Failed to update', true);
     }
   };
 
