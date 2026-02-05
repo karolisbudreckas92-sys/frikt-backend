@@ -146,96 +146,125 @@ export default function AdminPanel() {
     }
   };
 
-  const renderOverview = () => (
-    <ScrollView style={styles.tabContent}>
-      {analytics && (
-        <>
-          {/* Key Metrics */}
-          <Text style={styles.sectionTitle}>Key Metrics</Text>
-          <View style={styles.metricsGrid}>
-            <View style={styles.metricCard}>
-              <Text style={styles.metricValue}>{analytics.users.dau}</Text>
-              <Text style={styles.metricLabel}>DAU</Text>
-            </View>
-            <View style={styles.metricCard}>
-              <Text style={styles.metricValue}>{analytics.users.wau}</Text>
-              <Text style={styles.metricLabel}>WAU</Text>
-            </View>
-            <View style={styles.metricCard}>
-              <Text style={styles.metricValue}>{analytics.problems.today}</Text>
-              <Text style={styles.metricLabel}>Posts Today</Text>
-            </View>
-            <View style={styles.metricCard}>
-              <Text style={styles.metricValue}>{analytics.comments.today}</Text>
-              <Text style={styles.metricLabel}>Comments Today</Text>
-            </View>
+  const renderOverview = () => {
+    // Handle case where analytics is loading or empty
+    if (!analytics) {
+      return (
+        <ScrollView style={styles.tabContent}>
+          <View style={styles.emptyState}>
+            <Ionicons name="stats-chart-outline" size={48} color={colors.textMuted} />
+            <Text style={styles.emptyTitle}>No analytics data</Text>
+            <Text style={styles.emptySubtitle}>Pull down to refresh</Text>
           </View>
+        </ScrollView>
+      );
+    }
 
-          {/* Totals */}
-          <Text style={styles.sectionTitle}>Totals</Text>
-          <View style={styles.statsRow}>
-            <View style={styles.statItem}>
-              <Ionicons name="people" size={20} color={colors.primary} />
-              <Text style={styles.statValue}>{analytics.users.total}</Text>
-              <Text style={styles.statLabel}>Users</Text>
-            </View>
-            <View style={styles.statItem}>
-              <Ionicons name="document-text" size={20} color={colors.accent} />
-              <Text style={styles.statValue}>{analytics.problems.total}</Text>
-              <Text style={styles.statLabel}>Problems</Text>
-            </View>
-            <View style={styles.statItem}>
-              <Ionicons name="chatbubbles" size={20} color={colors.amber} />
-              <Text style={styles.statValue}>{analytics.comments.total}</Text>
-              <Text style={styles.statLabel}>Comments</Text>
-            </View>
+    return (
+      <ScrollView 
+        style={styles.tabContent}
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefreshing}
+            onRefresh={() => loadData(true)}
+            tintColor={colors.primary}
+          />
+        }
+      >
+        {/* Key Metrics */}
+        <Text style={styles.sectionTitle}>Key Metrics</Text>
+        <View style={styles.metricsGrid}>
+          <View style={styles.metricCard}>
+            <Text style={styles.metricValue}>{analytics.users?.dau || 0}</Text>
+            <Text style={styles.metricLabel}>DAU</Text>
           </View>
+          <View style={styles.metricCard}>
+            <Text style={styles.metricValue}>{analytics.users?.wau || 0}</Text>
+            <Text style={styles.metricLabel}>WAU</Text>
+          </View>
+          <View style={styles.metricCard}>
+            <Text style={styles.metricValue}>{analytics.problems?.today || 0}</Text>
+            <Text style={styles.metricLabel}>Frikts Today</Text>
+          </View>
+          <View style={styles.metricCard}>
+            <Text style={styles.metricValue}>{analytics.comments?.today || 0}</Text>
+            <Text style={styles.metricLabel}>Comments Today</Text>
+          </View>
+        </View>
 
-          {/* Alerts */}
-          {analytics.pending_reports > 0 && (
-            <TouchableOpacity 
-              style={styles.alertCard}
-              onPress={() => setActiveTab('reports')}
-            >
-              <Ionicons name="warning" size={24} color={colors.primary} />
-              <View style={styles.alertContent}>
-                <Text style={styles.alertTitle}>{analytics.pending_reports} Pending Reports</Text>
-                <Text style={styles.alertText}>Tap to review</Text>
-              </View>
-              <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
-            </TouchableOpacity>
-          )}
+        {/* Totals */}
+        <Text style={styles.sectionTitle}>Totals</Text>
+        <View style={styles.statsRow}>
+          <View style={styles.statItem}>
+            <Ionicons name="people" size={20} color={colors.primary} />
+            <Text style={styles.statValue}>{analytics.users?.total || 0}</Text>
+            <Text style={styles.statLabel}>Users</Text>
+          </View>
+          <View style={styles.statItem}>
+            <Ionicons name="document-text" size={20} color={colors.accent} />
+            <Text style={styles.statValue}>{analytics.problems?.total || 0}</Text>
+            <Text style={styles.statLabel}>Frikts</Text>
+          </View>
+          <View style={styles.statItem}>
+            <Ionicons name="chatbubbles" size={20} color={colors.amber} />
+            <Text style={styles.statValue}>{analytics.comments?.total || 0}</Text>
+            <Text style={styles.statLabel}>Comments</Text>
+          </View>
+        </View>
 
-          {analytics.users.banned > 0 && (
-            <View style={styles.infoCard}>
-              <Ionicons name="ban" size={20} color={colors.error} />
-              <Text style={styles.infoText}>{analytics.users.banned} banned users</Text>
+        {/* Alerts */}
+        {(analytics.pending_reports || 0) > 0 && (
+          <TouchableOpacity 
+            style={styles.alertCard}
+            onPress={() => setActiveTab('reports')}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="warning" size={24} color={colors.primary} />
+            <View style={styles.alertContent}>
+              <Text style={styles.alertTitle}>{analytics.pending_reports} Pending Reports</Text>
+              <Text style={styles.alertText}>Tap to review</Text>
             </View>
-          )}
+            <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
+          </TouchableOpacity>
+        )}
 
-          {/* Top Problems */}
-          <Text style={styles.sectionTitle}>Top Problems by Signal</Text>
-          {analytics.top_problems?.map((problem: any, index: number) => (
+        {(analytics.users?.banned || 0) > 0 && (
+          <View style={styles.infoCard}>
+            <Ionicons name="ban" size={20} color={colors.error} />
+            <Text style={styles.infoText}>{analytics.users.banned} banned users</Text>
+          </View>
+        )}
+
+        {/* Top Frikts */}
+        <Text style={styles.sectionTitle}>Top Frikts by Signal</Text>
+        {analytics.top_problems && analytics.top_problems.length > 0 ? (
+          analytics.top_problems.map((problem: any, index: number) => (
             <TouchableOpacity 
               key={problem.id}
               style={styles.topProblemCard}
               onPress={() => router.push(`/problem/${problem.id}`)}
+              activeOpacity={0.7}
             >
               <Text style={styles.rankNumber}>#{index + 1}</Text>
               <View style={styles.topProblemContent}>
                 <Text style={styles.topProblemTitle} numberOfLines={1}>{problem.title}</Text>
                 <View style={styles.topProblemStats}>
-                  <Text style={styles.signalScore}>Signal: {problem.signal_score?.toFixed(1)}</Text>
-                  <Text style={styles.topProblemStat}>{problem.relates_count} relates</Text>
-                  <Text style={styles.topProblemStat}>{problem.comments_count} comments</Text>
+                  <Text style={styles.signalScore}>Signal: {(problem.signal_score || 0).toFixed(1)}</Text>
+                  <Text style={styles.topProblemStat}>{problem.relates_count || 0} relates</Text>
+                  <Text style={styles.topProblemStat}>{problem.comments_count || 0} comments</Text>
                 </View>
               </View>
             </TouchableOpacity>
-          ))}
-        </>
-      )}
-    </ScrollView>
-  );
+          ))
+        ) : (
+          <View style={styles.noDataCard}>
+            <Ionicons name="trophy-outline" size={24} color={colors.textMuted} />
+            <Text style={styles.noDataText}>No top Frikts yet</Text>
+          </View>
+        )}
+      </ScrollView>
+    );
+  };
 
   const renderReports = () => (
     <View style={styles.tabContent}>
