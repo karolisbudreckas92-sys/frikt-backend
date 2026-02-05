@@ -137,6 +137,11 @@ class Problem(BaseModel):
     signal_score: float = 0.0
     reports_count: int = 0
     is_hidden: bool = False
+    # Admin fields
+    status: str = "active"  # "active" | "hidden" | "removed"
+    is_pinned: bool = False
+    needs_context: bool = False
+    merged_into: Optional[str] = None  # ID of primary problem if this is a duplicate
 
 class ProblemResponse(Problem):
     category_name: str = ""
