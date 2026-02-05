@@ -261,14 +261,22 @@ export default function ProblemDetail() {
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+          <TouchableOpacity onPress={() => router.back()} style={styles.backButton} activeOpacity={0.7}>
             <Ionicons name="arrow-back" size={24} color={colors.text} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Problem</Text>
+          <Text style={styles.headerTitle}>Frikt</Text>
           <View style={{ width: 32 }} />
         </View>
         <View style={styles.errorContainer}>
-          <Text style={styles.errorText}>Problem not found</Text>
+          <Ionicons name="alert-circle-outline" size={64} color={colors.textMuted} />
+          <Text style={styles.errorText}>Frikt not found</Text>
+          <TouchableOpacity 
+            style={styles.retryButton}
+            onPress={() => router.back()}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.retryButtonText}>Go Back</Text>
+          </TouchableOpacity>
         </View>
       </SafeAreaView>
     );
