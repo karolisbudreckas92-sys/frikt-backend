@@ -1363,7 +1363,7 @@ async def get_users(
     if role:
         query["role"] = role
     
-    users = await db.users.find(query, {"password_hash": 0}).sort("created_at", -1).skip(skip).limit(limit).to_list(limit)
+    users = await db.users.find(query, {"password_hash": 0, "_id": 0}).sort("created_at", -1).skip(skip).limit(limit).to_list(limit)
     total = await db.users.count_documents(query)
     
     return {"users": users, "total": total}
