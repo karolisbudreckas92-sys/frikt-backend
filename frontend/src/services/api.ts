@@ -179,6 +179,31 @@ class ApiService {
     const response = await this.client.post(`/problems/${problemId}/report`);
     return response.data;
   }
+
+  // Push Notifications
+  async registerPushToken(token: string) {
+    const response = await this.client.post('/push/register', { token });
+    return response.data;
+  }
+
+  async unregisterPushToken() {
+    const response = await this.client.delete('/push/unregister');
+    return response.data;
+  }
+
+  async updateNotificationSettings(settings: {
+    newComments: boolean;
+    newRelates: boolean;
+    trending: boolean;
+  }) {
+    const response = await this.client.put('/push/settings', settings);
+    return response.data;
+  }
+
+  async getNotificationSettings() {
+    const response = await this.client.get('/push/settings');
+    return response.data;
+  }
 }
 
 export const api = new ApiService();
