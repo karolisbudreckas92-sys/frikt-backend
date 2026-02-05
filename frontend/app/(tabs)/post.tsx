@@ -10,7 +10,7 @@ export default function PostTab() {
 
   const handleComplete = (problemId?: string) => {
     // Show success toast
-    Toast.show('Posted ✅', {
+    Toast.show('Frikt posted ✅', {
       duration: Toast.durations.SHORT,
       position: Toast.positions.BOTTOM,
       shadow: true,
