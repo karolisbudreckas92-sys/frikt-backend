@@ -69,7 +69,7 @@ export default function MyPosts() {
           <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
             <Ionicons name="arrow-back" size={24} color={colors.text} />
           </TouchableOpacity>
-          <Text style={styles.title}>My Problems</Text>
+          <Text style={styles.title}>My Frikts</Text>
           <View style={{ width: 32 }} />
         </View>
         <View style={styles.loadingContainer}>
@@ -85,7 +85,7 @@ export default function MyPosts() {
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
           <Ionicons name="arrow-back" size={24} color={colors.text} />
         </TouchableOpacity>
-        <Text style={styles.title}>My Problems</Text>
+        <Text style={styles.title}>My Frikts</Text>
         <View style={{ width: 32 }} />
       </View>
 
@@ -110,14 +110,14 @@ export default function MyPosts() {
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
             <Ionicons name="document-text-outline" size={64} color={colors.textMuted} />
-            <Text style={styles.emptyTitle}>No problems posted</Text>
+            <Text style={styles.emptyTitle}>No Frikts yet</Text>
             <Text style={styles.emptyText}>Share your first friction!</Text>
             <TouchableOpacity 
               style={styles.postButton}
               onPress={() => router.push('/(tabs)/post')}
             >
               <Ionicons name="add" size={20} color={colors.white} />
-              <Text style={styles.postButtonText}>Post a Problem</Text>
+              <Text style={styles.postButtonText}>Drop a Frikt</Text>
             </TouchableOpacity>
           </View>
         }
