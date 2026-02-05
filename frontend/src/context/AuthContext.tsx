@@ -6,6 +6,11 @@ interface User {
   id: string;
   email: string;
   name: string;
+  displayName?: string;
+  avatarUrl?: string;
+  bio?: string;
+  city?: string;
+  showCity?: boolean;
   created_at: string;
   role: string;
   status: string;
