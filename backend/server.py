@@ -233,6 +233,37 @@ class NotificationSettingsUpdate(BaseModel):
     new_relates: Optional[bool] = None
     trending: Optional[bool] = None
 
+# Report Model (for posts and comments)
+REPORT_REASONS = ["spam", "abuse", "off-topic", "duplicate"]
+
+class Report(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    reporter_id: str
+    reporter_name: str
+    target_type: str  # "problem" | "comment"
+    target_id: str
+    reason: str  # spam, abuse, off-topic, duplicate
+    details: Optional[str] = None
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    status: str = "pending"  # "pending" | "reviewed" | "dismissed"
+
+class ReportCreate(BaseModel):
+    target_type: str
+    target_id: str
+    reason: str
+    details: Optional[str] = None
+
+# Admin Audit Log Model
+class AdminAuditLog(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    admin_id: str
+    admin_email: str
+    action: str  # "hide_post", "unhide_post", "delete_post", "ban_user", etc.
+    target_type: str  # "problem" | "comment" | "user"
+    target_id: str
+    details: Optional[dict] = None
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
 # ===================== AUTH HELPERS =====================
 
 def hash_password(password: str) -> str:
