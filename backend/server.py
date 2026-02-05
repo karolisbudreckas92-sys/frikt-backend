@@ -195,6 +195,29 @@ MISSIONS = [
     MissionOfDay(theme="Relationships", prompt="What communication friction do you face with others?", category_id="relationships"),
 ]
 
+# Push Token Model
+class PushToken(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    user_id: str
+    token: str
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    is_active: bool = True
+
+class PushTokenCreate(BaseModel):
+    token: str
+
+# Notification Settings Model
+class NotificationSettings(BaseModel):
+    user_id: str
+    new_comments: bool = True
+    new_relates: bool = True
+    trending: bool = True
+
+class NotificationSettingsUpdate(BaseModel):
+    new_comments: Optional[bool] = None
+    new_relates: Optional[bool] = None
+    trending: Optional[bool] = None
+
 # ===================== AUTH HELPERS =====================
 
 def hash_password(password: str) -> str:
