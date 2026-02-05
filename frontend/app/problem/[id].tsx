@@ -19,12 +19,31 @@ import { formatDistanceToNow } from 'date-fns';
 import { colors, radius } from '@/src/theme/colors';
 import { api } from '@/src/services/api';
 import { useAuth } from '@/src/context/AuthContext';
+import Toast from 'react-native-root-toast';
 
 const COMMENT_CHIPS = [
   'I relate because...',
   'One thing I tried...',
   'Have you tried...?',
 ];
+
+const showToast = (message: string, isError: boolean = false) => {
+  Toast.show(message, {
+    duration: Toast.durations.SHORT,
+    position: Toast.positions.BOTTOM,
+    shadow: true,
+    animation: true,
+    hideOnPress: true,
+    backgroundColor: isError ? colors.error : colors.accent,
+    textColor: colors.white,
+    containerStyle: {
+      borderRadius: 8,
+      paddingHorizontal: 20,
+      paddingVertical: 12,
+      marginBottom: 80,
+    },
+  });
+};
 
 export default function ProblemDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
