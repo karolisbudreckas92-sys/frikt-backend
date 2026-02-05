@@ -190,7 +190,7 @@ export default function Profile() {
             <View style={styles.menuIcon}>
               <Ionicons name="bookmark-outline" size={22} color={colors.accent} />
             </View>
-            <Text style={styles.menuText}>Saved Problems</Text>
+            <Text style={styles.menuText}>Saved Frikts</Text>
             <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
           </TouchableOpacity>
 
