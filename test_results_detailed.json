@@ -1,0 +1,51 @@
+[
+  {
+    "test": "Admin Registration",
+    "success": false,
+    "message": "Failed to login existing admin user: 401",
+    "details": "{\"detail\":\"Invalid email or password\"}",
+    "timestamp": "2026-02-05T12:49:52.600863"
+  },
+  {
+    "test": "Regular User Registration",
+    "success": true,
+    "message": "Regular user registered successfully with user role",
+    "details": null,
+    "timestamp": "2026-02-05T12:49:52.876568"
+  },
+  {
+    "test": "Admin Analytics",
+    "success": false,
+    "message": "No admin token available",
+    "details": null,
+    "timestamp": "2026-02-05T12:49:52.877317"
+  },
+  {
+    "test": "Admin Reports",
+    "success": false,
+    "message": "No admin token available",
+    "details": null,
+    "timestamp": "2026-02-05T12:49:52.877327"
+  },
+  {
+    "test": "Admin User Management",
+    "success": false,
+    "message": "Missing admin token or regular user ID",
+    "details": null,
+    "timestamp": "2026-02-05T12:49:52.877333"
+  },
+  {
+    "test": "Admin Audit Log",
+    "success": false,
+    "message": "No admin token available",
+    "details": null,
+    "timestamp": "2026-02-05T12:49:52.877338"
+  },
+  {
+    "test": "Security Check",
+    "success": true,
+    "message": "All admin endpoints properly blocked for non-admin users",
+    "details": null,
+    "timestamp": "2026-02-05T12:49:53.039533"
+  }
+]
