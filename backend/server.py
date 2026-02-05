@@ -985,13 +985,538 @@ async def report_problem(problem_id: str, user: dict = Depends(require_auth)):
     
     new_count = problem.get("reports_count", 0) + 1
     is_hidden = new_count >= 3
+    status = "hidden" if is_hidden else problem.get("status", "active")
     
     await db.problems.update_one(
         {"id": problem_id},
-        {"$set": {"reports_count": new_count, "is_hidden": is_hidden}}
+        {"$set": {"reports_count": new_count, "is_hidden": is_hidden, "status": status}}
     )
     
     return {"reported": True, "is_hidden": is_hidden}
+
+# Enhanced Report endpoint with reason
+class ReportRequest(BaseModel):
+    reason: str = "spam"
+    details: Optional[str] = None
+
+@api_router.post("/report/problem/{problem_id}")
+async def create_problem_report(problem_id: str, report_data: ReportRequest, user: dict = Depends(require_auth)):
+    problem = await db.problems.find_one({"id": problem_id})
+    if not problem:
+        raise HTTPException(status_code=404, detail="Problem not found")
+    
+    if report_data.reason not in REPORT_REASONS:
+        raise HTTPException(status_code=400, detail="Invalid report reason")
+    
+    # Check if user already reported this
+    existing = await db.reports.find_one({
+        "reporter_id": user["id"],
+        "target_type": "problem",
+        "target_id": problem_id
+    })
+    if existing:
+        raise HTTPException(status_code=400, detail="You already reported this")
+    
+    # Create report
+    report = Report(
+        reporter_id=user["id"],
+        reporter_name=user["name"],
+        target_type="problem",
+        target_id=problem_id,
+        reason=report_data.reason,
+        details=report_data.details
+    )
+    await db.reports.insert_one(report.dict())
+    
+    # Update problem report count
+    new_count = problem.get("reports_count", 0) + 1
+    is_hidden = new_count >= 3
+    status = "hidden" if is_hidden else problem.get("status", "active")
+    
+    await db.problems.update_one(
+        {"id": problem_id},
+        {"$set": {"reports_count": new_count, "is_hidden": is_hidden, "status": status}}
+    )
+    
+    return {"reported": True, "is_hidden": is_hidden, "report_count": new_count}
+
+@api_router.post("/report/comment/{comment_id}")
+async def create_comment_report(comment_id: str, report_data: ReportRequest, user: dict = Depends(require_auth)):
+    comment = await db.comments.find_one({"id": comment_id})
+    if not comment:
+        raise HTTPException(status_code=404, detail="Comment not found")
+    
+    if report_data.reason not in REPORT_REASONS:
+        raise HTTPException(status_code=400, detail="Invalid report reason")
+    
+    # Check if user already reported this
+    existing = await db.reports.find_one({
+        "reporter_id": user["id"],
+        "target_type": "comment",
+        "target_id": comment_id
+    })
+    if existing:
+        raise HTTPException(status_code=400, detail="You already reported this")
+    
+    # Create report
+    report = Report(
+        reporter_id=user["id"],
+        reporter_name=user["name"],
+        target_type="comment",
+        target_id=comment_id,
+        reason=report_data.reason,
+        details=report_data.details
+    )
+    await db.reports.insert_one(report.dict())
+    
+    # Update comment report count
+    new_count = comment.get("reports_count", 0) + 1
+    is_hidden = new_count >= 3
+    status = "hidden" if is_hidden else comment.get("status", "active")
+    
+    await db.comments.update_one(
+        {"id": comment_id},
+        {"$set": {"reports_count": new_count, "status": status}}
+    )
+    
+    return {"reported": True, "is_hidden": is_hidden, "report_count": new_count}
+
+# ===================== ADMIN ROUTES =====================
+
+# --- Admin: Moderation ---
+
+@api_router.get("/admin/reports")
+async def get_reports(
+    status: str = "pending",
+    target_type: Optional[str] = None,
+    limit: int = 50,
+    skip: int = 0,
+    admin: dict = Depends(require_admin)
+):
+    """Get list of reports for moderation"""
+    query = {}
+    if status:
+        query["status"] = status
+    if target_type:
+        query["target_type"] = target_type
+    
+    reports = await db.reports.find(query).sort("created_at", -1).skip(skip).limit(limit).to_list(limit)
+    total = await db.reports.count_documents(query)
+    
+    # Enrich with target data
+    for report in reports:
+        if report["target_type"] == "problem":
+            problem = await db.problems.find_one({"id": report["target_id"]}, {"title": 1, "status": 1, "user_name": 1})
+            report["target_data"] = problem
+        elif report["target_type"] == "comment":
+            comment = await db.comments.find_one({"id": report["target_id"]}, {"content": 1, "status": 1, "user_name": 1})
+            report["target_data"] = comment
+    
+    return {"reports": reports, "total": total}
+
+@api_router.get("/admin/reported-problems")
+async def get_reported_problems(limit: int = 50, skip: int = 0, admin: dict = Depends(require_admin)):
+    """Get problems sorted by report count"""
+    problems = await db.problems.find({"reports_count": {"$gt": 0}}).sort("reports_count", -1).skip(skip).limit(limit).to_list(limit)
+    return problems
+
+@api_router.get("/admin/reported-comments")
+async def get_reported_comments(limit: int = 50, skip: int = 0, admin: dict = Depends(require_admin)):
+    """Get comments sorted by report count"""
+    comments = await db.comments.find({"reports_count": {"$gt": 0}}).sort("reports_count", -1).skip(skip).limit(limit).to_list(limit)
+    return comments
+
+@api_router.post("/admin/reports/{report_id}/dismiss")
+async def dismiss_report(report_id: str, admin: dict = Depends(require_admin)):
+    """Dismiss a report"""
+    result = await db.reports.update_one(
+        {"id": report_id},
+        {"$set": {"status": "dismissed"}}
+    )
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Report not found")
+    
+    await log_admin_action(admin, "dismiss_report", "report", report_id)
+    return {"success": True}
+
+@api_router.post("/admin/reports/{report_id}/reviewed")
+async def mark_report_reviewed(report_id: str, admin: dict = Depends(require_admin)):
+    """Mark a report as reviewed"""
+    result = await db.reports.update_one(
+        {"id": report_id},
+        {"$set": {"status": "reviewed"}}
+    )
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Report not found")
+    
+    await log_admin_action(admin, "review_report", "report", report_id)
+    return {"success": True}
+
+# --- Admin: Problem Management ---
+
+@api_router.post("/admin/problems/{problem_id}/hide")
+async def hide_problem(problem_id: str, admin: dict = Depends(require_admin)):
+    """Hide a problem (soft delete)"""
+    problem = await db.problems.find_one({"id": problem_id})
+    if not problem:
+        raise HTTPException(status_code=404, detail="Problem not found")
+    
+    await db.problems.update_one(
+        {"id": problem_id},
+        {"$set": {"status": "hidden", "is_hidden": True}}
+    )
+    
+    await log_admin_action(admin, "hide_problem", "problem", problem_id, {"title": problem["title"]})
+    return {"success": True, "status": "hidden"}
+
+@api_router.post("/admin/problems/{problem_id}/unhide")
+async def unhide_problem(problem_id: str, admin: dict = Depends(require_admin)):
+    """Unhide a problem"""
+    problem = await db.problems.find_one({"id": problem_id})
+    if not problem:
+        raise HTTPException(status_code=404, detail="Problem not found")
+    
+    await db.problems.update_one(
+        {"id": problem_id},
+        {"$set": {"status": "active", "is_hidden": False}}
+    )
+    
+    await log_admin_action(admin, "unhide_problem", "problem", problem_id, {"title": problem["title"]})
+    return {"success": True, "status": "active"}
+
+@api_router.delete("/admin/problems/{problem_id}")
+async def delete_problem(problem_id: str, admin: dict = Depends(require_admin)):
+    """Permanently delete a problem"""
+    problem = await db.problems.find_one({"id": problem_id})
+    if not problem:
+        raise HTTPException(status_code=404, detail="Problem not found")
+    
+    # Delete related data
+    await db.comments.delete_many({"problem_id": problem_id})
+    await db.relates.delete_many({"problem_id": problem_id})
+    await db.reports.delete_many({"target_type": "problem", "target_id": problem_id})
+    await db.problems.delete_one({"id": problem_id})
+    
+    await log_admin_action(admin, "delete_problem", "problem", problem_id, {"title": problem["title"]})
+    return {"success": True, "deleted": True}
+
+@api_router.post("/admin/problems/{problem_id}/pin")
+async def pin_problem(problem_id: str, admin: dict = Depends(require_admin)):
+    """Pin a problem (featured)"""
+    problem = await db.problems.find_one({"id": problem_id})
+    if not problem:
+        raise HTTPException(status_code=404, detail="Problem not found")
+    
+    await db.problems.update_one({"id": problem_id}, {"$set": {"is_pinned": True}})
+    
+    await log_admin_action(admin, "pin_problem", "problem", problem_id, {"title": problem["title"]})
+    return {"success": True, "is_pinned": True}
+
+@api_router.post("/admin/problems/{problem_id}/unpin")
+async def unpin_problem(problem_id: str, admin: dict = Depends(require_admin)):
+    """Unpin a problem"""
+    problem = await db.problems.find_one({"id": problem_id})
+    if not problem:
+        raise HTTPException(status_code=404, detail="Problem not found")
+    
+    await db.problems.update_one({"id": problem_id}, {"$set": {"is_pinned": False}})
+    
+    await log_admin_action(admin, "unpin_problem", "problem", problem_id, {"title": problem["title"]})
+    return {"success": True, "is_pinned": False}
+
+@api_router.post("/admin/problems/{problem_id}/needs-context")
+async def mark_needs_context(problem_id: str, admin: dict = Depends(require_admin)):
+    """Mark a problem as needing more context"""
+    problem = await db.problems.find_one({"id": problem_id})
+    if not problem:
+        raise HTTPException(status_code=404, detail="Problem not found")
+    
+    await db.problems.update_one({"id": problem_id}, {"$set": {"needs_context": True}})
+    
+    # Notify the author
+    notification = Notification(
+        user_id=problem["user_id"],
+        type="needs_context",
+        problem_id=problem_id,
+        message="Your problem needs more context. Please add more details."
+    )
+    await db.notifications.insert_one(notification.dict())
+    
+    await log_admin_action(admin, "mark_needs_context", "problem", problem_id, {"title": problem["title"]})
+    return {"success": True, "needs_context": True}
+
+@api_router.post("/admin/problems/{problem_id}/clear-needs-context")
+async def clear_needs_context(problem_id: str, admin: dict = Depends(require_admin)):
+    """Clear needs context flag"""
+    problem = await db.problems.find_one({"id": problem_id})
+    if not problem:
+        raise HTTPException(status_code=404, detail="Problem not found")
+    
+    await db.problems.update_one({"id": problem_id}, {"$set": {"needs_context": False}})
+    
+    await log_admin_action(admin, "clear_needs_context", "problem", problem_id)
+    return {"success": True, "needs_context": False}
+
+class MergeDuplicatesRequest(BaseModel):
+    duplicate_ids: List[str]
+
+@api_router.post("/admin/problems/{problem_id}/merge")
+async def merge_duplicates(problem_id: str, merge_data: MergeDuplicatesRequest, admin: dict = Depends(require_admin)):
+    """Merge duplicate problems into a primary one"""
+    primary = await db.problems.find_one({"id": problem_id})
+    if not primary:
+        raise HTTPException(status_code=404, detail="Primary problem not found")
+    
+    merged_count = 0
+    for dup_id in merge_data.duplicate_ids:
+        if dup_id == problem_id:
+            continue
+        
+        dup = await db.problems.find_one({"id": dup_id})
+        if dup:
+            # Mark as merged and hidden
+            await db.problems.update_one(
+                {"id": dup_id},
+                {"$set": {
+                    "merged_into": problem_id,
+                    "status": "hidden",
+                    "is_hidden": True
+                }}
+            )
+            
+            # Add relates from duplicate to primary
+            primary_relates = primary.get("relates_count", 0) + dup.get("relates_count", 0)
+            await db.problems.update_one(
+                {"id": problem_id},
+                {"$set": {"relates_count": primary_relates}}
+            )
+            
+            merged_count += 1
+    
+    await log_admin_action(admin, "merge_duplicates", "problem", problem_id, {
+        "duplicates": merge_data.duplicate_ids,
+        "merged_count": merged_count
+    })
+    
+    return {"success": True, "merged_count": merged_count}
+
+# --- Admin: Comment Management ---
+
+@api_router.post("/admin/comments/{comment_id}/hide")
+async def hide_comment(comment_id: str, admin: dict = Depends(require_admin)):
+    """Hide a comment"""
+    comment = await db.comments.find_one({"id": comment_id})
+    if not comment:
+        raise HTTPException(status_code=404, detail="Comment not found")
+    
+    await db.comments.update_one({"id": comment_id}, {"$set": {"status": "hidden"}})
+    
+    await log_admin_action(admin, "hide_comment", "comment", comment_id)
+    return {"success": True, "status": "hidden"}
+
+@api_router.post("/admin/comments/{comment_id}/unhide")
+async def unhide_comment(comment_id: str, admin: dict = Depends(require_admin)):
+    """Unhide a comment"""
+    comment = await db.comments.find_one({"id": comment_id})
+    if not comment:
+        raise HTTPException(status_code=404, detail="Comment not found")
+    
+    await db.comments.update_one({"id": comment_id}, {"$set": {"status": "active"}})
+    
+    await log_admin_action(admin, "unhide_comment", "comment", comment_id)
+    return {"success": True, "status": "active"}
+
+@api_router.delete("/admin/comments/{comment_id}")
+async def delete_comment(comment_id: str, admin: dict = Depends(require_admin)):
+    """Permanently delete a comment"""
+    comment = await db.comments.find_one({"id": comment_id})
+    if not comment:
+        raise HTTPException(status_code=404, detail="Comment not found")
+    
+    # Update problem comment count
+    await db.problems.update_one(
+        {"id": comment["problem_id"]},
+        {"$inc": {"comments_count": -1}}
+    )
+    
+    await db.helpfuls.delete_many({"comment_id": comment_id})
+    await db.reports.delete_many({"target_type": "comment", "target_id": comment_id})
+    await db.comments.delete_one({"id": comment_id})
+    
+    await log_admin_action(admin, "delete_comment", "comment", comment_id)
+    return {"success": True, "deleted": True}
+
+# --- Admin: User Management ---
+
+@api_router.get("/admin/users")
+async def get_users(
+    status: Optional[str] = None,
+    role: Optional[str] = None,
+    limit: int = 50,
+    skip: int = 0,
+    admin: dict = Depends(require_admin)
+):
+    """Get list of users"""
+    query = {}
+    if status:
+        query["status"] = status
+    if role:
+        query["role"] = role
+    
+    users = await db.users.find(query, {"password_hash": 0}).sort("created_at", -1).skip(skip).limit(limit).to_list(limit)
+    total = await db.users.count_documents(query)
+    
+    return {"users": users, "total": total}
+
+@api_router.get("/admin/users/{user_id}")
+async def get_user_detail(user_id: str, admin: dict = Depends(require_admin)):
+    """Get detailed user info"""
+    user = await db.users.find_one({"id": user_id}, {"password_hash": 0})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # Get user stats
+    posts_count = await db.problems.count_documents({"user_id": user_id})
+    comments_count = await db.comments.count_documents({"user_id": user_id})
+    reports_received = await db.reports.count_documents({"target_id": {"$in": [p["id"] async for p in db.problems.find({"user_id": user_id}, {"id": 1})]}})
+    reports_made = await db.reports.count_documents({"reporter_id": user_id})
+    
+    user["stats"] = {
+        "posts_count": posts_count,
+        "comments_count": comments_count,
+        "reports_received": reports_received,
+        "reports_made": reports_made
+    }
+    
+    return user
+
+@api_router.post("/admin/users/{user_id}/ban")
+async def ban_user(user_id: str, admin: dict = Depends(require_admin)):
+    """Ban a user"""
+    user = await db.users.find_one({"id": user_id})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    if user.get("role") == "admin":
+        raise HTTPException(status_code=400, detail="Cannot ban an admin user")
+    
+    await db.users.update_one({"id": user_id}, {"$set": {"status": "banned"}})
+    
+    await log_admin_action(admin, "ban_user", "user", user_id, {"email": user["email"]})
+    return {"success": True, "status": "banned"}
+
+@api_router.post("/admin/users/{user_id}/shadowban")
+async def shadowban_user(user_id: str, admin: dict = Depends(require_admin)):
+    """Shadowban a user (their content is hidden from others)"""
+    user = await db.users.find_one({"id": user_id})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    if user.get("role") == "admin":
+        raise HTTPException(status_code=400, detail="Cannot shadowban an admin user")
+    
+    await db.users.update_one({"id": user_id}, {"$set": {"status": "shadowbanned"}})
+    
+    await log_admin_action(admin, "shadowban_user", "user", user_id, {"email": user["email"]})
+    return {"success": True, "status": "shadowbanned"}
+
+@api_router.post("/admin/users/{user_id}/unban")
+async def unban_user(user_id: str, admin: dict = Depends(require_admin)):
+    """Unban a user"""
+    user = await db.users.find_one({"id": user_id})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    await db.users.update_one({"id": user_id}, {"$set": {"status": "active"}})
+    
+    await log_admin_action(admin, "unban_user", "user", user_id, {"email": user["email"]})
+    return {"success": True, "status": "active"}
+
+# --- Admin: Analytics ---
+
+@api_router.get("/admin/analytics")
+async def get_analytics(admin: dict = Depends(require_admin)):
+    """Get basic analytics"""
+    now = datetime.utcnow()
+    today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    week_start = today_start - timedelta(days=7)
+    
+    # User counts
+    total_users = await db.users.count_documents({})
+    active_users = await db.users.count_documents({"status": "active"})
+    banned_users = await db.users.count_documents({"status": {"$in": ["banned", "shadowbanned"]}})
+    
+    # DAU - users who posted or commented today
+    dau_posts = await db.problems.distinct("user_id", {"created_at": {"$gte": today_start}})
+    dau_comments = await db.comments.distinct("user_id", {"created_at": {"$gte": today_start}})
+    dau = len(set(dau_posts + dau_comments))
+    
+    # WAU - users who posted or commented this week
+    wau_posts = await db.problems.distinct("user_id", {"created_at": {"$gte": week_start}})
+    wau_comments = await db.comments.distinct("user_id", {"created_at": {"$gte": week_start}})
+    wau = len(set(wau_posts + wau_comments))
+    
+    # Content counts
+    total_problems = await db.problems.count_documents({})
+    problems_today = await db.problems.count_documents({"created_at": {"$gte": today_start}})
+    problems_week = await db.problems.count_documents({"created_at": {"$gte": week_start}})
+    
+    total_comments = await db.comments.count_documents({})
+    comments_today = await db.comments.count_documents({"created_at": {"$gte": today_start}})
+    comments_week = await db.comments.count_documents({"created_at": {"$gte": week_start}})
+    
+    # Top problems by SignalScore
+    top_problems = await db.problems.find(
+        {"status": "active"},
+        {"id": 1, "title": 1, "signal_score": 1, "relates_count": 1, "comments_count": 1}
+    ).sort("signal_score", -1).limit(10).to_list(10)
+    
+    # Pending reports
+    pending_reports = await db.reports.count_documents({"status": "pending"})
+    
+    return {
+        "users": {
+            "total": total_users,
+            "active": active_users,
+            "banned": banned_users,
+            "dau": dau,
+            "wau": wau
+        },
+        "problems": {
+            "total": total_problems,
+            "today": problems_today,
+            "week": problems_week
+        },
+        "comments": {
+            "total": total_comments,
+            "today": comments_today,
+            "week": comments_week
+        },
+        "top_problems": top_problems,
+        "pending_reports": pending_reports
+    }
+
+# --- Admin: Audit Log ---
+
+@api_router.get("/admin/audit-log")
+async def get_audit_log(
+    admin_id: Optional[str] = None,
+    action: Optional[str] = None,
+    limit: int = 100,
+    skip: int = 0,
+    admin: dict = Depends(require_admin)
+):
+    """Get admin audit log"""
+    query = {}
+    if admin_id:
+        query["admin_id"] = admin_id
+    if action:
+        query["action"] = action
+    
+    logs = await db.admin_audit_logs.find(query).sort("created_at", -1).skip(skip).limit(limit).to_list(limit)
+    total = await db.admin_audit_logs.count_documents(query)
+    
+    return {"logs": logs, "total": total}
 
 # ===================== PUSH NOTIFICATIONS =====================
 
