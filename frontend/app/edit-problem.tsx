@@ -190,7 +190,7 @@ export default function EditProblem() {
           <TouchableOpacity onPress={() => router.back()} style={styles.headerButton}>
             <Text style={styles.cancelText}>Cancel</Text>
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Edit problem</Text>
+          <Text style={styles.headerTitle}>Edit Frikt</Text>
           <TouchableOpacity 
             onPress={handleSave} 
             style={[styles.headerButton, (!isValid || isSaving) && styles.headerButtonDisabled]}
@@ -209,7 +209,7 @@ export default function EditProblem() {
         <ScrollView style={styles.content} keyboardShouldPersistTaps="handled">
           {/* Main Text */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Problem</Text>
+            <Text style={styles.sectionTitle}>Frikt</Text>
             <TextInput
               style={styles.mainInput}
               value={title}
