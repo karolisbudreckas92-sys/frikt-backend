@@ -13,7 +13,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { colors } from '../theme/colors';
+import { colors, shadows, radius } from '../theme/colors';
 import { api } from '../services/api';
 
 interface PostWizardProps {
@@ -26,7 +26,7 @@ const PLACEHOLDERS = [
   "I hate when ___ happens at work...",
   "It's annoying that ____",
   "Every time I try to ___, it fails because...",
-  "I spend too much on ___ because...",
+  "I spend too much time on ___ because...",
 ];
 
 const FREQUENCY_OPTIONS = [
@@ -37,8 +37,6 @@ const FREQUENCY_OPTIONS = [
 ];
 
 const PAIN_LEVELS = [1, 2, 3, 4, 5];
-
-const PAY_OPTIONS = ['$0', '$1-10', '$10-50', '$50+'];
 
 export default function PostWizard({ onComplete, onCancel }: PostWizardProps) {
   const [step, setStep] = useState(1);
@@ -55,7 +53,6 @@ export default function PostWizard({ onComplete, onCancel }: PostWizardProps) {
   const [categoryId, setCategoryId] = useState('');
   const [frequency, setFrequency] = useState('');
   const [painLevel, setPainLevel] = useState(0);
-  const [willingToPay, setWillingToPay] = useState('$0');
   
   // Step 3
   const [whenHappens, setWhenHappens] = useState('');
@@ -173,7 +170,7 @@ export default function PostWizard({ onComplete, onCancel }: PostWizardProps) {
         category_id: categoryId,
         frequency,
         pain_level: painLevel,
-        willing_to_pay: willingToPay,
+        willing_to_pay: '$0',
         when_happens: whenHappens.trim(),
         who_affected: whoAffected.trim(),
         what_tried: whatTried.trim(),
@@ -227,14 +224,14 @@ export default function PostWizard({ onComplete, onCancel }: PostWizardProps) {
                   'This helps concentrate feedback on similar problems.',
                   [
                     { text: 'Post Anyway', style: 'cancel' },
-                    { text: 'View Thread', onPress: () => {} }, // Could navigate
+                    { text: 'View Thread', onPress: () => {} },
                   ]
                 );
               }}
             >
               <View style={styles.similarHeader}>
-                <View style={[styles.similarPill, { backgroundColor: problem.category_color + '25' }]}>
-                  <Text style={[styles.similarPillText, { color: problem.category_color }]}>
+                <View style={[styles.similarPill, { backgroundColor: colors.softRed }]}>
+                  <Text style={[styles.similarPillText, { color: colors.primary }]}>
                     {problem.category_name}
                   </Text>
                 </View>
@@ -264,14 +261,14 @@ export default function PostWizard({ onComplete, onCancel }: PostWizardProps) {
             key={cat.id}
             style={[
               styles.categoryChip,
-              categoryId === cat.id && { backgroundColor: cat.color, borderColor: cat.color }
+              categoryId === cat.id && styles.categoryChipActive
             ]}
             onPress={() => setCategoryId(cat.id)}
           >
             <Ionicons 
               name={cat.icon} 
               size={16} 
-              color={categoryId === cat.id ? colors.white : cat.color} 
+              color={categoryId === cat.id ? colors.white : colors.text} 
             />
             <Text style={[
               styles.categoryChipText,
@@ -333,27 +330,6 @@ export default function PostWizard({ onComplete, onCancel }: PostWizardProps) {
         <Text style={styles.painLabel}>Mild</Text>
         <Text style={styles.painLabel}>Severe</Text>
       </View>
-
-      <Text style={styles.fieldLabel}>Would you pay to remove it? (optional)</Text>
-      <View style={styles.optionRow}>
-        {PAY_OPTIONS.map((opt) => (
-          <TouchableOpacity
-            key={opt}
-            style={[
-              styles.payChip,
-              willingToPay === opt && styles.payChipActive
-            ]}
-            onPress={() => setWillingToPay(opt)}
-          >
-            <Text style={[
-              styles.payChipText,
-              willingToPay === opt && styles.payChipTextActive
-            ]}>
-              {opt}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </View>
     </ScrollView>
   );
 
@@ -366,14 +342,14 @@ export default function PostWizard({ onComplete, onCancel }: PostWizardProps) {
         style={styles.exampleToggle}
         onPress={() => setShowExample(!showExample)}
       >
-        <Ionicons name="bulb-outline" size={18} color={colors.primary} />
+        <Ionicons name="bulb-outline" size={18} color={colors.accent} />
         <Text style={styles.exampleToggleText}>
           {showExample ? 'Hide example' : 'Good post looks like this'}
         </Text>
         <Ionicons 
           name={showExample ? 'chevron-up' : 'chevron-down'} 
           size={18} 
-          color={colors.primary} 
+          color={colors.accent} 
         />
       </TouchableOpacity>
 
@@ -508,6 +484,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 12,
+    backgroundColor: colors.surface,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
   },
@@ -522,10 +499,10 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   stepIndicator: {
-    backgroundColor: colors.surface,
+    backgroundColor: colors.softRed,
     paddingHorizontal: 12,
     paddingVertical: 6,
-    borderRadius: 12,
+    borderRadius: radius.md,
   },
   stepIndicatorText: {
     fontSize: 13,
@@ -534,7 +511,7 @@ const styles = StyleSheet.create({
   },
   progressBar: {
     height: 3,
-    backgroundColor: colors.border,
+    backgroundColor: colors.divider,
   },
   progressFill: {
     height: '100%',
@@ -557,14 +534,14 @@ const styles = StyleSheet.create({
   },
   titleInput: {
     backgroundColor: colors.surface,
-    borderRadius: 12,
+    borderRadius: radius.lg,
     padding: 16,
     fontSize: 16,
     color: colors.text,
     minHeight: 100,
     textAlignVertical: 'top',
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.cardBorder,
   },
   charCount: {
     fontSize: 12,
@@ -599,11 +576,12 @@ const styles = StyleSheet.create({
   },
   similarCard: {
     backgroundColor: colors.surface,
-    borderRadius: 12,
+    borderRadius: radius.lg,
     padding: 14,
     marginBottom: 10,
     borderWidth: 1,
-    borderColor: colors.primary + '40',
+    borderColor: colors.primary,
+    ...shadows.subtle,
   },
   similarHeader: {
     marginBottom: 8,
@@ -612,7 +590,7 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
     paddingHorizontal: 8,
     paddingVertical: 3,
-    borderRadius: 8,
+    borderRadius: radius.sm,
   },
   similarPillText: {
     fontSize: 11,
@@ -650,11 +628,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 12,
     paddingVertical: 10,
-    borderRadius: 10,
+    borderRadius: radius.md,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.cardBorder,
     backgroundColor: colors.surface,
     gap: 6,
+  },
+  categoryChipActive: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
   },
   categoryChipText: {
     fontSize: 13,
@@ -671,9 +653,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 14,
     paddingVertical: 10,
-    borderRadius: 10,
+    borderRadius: radius.md,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.cardBorder,
     backgroundColor: colors.surface,
     gap: 6,
   },
@@ -696,15 +678,15 @@ const styles = StyleSheet.create({
   painChip: {
     flex: 1,
     paddingVertical: 14,
-    borderRadius: 10,
+    borderRadius: radius.md,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.cardBorder,
     backgroundColor: colors.surface,
     alignItems: 'center',
   },
   painChipActive: {
-    backgroundColor: colors.error,
-    borderColor: colors.error,
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
   },
   painChipText: {
     fontSize: 16,
@@ -723,26 +705,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: colors.textMuted,
   },
-  payChip: {
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.surface,
-  },
-  payChipActive: {
-    backgroundColor: colors.accent,
-    borderColor: colors.accent,
-  },
-  payChipText: {
-    fontSize: 13,
-    fontWeight: '500',
-    color: colors.textSecondary,
-  },
-  payChipTextActive: {
-    color: colors.white,
-  },
   exampleToggle: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -753,21 +715,21 @@ const styles = StyleSheet.create({
   exampleToggleText: {
     fontSize: 14,
     fontWeight: '500',
-    color: colors.primary,
+    color: colors.accent,
     flex: 1,
   },
   exampleBox: {
-    backgroundColor: colors.primary + '15',
-    borderRadius: 12,
+    backgroundColor: colors.softGreen,
+    borderRadius: radius.md,
     padding: 14,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: colors.primary + '30',
+    borderColor: colors.accent,
   },
   exampleLabel: {
     fontSize: 13,
     fontWeight: '600',
-    color: colors.primary,
+    color: colors.accent,
     marginBottom: 8,
   },
   exampleText: {
@@ -782,14 +744,14 @@ const styles = StyleSheet.create({
   },
   contextInput: {
     backgroundColor: colors.surface,
-    borderRadius: 12,
+    borderRadius: radius.md,
     padding: 14,
     fontSize: 15,
     color: colors.text,
     minHeight: 80,
     textAlignVertical: 'top',
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.cardBorder,
   },
   confirmCheckbox: {
     flexDirection: 'row',
@@ -803,7 +765,7 @@ const styles = StyleSheet.create({
     height: 24,
     borderRadius: 6,
     borderWidth: 2,
-    borderColor: colors.border,
+    borderColor: colors.cardBorder,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -818,6 +780,7 @@ const styles = StyleSheet.create({
   },
   footer: {
     padding: 16,
+    backgroundColor: colors.surface,
     borderTopWidth: 1,
     borderTopColor: colors.border,
   },
@@ -826,7 +789,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: colors.primary,
-    borderRadius: 12,
+    borderRadius: radius.md,
     paddingVertical: 16,
     gap: 8,
   },
@@ -839,8 +802,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.accent,
-    borderRadius: 12,
+    backgroundColor: colors.primary,
+    borderRadius: radius.md,
     paddingVertical: 16,
     gap: 8,
   },
