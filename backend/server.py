@@ -359,15 +359,24 @@ async def register(user_data: UserCreate):
     if existing:
         raise HTTPException(status_code=400, detail="Email already registered")
     
+    # Determine role based on admin email list
+    email_lower = user_data.email.lower()
+    role = "admin" if email_lower in ADMIN_EMAILS else "user"
+    
     # Create user
     user = User(
         email=user_data.email,
         name=user_data.name,
+        role=role,
     )
     user_dict = user.dict()
     user_dict["password_hash"] = hash_password(user_data.password)
     
     await db.users.insert_one(user_dict)
+    
+    # Log if admin user created
+    if role == "admin":
+        logger.info(f"Admin user registered: {user_data.email}")
     
     # Create token
     token = create_access_token({"sub": user.id})
@@ -382,6 +391,17 @@ async def login(credentials: UserLogin):
     user = await db.users.find_one({"email": credentials.email})
     if not user or not verify_password(credentials.password, user.get("password_hash", "")):
         raise HTTPException(status_code=401, detail="Invalid email or password")
+    
+    # Check if user is banned
+    if user.get("status") == "banned":
+        raise HTTPException(status_code=403, detail="Your account has been suspended")
+    
+    # Update role if email is in admin list (in case list was updated)
+    email_lower = credentials.email.lower()
+    if email_lower in ADMIN_EMAILS and user.get("role") != "admin":
+        await db.users.update_one({"id": user["id"]}, {"$set": {"role": "admin"}})
+        user["role"] = "admin"
+        logger.info(f"User promoted to admin on login: {credentials.email}")
     
     token = create_access_token({"sub": user["id"]})
     
