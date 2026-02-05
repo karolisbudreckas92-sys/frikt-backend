@@ -1103,14 +1103,32 @@ async def get_reports(
     reports = await db.reports.find(query).sort("created_at", -1).skip(skip).limit(limit).to_list(limit)
     total = await db.reports.count_documents(query)
     
-    # Enrich with target data
+    # Batch fetch target data to avoid N+1 queries
+    problem_ids = [r["target_id"] for r in reports if r["target_type"] == "problem"]
+    comment_ids = [r["target_id"] for r in reports if r["target_type"] == "comment"]
+    
+    problems_map = {}
+    if problem_ids:
+        problems = await db.problems.find(
+            {"id": {"$in": problem_ids}}, 
+            {"id": 1, "title": 1, "status": 1, "user_name": 1}
+        ).to_list(len(problem_ids))
+        problems_map = {p["id"]: p for p in problems}
+    
+    comments_map = {}
+    if comment_ids:
+        comments = await db.comments.find(
+            {"id": {"$in": comment_ids}}, 
+            {"id": 1, "content": 1, "status": 1, "user_name": 1}
+        ).to_list(len(comment_ids))
+        comments_map = {c["id"]: c for c in comments}
+    
+    # Enrich reports with target data
     for report in reports:
         if report["target_type"] == "problem":
-            problem = await db.problems.find_one({"id": report["target_id"]}, {"title": 1, "status": 1, "user_name": 1})
-            report["target_data"] = problem
+            report["target_data"] = problems_map.get(report["target_id"])
         elif report["target_type"] == "comment":
-            comment = await db.comments.find_one({"id": report["target_id"]}, {"content": 1, "status": 1, "user_name": 1})
-            report["target_data"] = comment
+            report["target_data"] = comments_map.get(report["target_id"])
     
     return {"reports": reports, "total": total}
 
