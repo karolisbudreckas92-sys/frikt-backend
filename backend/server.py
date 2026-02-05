@@ -1378,7 +1378,11 @@ async def get_user_detail(user_id: str, admin: dict = Depends(require_admin)):
     # Get user stats
     posts_count = await db.problems.count_documents({"user_id": user_id})
     comments_count = await db.comments.count_documents({"user_id": user_id})
-    reports_received = await db.reports.count_documents({"target_id": {"$in": [p["id"] async for p in db.problems.find({"user_id": user_id}, {"id": 1})]}})
+    
+    # Get problem IDs for reports calculation
+    user_problems = await db.problems.find({"user_id": user_id}, {"id": 1}).to_list(1000)
+    problem_ids = [p["id"] for p in user_problems]
+    reports_received = await db.reports.count_documents({"target_id": {"$in": problem_ids}}) if problem_ids else 0
     reports_made = await db.reports.count_documents({"reporter_id": user_id})
     
     user["stats"] = {
