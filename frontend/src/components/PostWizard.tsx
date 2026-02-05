@@ -128,6 +128,12 @@ export default function PostWizard({ onComplete, onCancel }: PostWizardProps) {
       onComplete(result.id);
     } catch (error: any) {
       console.error('Post error:', error);
+      const message = error.response?.data?.detail || 'Failed to post. Try again.';
+      if (error.response?.status === 429) {
+        showToast('Too many Frikts today. Try again tomorrow!', true);
+      } else {
+        showToast(message, true);
+      }
       setIsSubmitting(false);
     }
   };
