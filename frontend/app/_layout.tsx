@@ -5,6 +5,7 @@ import { AuthProvider, useAuth } from '@/src/context/AuthContext';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { usePushNotifications } from '@/src/services/notifications';
 import * as Notifications from 'expo-notifications';
+import { RootSiblingParent } from 'react-native-root-siblings';
 
 function RootLayoutNav() {
   const router = useRouter();
@@ -25,7 +26,7 @@ function RootLayoutNav() {
 
   return (
     <>
-      <StatusBar style="light" />
+      <StatusBar style="dark" />
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="index" />
         <Stack.Screen name="(auth)" />
@@ -36,6 +37,7 @@ function RootLayoutNav() {
         <Stack.Screen name="saved" options={{ presentation: 'card' }} />
         <Stack.Screen name="my-posts" options={{ presentation: 'card' }} />
         <Stack.Screen name="category/[id]" options={{ presentation: 'card' }} />
+        <Stack.Screen name="edit-profile" options={{ presentation: 'card' }} />
       </Stack>
     </>
   );
@@ -43,10 +45,12 @@ function RootLayoutNav() {
 
 export default function RootLayout() {
   return (
-    <SafeAreaProvider>
-      <AuthProvider>
-        <RootLayoutNav />
-      </AuthProvider>
-    </SafeAreaProvider>
+    <RootSiblingParent>
+      <SafeAreaProvider>
+        <AuthProvider>
+          <RootLayoutNav />
+        </AuthProvider>
+      </SafeAreaProvider>
+    </RootSiblingParent>
   );
 }
