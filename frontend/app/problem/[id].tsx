@@ -16,7 +16,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { formatDistanceToNow } from 'date-fns';
-import { colors } from '@/src/theme/colors';
+import { colors, radius } from '@/src/theme/colors';
 import { api } from '@/src/services/api';
 import { useAuth } from '@/src/context/AuthContext';
 
@@ -61,6 +61,15 @@ export default function ProblemDetail() {
   useEffect(() => {
     loadData();
   }, [id]);
+
+  // Check if current user is the owner
+  const isOwner = user && problem && user.id === problem.user_id;
+
+  // Check if any context fields have content
+  const hasWhenHappens = problem?.when_happens && problem.when_happens.trim().length > 0;
+  const hasWhoAffected = problem?.who_affected && problem.who_affected.trim().length > 0;
+  const hasWhatTried = problem?.what_tried && problem.what_tried.trim().length > 0;
+  const hasAnyContext = hasWhenHappens || hasWhoAffected || hasWhatTried;
 
   const handleRelate = async () => {
     if (!problem) return;
@@ -115,7 +124,7 @@ export default function ProblemDetail() {
     
     try {
       await Share.share({
-        message: `Check out this problem: "${problem.title}" on PathGro`,
+        message: `Check out this problem: "${problem.title}" on FRIKT`,
       });
     } catch (error) {
       console.error('Error sharing:', error);
@@ -144,6 +153,10 @@ export default function ProblemDetail() {
         },
       ]
     );
+  };
+
+  const handleEdit = () => {
+    router.push(`/edit-problem?id=${problem.id}`);
   };
 
   const handleAddComment = async () => {
@@ -231,16 +244,23 @@ export default function ProblemDetail() {
             <Ionicons name="arrow-back" size={24} color={colors.text} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Problem</Text>
-          <TouchableOpacity onPress={handleShare} style={styles.shareButton}>
-            <Ionicons name="share-outline" size={22} color={colors.text} />
-          </TouchableOpacity>
+          <View style={styles.headerRight}>
+            {isOwner && (
+              <TouchableOpacity onPress={handleEdit} style={styles.headerIconButton}>
+                <Ionicons name="pencil-outline" size={20} color={colors.text} />
+              </TouchableOpacity>
+            )}
+            <TouchableOpacity onPress={handleShare} style={styles.headerIconButton}>
+              <Ionicons name="share-outline" size={22} color={colors.text} />
+            </TouchableOpacity>
+          </View>
         </View>
 
         <ScrollView style={styles.content} contentContainerStyle={styles.scrollContent}>
           {/* Category and Meta */}
           <View style={styles.metaRow}>
-            <View style={[styles.categoryPill, { backgroundColor: problem.category_color + '25' }]}>
-              <Text style={[styles.categoryText, { color: problem.category_color }]}>
+            <View style={styles.categoryPill}>
+              <Text style={styles.categoryText}>
                 {problem.category_name}
               </Text>
             </View>
@@ -250,7 +270,7 @@ export default function ProblemDetail() {
           {/* Title */}
           <Text style={styles.title}>{problem.title}</Text>
 
-          {/* Signal Summary */}
+          {/* Signal Summary - Only show fields that have values */}
           <View style={styles.signalSummary}>
             <View style={styles.signalItem}>
               <Text style={styles.signalValue}>{problem.relates_count}</Text>
@@ -261,16 +281,24 @@ export default function ProblemDetail() {
               <Text style={styles.signalValue}>{problem.comments_count}</Text>
               <Text style={styles.signalLabel}>Comments</Text>
             </View>
-            <View style={styles.signalDivider} />
-            <View style={styles.signalItem}>
-              <Text style={styles.signalValue}>{problem.frequency}</Text>
-              <Text style={styles.signalLabel}>Frequency</Text>
-            </View>
-            <View style={styles.signalDivider} />
-            <View style={styles.signalItem}>
-              <Text style={styles.signalValue}>{problem.pain_level}/5</Text>
-              <Text style={styles.signalLabel}>Pain</Text>
-            </View>
+            {problem.frequency && (
+              <>
+                <View style={styles.signalDivider} />
+                <View style={styles.signalItem}>
+                  <Text style={styles.signalValue}>{problem.frequency}</Text>
+                  <Text style={styles.signalLabel}>Frequency</Text>
+                </View>
+              </>
+            )}
+            {problem.pain_level && (
+              <>
+                <View style={styles.signalDivider} />
+                <View style={styles.signalItem}>
+                  <Text style={styles.signalValue}>{problem.pain_level}/5</Text>
+                  <Text style={styles.signalLabel}>Pain</Text>
+                </View>
+              </>
+            )}
           </View>
 
           {/* Actions */}
@@ -282,7 +310,7 @@ export default function ProblemDetail() {
               <Ionicons 
                 name={problem.user_has_related ? 'heart' : 'heart-outline'} 
                 size={20} 
-                color={problem.user_has_related ? colors.relateActive : colors.text} 
+                color={problem.user_has_related ? colors.primary : colors.text} 
               />
               <Text style={[styles.actionText, problem.user_has_related && styles.actionTextActive]}>
                 Relate
@@ -319,17 +347,48 @@ export default function ProblemDetail() {
             </TouchableOpacity>
           </View>
 
-          {/* Context */}
-          <View style={styles.contextSection}>
-            <Text style={styles.sectionTitle}>When does this happen?</Text>
-            <Text style={styles.contextText}>{problem.when_happens}</Text>
+          {/* Context Section - Only show if has content OR show "Add details" card for owner */}
+          {hasAnyContext ? (
+            <View style={styles.contextSection}>
+              {hasWhenHappens && (
+                <>
+                  <Text style={styles.contextLabel}>When does this happen?</Text>
+                  <View style={styles.contextBox}>
+                    <Text style={styles.contextText}>{problem.when_happens}</Text>
+                  </View>
+                </>
+              )}
 
-            <Text style={styles.sectionTitle}>Who does it affect?</Text>
-            <Text style={styles.contextText}>{problem.who_affected}</Text>
+              {hasWhoAffected && (
+                <>
+                  <Text style={styles.contextLabel}>Who does it affect?</Text>
+                  <View style={styles.contextBox}>
+                    <Text style={styles.contextText}>{problem.who_affected}</Text>
+                  </View>
+                </>
+              )}
 
-            <Text style={styles.sectionTitle}>What have you tried?</Text>
-            <Text style={styles.contextText}>{problem.what_tried}</Text>
-          </View>
+              {hasWhatTried && (
+                <>
+                  <Text style={styles.contextLabel}>What have you tried?</Text>
+                  <View style={styles.contextBox}>
+                    <Text style={styles.contextText}>{problem.what_tried}</Text>
+                  </View>
+                </>
+              )}
+            </View>
+          ) : isOwner ? (
+            <TouchableOpacity style={styles.addDetailsCard} onPress={handleEdit}>
+              <View style={styles.addDetailsContent}>
+                <Ionicons name="add-circle-outline" size={24} color={colors.primary} />
+                <View style={styles.addDetailsText}>
+                  <Text style={styles.addDetailsTitle}>Add details (optional)</Text>
+                  <Text style={styles.addDetailsSubtitle}>Helps others relate faster</Text>
+                </View>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
+            </TouchableOpacity>
+          ) : null}
 
           {/* Comments Section */}
           <View style={styles.commentsSection}>
@@ -427,7 +486,7 @@ export default function ProblemDetail() {
                 >
                   <Text style={styles.relatedTitle} numberOfLines={2}>{related.title}</Text>
                   <View style={styles.relatedStats}>
-                    <Ionicons name="heart" size={14} color={colors.relateActive} />
+                    <Ionicons name="heart" size={14} color={colors.primary} />
                     <Text style={styles.relatedStatText}>{related.relates_count}</Text>
                   </View>
                 </TouchableOpacity>
@@ -479,7 +538,12 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: colors.text,
   },
-  shareButton: {
+  headerRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  headerIconButton: {
     padding: 4,
   },
   content: {
@@ -498,11 +562,13 @@ const styles = StyleSheet.create({
   categoryPill: {
     paddingHorizontal: 12,
     paddingVertical: 5,
-    borderRadius: 12,
+    borderRadius: radius.md,
+    backgroundColor: colors.softRed,
   },
   categoryText: {
     fontSize: 13,
     fontWeight: '600',
+    color: colors.primary,
   },
   timeText: {
     fontSize: 13,
@@ -518,7 +584,7 @@ const styles = StyleSheet.create({
   signalSummary: {
     flexDirection: 'row',
     backgroundColor: colors.surface,
-    borderRadius: 12,
+    borderRadius: radius.md,
     padding: 14,
     marginBottom: 16,
   },
@@ -549,10 +615,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 8,
     paddingHorizontal: 12,
-    borderRadius: 10,
+    borderRadius: radius.md,
   },
   actionButtonActive: {
-    backgroundColor: colors.surfaceLight,
+    backgroundColor: colors.softRed,
   },
   actionText: {
     fontSize: 12,
@@ -560,32 +626,68 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   actionTextActive: {
-    color: colors.relateActive,
+    color: colors.primary,
   },
   contextSection: {
     marginBottom: 24,
   },
-  sectionTitle: {
-    fontSize: 14,
+  contextLabel: {
+    fontSize: 13,
     fontWeight: '600',
     color: colors.textSecondary,
     marginBottom: 8,
-    marginTop: 16,
+    marginTop: 12,
+  },
+  contextBox: {
+    backgroundColor: colors.surface,
+    padding: 14,
+    borderRadius: radius.md,
   },
   contextText: {
     fontSize: 15,
     color: colors.text,
     lineHeight: 22,
+  },
+  addDetailsCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     backgroundColor: colors.surface,
-    padding: 14,
-    borderRadius: 10,
+    padding: 16,
+    borderRadius: radius.md,
+    marginBottom: 24,
+    borderWidth: 1,
+    borderColor: colors.primary + '30',
+    borderStyle: 'dashed',
+  },
+  addDetailsContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  addDetailsText: {},
+  addDetailsTitle: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: colors.text,
+  },
+  addDetailsSubtitle: {
+    fontSize: 13,
+    color: colors.textMuted,
+    marginTop: 2,
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.text,
+    marginBottom: 12,
   },
   commentsSection: {
     marginTop: 8,
   },
   commentInputContainer: {
     backgroundColor: colors.surface,
-    borderRadius: 12,
+    borderRadius: radius.md,
     padding: 12,
     marginBottom: 16,
   },
@@ -596,7 +698,7 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   chip: {
-    backgroundColor: colors.surfaceLight,
+    backgroundColor: colors.softRed,
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 16,
@@ -642,7 +744,7 @@ const styles = StyleSheet.create({
   },
   commentCard: {
     backgroundColor: colors.surface,
-    borderRadius: 12,
+    borderRadius: radius.md,
     padding: 14,
     marginBottom: 10,
   },
@@ -699,7 +801,7 @@ const styles = StyleSheet.create({
   },
   relatedCard: {
     backgroundColor: colors.surface,
-    borderRadius: 10,
+    borderRadius: radius.md,
     padding: 14,
     marginBottom: 8,
     flexDirection: 'row',
