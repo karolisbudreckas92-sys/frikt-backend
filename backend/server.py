@@ -295,7 +295,36 @@ async def require_auth(credentials: HTTPAuthorizationCredentials = Depends(secur
     user = await get_current_user(credentials)
     if not user:
         raise HTTPException(status_code=401, detail="Not authenticated")
+    # Check if user is banned
+    if user.get("status") == "banned":
+        raise HTTPException(status_code=403, detail="Your account has been suspended")
     return user
+
+def is_admin(user: dict) -> bool:
+    """Check if user has admin role"""
+    return user.get("role") == "admin"
+
+async def require_admin(credentials: HTTPAuthorizationCredentials = Depends(security)) -> dict:
+    """Require admin role for route access"""
+    user = await get_current_user(credentials)
+    if not user:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    if not is_admin(user):
+        raise HTTPException(status_code=403, detail="Admin access required")
+    return user
+
+async def log_admin_action(admin: dict, action: str, target_type: str, target_id: str, details: dict = None):
+    """Log admin actions for audit trail"""
+    log_entry = AdminAuditLog(
+        admin_id=admin["id"],
+        admin_email=admin["email"],
+        action=action,
+        target_type=target_type,
+        target_id=target_id,
+        details=details
+    )
+    await db.admin_audit_logs.insert_one(log_entry.dict())
+    logger.info(f"Admin action: {admin['email']} performed {action} on {target_type}/{target_id}")
 
 # ===================== SIGNAL SCORE =====================
 
