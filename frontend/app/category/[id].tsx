@@ -193,14 +193,15 @@ export default function CategoryProblems() {
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
             <Ionicons name={category.icon} size={64} color={colors.textMuted} />
-            <Text style={styles.emptyTitle}>No problems yet</Text>
+            <Text style={styles.emptyTitle}>No Frikts yet</Text>
             <Text style={styles.emptyText}>Be the first to share a friction in {category.name}!</Text>
             <TouchableOpacity 
               style={[styles.postButton, { backgroundColor: category.color }]}
               onPress={() => router.push('/(tabs)/post')}
+              activeOpacity={0.7}
             >
               <Ionicons name="add" size={20} color={colors.white} />
-              <Text style={styles.postButtonText}>Post a Problem</Text>
+              <Text style={styles.postButtonText}>Drop a Frikt</Text>
             </TouchableOpacity>
           </View>
         }
