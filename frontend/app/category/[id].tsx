@@ -15,6 +15,25 @@ import { colors } from '@/src/theme/colors';
 import { api } from '@/src/services/api';
 import ProblemCard from '@/src/components/ProblemCard';
 import { useAuth } from '@/src/context/AuthContext';
+import Toast from 'react-native-root-toast';
+
+const showToast = (message: string, isError: boolean = false) => {
+  Toast.show(message, {
+    duration: Toast.durations.SHORT,
+    position: Toast.positions.BOTTOM,
+    shadow: true,
+    animation: true,
+    hideOnPress: true,
+    backgroundColor: isError ? colors.error : colors.accent,
+    textColor: colors.white,
+    containerStyle: {
+      borderRadius: 8,
+      paddingHorizontal: 20,
+      paddingVertical: 12,
+      marginBottom: 80,
+    },
+  });
+};
 
 export default function CategoryProblems() {
   const { id } = useLocalSearchParams<{ id: string }>();
