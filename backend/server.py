@@ -39,8 +39,15 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 security = HTTPBearer(auto_error=False)
 
 # Create the main app
-app = FastAPI(title="PathGro API")
+app = FastAPI(title="FRIKT API")
 api_router = APIRouter(prefix="/api")
+
+# Create uploads directory
+UPLOADS_DIR = Path("/app/backend/uploads/avatars")
+UPLOADS_DIR.mkdir(parents=True, exist_ok=True)
+
+# Mount static files for serving uploaded avatars
+app.mount("/api/uploads", StaticFiles(directory="/app/backend/uploads"), name="uploads")
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
