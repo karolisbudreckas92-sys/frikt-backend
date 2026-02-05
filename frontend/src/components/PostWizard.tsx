@@ -8,7 +8,6 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
-  Alert,
   ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -17,63 +16,47 @@ import { colors, shadows, radius } from '../theme/colors';
 import { api } from '../services/api';
 
 interface PostWizardProps {
-  onComplete: () => void;
+  onComplete: (problemId?: string) => void;
   onCancel: () => void;
 }
 
-const PLACEHOLDERS = [
-  "I waste 20 minutes a day because...",
-  "I hate when ___ happens at work...",
-  "It's annoying that ____",
-  "Every time I try to ___, it fails because...",
-  "I spend too much time on ___ because...",
+const CATEGORIES = [
+  { id: 'money', name: 'Money' },
+  { id: 'work', name: 'Work' },
+  { id: 'health', name: 'Health' },
+  { id: 'home', name: 'Home' },
+  { id: 'tech', name: 'Tech' },
+  { id: 'school', name: 'School' },
+  { id: 'relationships', name: 'Relationships' },
+  { id: 'travel', name: 'Travel' },
+  { id: 'services', name: 'Services' },
+  { id: 'other', name: 'Other' },
 ];
 
 const FREQUENCY_OPTIONS = [
-  { value: 'daily', label: 'Daily', icon: 'repeat' },
-  { value: 'weekly', label: 'Weekly', icon: 'calendar' },
-  { value: 'monthly', label: 'Monthly', icon: 'calendar-outline' },
-  { value: 'rare', label: 'Rare', icon: 'time-outline' },
+  { value: 'daily', label: 'Daily' },
+  { value: 'weekly', label: 'Weekly' },
+  { value: 'monthly', label: 'Monthly' },
+  { value: 'rare', label: 'Rare' },
 ];
 
-const PAIN_LEVELS = [1, 2, 3, 4, 5];
+const SEVERITY_LEVELS = [1, 2, 3, 4, 5];
 
 export default function PostWizard({ onComplete, onCancel }: PostWizardProps) {
   const [step, setStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   
-  // Step 1
-  const [title, setTitle] = useState('');
+  // Step 1 - Quick post
+  const [problemText, setProblemText] = useState('');
   const [similarProblems, setSimilarProblems] = useState<any[]>([]);
   const [isSearching, setIsSearching] = useState(false);
-  const [placeholder] = useState(PLACEHOLDERS[Math.floor(Math.random() * PLACEHOLDERS.length)]);
   
-  // Step 2
-  const [categories, setCategories] = useState<any[]>([]);
-  const [categoryId, setCategoryId] = useState('');
-  const [frequency, setFrequency] = useState('');
-  const [painLevel, setPainLevel] = useState(0);
-  
-  // Step 3
-  const [whenHappens, setWhenHappens] = useState('');
-  const [whoAffected, setWhoAffected] = useState('');
-  const [whatTried, setWhatTried] = useState('');
-  const [isProblemConfirmed, setIsProblemConfirmed] = useState(false);
-  const [showExample, setShowExample] = useState(false);
+  // Step 2 - Optional tags
+  const [categoryId, setCategoryId] = useState('other');
+  const [frequency, setFrequency] = useState<string | null>(null);
+  const [severity, setSeverity] = useState<number | null>(null);
 
-  useEffect(() => {
-    loadCategories();
-  }, []);
-
-  const loadCategories = async () => {
-    try {
-      const data = await api.getCategories();
-      setCategories(data);
-    } catch (error) {
-      console.error('Error loading categories:', error);
-    }
-  };
-
+  // Duplicate detection
   const searchSimilar = useCallback(async (text: string) => {
     if (text.length < 10) {
       setSimilarProblems([]);
@@ -83,7 +66,7 @@ export default function PostWizard({ onComplete, onCancel }: PostWizardProps) {
     setIsSearching(true);
     try {
       const data = await api.getSimilarProblems(text);
-      setSimilarProblems(data);
+      setSimilarProblems(data.slice(0, 2)); // Show max 2
     } catch (error) {
       console.error('Error searching similar:', error);
     } finally {
@@ -93,63 +76,39 @@ export default function PostWizard({ onComplete, onCancel }: PostWizardProps) {
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      if (title.length >= 10) {
-        searchSimilar(title);
+      if (problemText.length >= 10) {
+        searchSimilar(problemText);
       }
     }, 500);
     return () => clearTimeout(timer);
-  }, [title, searchSimilar]);
+  }, [problemText, searchSimilar]);
 
-  const validateStep1 = () => {
-    if (title.trim().length < 10) {
-      Alert.alert('Too Short', 'Title must be at least 10 characters');
-      return false;
-    }
-    return true;
-  };
+  const isStep1Valid = problemText.trim().length >= 10;
 
-  const validateStep2 = () => {
-    if (!categoryId) {
-      Alert.alert('Required', 'Please select a category');
-      return false;
-    }
-    if (!frequency) {
-      Alert.alert('Required', 'Please select how often this happens');
-      return false;
-    }
-    if (!painLevel) {
-      Alert.alert('Required', 'Please rate the pain level');
-      return false;
-    }
-    return true;
-  };
-
-  const validateStep3 = () => {
-    if (whenHappens.trim().length < 40) {
-      Alert.alert('Too Short', '"When does this happen?" needs at least 40 characters');
-      return false;
-    }
-    if (whoAffected.trim().length < 40) {
-      Alert.alert('Too Short', '"Who does it affect?" needs at least 40 characters');
-      return false;
-    }
-    if (whatTried.trim().length < 40) {
-      Alert.alert('Too Short', '"What have you tried?" needs at least 40 characters');
-      return false;
-    }
-    if (!isProblemConfirmed) {
-      Alert.alert('Confirm', 'Please confirm this is a problem, not a solution pitch');
-      return false;
-    }
-    return true;
-  };
-
-  const handleNext = () => {
-    if (step === 1 && validateStep1()) {
+  const handleContinue = () => {
+    if (isStep1Valid) {
       setStep(2);
-    } else if (step === 2 && validateStep2()) {
-      setStep(3);
     }
+  };
+
+  const handleSubmit = async () => {
+    setIsSubmitting(true);
+    try {
+      const result = await api.createProblem({
+        title: problemText.trim(),
+        category_id: categoryId,
+        frequency: frequency || null,
+        pain_level: severity || null,
+      });
+      onComplete(result.id);
+    } catch (error: any) {
+      console.error('Post error:', error);
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleSkip = () => {
+    handleSubmit();
   };
 
   const handleBack = () => {
@@ -160,47 +119,33 @@ export default function PostWizard({ onComplete, onCancel }: PostWizardProps) {
     }
   };
 
-  const handleSubmit = async () => {
-    if (!validateStep3()) return;
-    
-    setIsSubmitting(true);
-    try {
-      await api.createProblem({
-        title: title.trim(),
-        category_id: categoryId,
-        frequency,
-        pain_level: painLevel,
-        willing_to_pay: '$0',
-        when_happens: whenHappens.trim(),
-        who_affected: whoAffected.trim(),
-        what_tried: whatTried.trim(),
-        is_problem_not_solution: isProblemConfirmed,
-      });
-      Alert.alert('Success', 'Your problem has been posted!', [
-        { text: 'OK', onPress: onComplete }
-      ]);
-    } catch (error: any) {
-      Alert.alert('Error', error.response?.data?.detail || 'Failed to post problem');
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
+  // Step 1: Quick Post
   const renderStep1 = () => (
-    <ScrollView style={styles.stepContent} keyboardShouldPersistTaps="handled">
-      <Text style={styles.stepTitle}>What's the problem?</Text>
-      <Text style={styles.stepHint}>Make it specific. One situation.</Text>
+    <ScrollView 
+      style={styles.stepContent} 
+      keyboardShouldPersistTaps="handled"
+      contentContainerStyle={styles.stepContentContainer}
+    >
+      <Text style={styles.stepTitle}>What's bothering you today?</Text>
+      <Text style={styles.stepHint}>Write it messy. Just get it out. You can add details later.</Text>
       
       <TextInput
-        style={styles.titleInput}
-        placeholder={placeholder}
+        style={styles.problemInput}
+        placeholder="What happened? Why is it annoying?"
         placeholderTextColor={colors.textMuted}
-        value={title}
-        onChangeText={setTitle}
+        value={problemText}
+        onChangeText={setProblemText}
         multiline
-        maxLength={200}
+        maxLength={500}
+        autoFocus
       />
-      <Text style={styles.charCount}>{title.length}/200 (min 10)</Text>
+      
+      <Text style={styles.charCount}>
+        {problemText.length < 10 
+          ? `${10 - problemText.length} more characters needed` 
+          : `${problemText.length}/500`
+        }
+      </Text>
 
       {isSearching && (
         <View style={styles.searchingContainer}>
@@ -218,27 +163,10 @@ export default function PostWizard({ onComplete, onCancel }: PostWizardProps) {
             <TouchableOpacity 
               key={problem.id} 
               style={styles.similarCard}
-              onPress={() => {
-                Alert.alert(
-                  'Join Existing Thread?',
-                  'This helps concentrate feedback on similar problems.',
-                  [
-                    { text: 'Post Anyway', style: 'cancel' },
-                    { text: 'View Thread', onPress: () => {} },
-                  ]
-                );
-              }}
             >
-              <View style={styles.similarHeader}>
-                <View style={[styles.similarPill, { backgroundColor: colors.softRed }]}>
-                  <Text style={[styles.similarPillText, { color: colors.primary }]}>
-                    {problem.category_name}
-                  </Text>
-                </View>
-              </View>
               <Text style={styles.similarCardTitle} numberOfLines={2}>{problem.title}</Text>
               <View style={styles.similarStats}>
-                <Ionicons name="heart" size={14} color={colors.relateActive} />
+                <Ionicons name="heart" size={14} color={colors.primary} />
                 <Text style={styles.similarStatText}>{problem.relates_count} relates</Text>
                 <Ionicons name="chatbubble" size={14} color={colors.textMuted} style={{ marginLeft: 12 }} />
                 <Text style={styles.similarStatText}>{problem.comments_count} comments</Text>
@@ -250,29 +178,27 @@ export default function PostWizard({ onComplete, onCancel }: PostWizardProps) {
     </ScrollView>
   );
 
+  // Step 2: Quick Tags (Optional)
   const renderStep2 = () => (
-    <ScrollView style={styles.stepContent}>
-      <Text style={styles.stepTitle}>Tell us more</Text>
-      
-      <Text style={styles.fieldLabel}>Category *</Text>
-      <View style={styles.categoryGrid}>
-        {categories.map((cat) => (
+    <ScrollView style={styles.stepContent} contentContainerStyle={styles.stepContentContainer}>
+      <Text style={styles.stepTitle}>Add quick details</Text>
+      <Text style={styles.stepHint}>Optional — helps others find your problem</Text>
+
+      {/* Category */}
+      <Text style={styles.fieldLabel}>Category</Text>
+      <View style={styles.chipGrid}>
+        {CATEGORIES.map((cat) => (
           <TouchableOpacity
             key={cat.id}
             style={[
-              styles.categoryChip,
-              categoryId === cat.id && styles.categoryChipActive
+              styles.chip,
+              categoryId === cat.id && styles.chipActive
             ]}
             onPress={() => setCategoryId(cat.id)}
           >
-            <Ionicons 
-              name={cat.icon} 
-              size={16} 
-              color={categoryId === cat.id ? colors.white : colors.text} 
-            />
             <Text style={[
-              styles.categoryChipText,
-              categoryId === cat.id && { color: colors.white }
+              styles.chipText,
+              categoryId === cat.id && styles.chipTextActive
             ]}>
               {cat.name}
             </Text>
@@ -280,25 +206,21 @@ export default function PostWizard({ onComplete, onCancel }: PostWizardProps) {
         ))}
       </View>
 
-      <Text style={styles.fieldLabel}>How often does this happen? *</Text>
-      <View style={styles.optionRow}>
+      {/* Frequency */}
+      <Text style={styles.fieldLabel}>Frequency</Text>
+      <View style={styles.chipRow}>
         {FREQUENCY_OPTIONS.map((opt) => (
           <TouchableOpacity
             key={opt.value}
             style={[
-              styles.optionChip,
-              frequency === opt.value && styles.optionChipActive
+              styles.chip,
+              frequency === opt.value && styles.chipActive
             ]}
-            onPress={() => setFrequency(opt.value)}
+            onPress={() => setFrequency(frequency === opt.value ? null : opt.value)}
           >
-            <Ionicons 
-              name={opt.icon as any} 
-              size={16} 
-              color={frequency === opt.value ? colors.white : colors.textSecondary} 
-            />
             <Text style={[
-              styles.optionChipText,
-              frequency === opt.value && styles.optionChipTextActive
+              styles.chipText,
+              frequency === opt.value && styles.chipTextActive
             ]}>
               {opt.label}
             </Text>
@@ -306,116 +228,31 @@ export default function PostWizard({ onComplete, onCancel }: PostWizardProps) {
         ))}
       </View>
 
-      <Text style={styles.fieldLabel}>How bad is it? (1-5) *</Text>
-      <View style={styles.painRow}>
-        {PAIN_LEVELS.map((level) => (
+      {/* Severity */}
+      <Text style={styles.fieldLabel}>Severity (1-5)</Text>
+      <View style={styles.severityRow}>
+        {SEVERITY_LEVELS.map((level) => (
           <TouchableOpacity
             key={level}
             style={[
-              styles.painChip,
-              painLevel === level && styles.painChipActive
+              styles.severityChip,
+              severity === level && styles.severityChipActive
             ]}
-            onPress={() => setPainLevel(level)}
+            onPress={() => setSeverity(severity === level ? null : level)}
           >
             <Text style={[
-              styles.painChipText,
-              painLevel === level && styles.painChipTextActive
+              styles.severityText,
+              severity === level && styles.severityTextActive
             ]}>
               {level}
             </Text>
           </TouchableOpacity>
         ))}
       </View>
-      <View style={styles.painLabels}>
-        <Text style={styles.painLabel}>Mild</Text>
-        <Text style={styles.painLabel}>Severe</Text>
+      <View style={styles.severityLabels}>
+        <Text style={styles.severityLabel}>Mild</Text>
+        <Text style={styles.severityLabel}>Severe</Text>
       </View>
-    </ScrollView>
-  );
-
-  const renderStep3 = () => (
-    <ScrollView style={styles.stepContent} keyboardShouldPersistTaps="handled">
-      <Text style={styles.stepTitle}>Add context</Text>
-      <Text style={styles.stepHint}>Help others understand your friction</Text>
-
-      <TouchableOpacity 
-        style={styles.exampleToggle}
-        onPress={() => setShowExample(!showExample)}
-      >
-        <Ionicons name="bulb-outline" size={18} color={colors.accent} />
-        <Text style={styles.exampleToggleText}>
-          {showExample ? 'Hide example' : 'Good post looks like this'}
-        </Text>
-        <Ionicons 
-          name={showExample ? 'chevron-up' : 'chevron-down'} 
-          size={18} 
-          color={colors.accent} 
-        />
-      </TouchableOpacity>
-
-      {showExample && (
-        <View style={styles.exampleBox}>
-          <Text style={styles.exampleLabel}>Example:</Text>
-          <Text style={styles.exampleText}>
-            <Text style={styles.exampleBold}>When: </Text>
-            "Every morning when I check my email, I spend 15+ minutes sorting through newsletters and promotions before finding important messages."
-          </Text>
-          <Text style={styles.exampleText}>
-            <Text style={styles.exampleBold}>Who: </Text>
-            "Anyone with a busy inbox who gets 50+ emails daily. Especially professionals who can't risk missing urgent emails."
-          </Text>
-          <Text style={styles.exampleText}>
-            <Text style={styles.exampleBold}>Tried: </Text>
-            "I've tried Gmail filters but they're tedious to set up. Unsubscribe takes too long. Still drowning."
-          </Text>
-        </View>
-      )}
-
-      <Text style={styles.fieldLabel}>When does this happen? *</Text>
-      <TextInput
-        style={styles.contextInput}
-        placeholder="Describe the specific situation when this friction occurs..."
-        placeholderTextColor={colors.textMuted}
-        value={whenHappens}
-        onChangeText={setWhenHappens}
-        multiline
-        maxLength={500}
-      />
-      <Text style={styles.charCount}>{whenHappens.length}/500 (min 40)</Text>
-
-      <Text style={styles.fieldLabel}>Who does it affect? *</Text>
-      <TextInput
-        style={styles.contextInput}
-        placeholder="Who else experiences this? Be specific about the type of people..."
-        placeholderTextColor={colors.textMuted}
-        value={whoAffected}
-        onChangeText={setWhoAffected}
-        multiline
-        maxLength={500}
-      />
-      <Text style={styles.charCount}>{whoAffected.length}/500 (min 40)</Text>
-
-      <Text style={styles.fieldLabel}>What have you tried? *</Text>
-      <TextInput
-        style={styles.contextInput}
-        placeholder="What solutions have you attempted? Why didn't they work?"
-        placeholderTextColor={colors.textMuted}
-        value={whatTried}
-        onChangeText={setWhatTried}
-        multiline
-        maxLength={500}
-      />
-      <Text style={styles.charCount}>{whatTried.length}/500 (min 40)</Text>
-
-      <TouchableOpacity 
-        style={styles.confirmCheckbox}
-        onPress={() => setIsProblemConfirmed(!isProblemConfirmed)}
-      >
-        <View style={[styles.checkbox, isProblemConfirmed && styles.checkboxActive]}>
-          {isProblemConfirmed && <Ionicons name="checkmark" size={16} color={colors.white} />}
-        </View>
-        <Text style={styles.confirmText}>This is a problem, not a solution pitch.</Text>
-      </TouchableOpacity>
     </ScrollView>
   );
 
@@ -425,45 +262,62 @@ export default function PostWizard({ onComplete, onCancel }: PostWizardProps) {
         style={styles.keyboardView}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
+        {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity onPress={handleBack} style={styles.backButton}>
             <Ionicons name="arrow-back" size={24} color={colors.text} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Post a Problem</Text>
+          <Text style={styles.headerTitle}>Post a problem</Text>
           <View style={styles.stepIndicator}>
-            <Text style={styles.stepIndicatorText}>{step}/3</Text>
+            <Text style={styles.stepIndicatorText}>{step}/2</Text>
           </View>
         </View>
 
+        {/* Progress Bar */}
         <View style={styles.progressBar}>
-          <View style={[styles.progressFill, { width: `${(step / 3) * 100}%` }]} />
+          <View style={[styles.progressFill, { width: `${(step / 2) * 100}%` }]} />
         </View>
 
+        {/* Content */}
         {step === 1 && renderStep1()}
         {step === 2 && renderStep2()}
-        {step === 3 && renderStep3()}
 
+        {/* Footer */}
         <View style={styles.footer}>
-          {step < 3 ? (
-            <TouchableOpacity style={styles.nextButton} onPress={handleNext}>
-              <Text style={styles.nextButtonText}>Continue</Text>
+          {step === 1 ? (
+            <TouchableOpacity 
+              style={[styles.primaryButton, !isStep1Valid && styles.buttonDisabled]} 
+              onPress={handleContinue}
+              disabled={!isStep1Valid}
+            >
+              <Text style={styles.primaryButtonText}>Continue</Text>
               <Ionicons name="arrow-forward" size={20} color={colors.white} />
             </TouchableOpacity>
           ) : (
-            <TouchableOpacity 
-              style={[styles.submitButton, isSubmitting && styles.buttonDisabled]} 
-              onPress={handleSubmit}
-              disabled={isSubmitting}
-            >
-              {isSubmitting ? (
-                <ActivityIndicator color={colors.white} />
-              ) : (
-                <>
-                  <Ionicons name="paper-plane" size={20} color={colors.white} />
-                  <Text style={styles.submitButtonText}>Post Problem</Text>
-                </>
-              )}
-            </TouchableOpacity>
+            <View style={styles.footerRow}>
+              <TouchableOpacity 
+                style={styles.skipButton} 
+                onPress={handleSkip}
+                disabled={isSubmitting}
+              >
+                <Text style={styles.skipButtonText}>Skip</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                style={[styles.doneButton, isSubmitting && styles.buttonDisabled]} 
+                onPress={handleSubmit}
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? (
+                  <ActivityIndicator color={colors.white} size="small" />
+                ) : (
+                  <>
+                    <Ionicons name="checkmark" size={20} color={colors.white} />
+                    <Text style={styles.doneButtonText}>Done</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            </View>
           )}
         </View>
       </KeyboardAvoidingView>
@@ -519,49 +373,54 @@ const styles = StyleSheet.create({
   },
   stepContent: {
     flex: 1,
-    padding: 16,
+  },
+  stepContentContainer: {
+    padding: 20,
+    paddingBottom: 40,
   },
   stepTitle: {
     fontSize: 24,
     fontWeight: '700',
     color: colors.text,
-    marginBottom: 4,
+    marginBottom: 8,
   },
   stepHint: {
-    fontSize: 14,
+    fontSize: 15,
     color: colors.textSecondary,
-    marginBottom: 20,
+    marginBottom: 24,
+    lineHeight: 22,
   },
-  titleInput: {
+  problemInput: {
     backgroundColor: colors.surface,
     borderRadius: radius.lg,
     padding: 16,
-    fontSize: 16,
+    fontSize: 17,
     color: colors.text,
-    minHeight: 100,
+    minHeight: 140,
     textAlignVertical: 'top',
     borderWidth: 1,
     borderColor: colors.cardBorder,
+    lineHeight: 24,
   },
   charCount: {
-    fontSize: 12,
+    fontSize: 13,
     color: colors.textMuted,
     textAlign: 'right',
-    marginTop: 6,
+    marginTop: 8,
   },
   searchingContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 12,
+    paddingVertical: 16,
     gap: 8,
   },
   searchingText: {
-    fontSize: 13,
+    fontSize: 14,
     color: colors.textSecondary,
   },
   similarSection: {
-    marginTop: 20,
+    marginTop: 24,
   },
   similarTitle: {
     fontSize: 16,
@@ -576,31 +435,18 @@ const styles = StyleSheet.create({
   },
   similarCard: {
     backgroundColor: colors.surface,
-    borderRadius: radius.lg,
+    borderRadius: radius.md,
     padding: 14,
     marginBottom: 10,
     borderWidth: 1,
-    borderColor: colors.primary,
-    ...shadows.subtle,
-  },
-  similarHeader: {
-    marginBottom: 8,
-  },
-  similarPill: {
-    alignSelf: 'flex-start',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: radius.sm,
-  },
-  similarPillText: {
-    fontSize: 11,
-    fontWeight: '600',
+    borderColor: colors.primary + '40',
   },
   similarCardTitle: {
     fontSize: 14,
     fontWeight: '500',
     color: colors.text,
     marginBottom: 8,
+    lineHeight: 20,
   },
   similarStats: {
     flexDirection: 'row',
@@ -615,168 +461,72 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     color: colors.text,
-    marginBottom: 10,
-    marginTop: 16,
+    marginBottom: 12,
+    marginTop: 20,
   },
-  categoryGrid: {
+  chipGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 8,
   },
-  categoryChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    borderRadius: radius.md,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-    backgroundColor: colors.surface,
-    gap: 6,
-  },
-  categoryChipActive: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
-  },
-  categoryChipText: {
-    fontSize: 13,
-    fontWeight: '500',
-    color: colors.text,
-  },
-  optionRow: {
+  chipRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 8,
   },
-  optionChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 14,
+  chip: {
+    paddingHorizontal: 16,
     paddingVertical: 10,
-    borderRadius: radius.md,
+    borderRadius: radius.xl,
     borderWidth: 1,
-    borderColor: colors.cardBorder,
+    borderColor: colors.border,
     backgroundColor: colors.surface,
-    gap: 6,
   },
-  optionChipActive: {
+  chipActive: {
     backgroundColor: colors.primary,
     borderColor: colors.primary,
   },
-  optionChipText: {
-    fontSize: 13,
+  chipText: {
+    fontSize: 14,
     fontWeight: '500',
     color: colors.textSecondary,
   },
-  optionChipTextActive: {
+  chipTextActive: {
     color: colors.white,
   },
-  painRow: {
+  severityRow: {
     flexDirection: 'row',
-    gap: 8,
+    gap: 10,
   },
-  painChip: {
+  severityChip: {
     flex: 1,
     paddingVertical: 14,
     borderRadius: radius.md,
     borderWidth: 1,
-    borderColor: colors.cardBorder,
+    borderColor: colors.border,
     backgroundColor: colors.surface,
     alignItems: 'center',
   },
-  painChipActive: {
+  severityChipActive: {
     backgroundColor: colors.primary,
     borderColor: colors.primary,
   },
-  painChipText: {
-    fontSize: 16,
+  severityText: {
+    fontSize: 18,
     fontWeight: '600',
     color: colors.textSecondary,
   },
-  painChipTextActive: {
+  severityTextActive: {
     color: colors.white,
   },
-  painLabels: {
+  severityLabels: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: 6,
+    marginTop: 8,
   },
-  painLabel: {
+  severityLabel: {
     fontSize: 12,
     color: colors.textMuted,
-  },
-  exampleToggle: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingVertical: 8,
-    marginBottom: 8,
-  },
-  exampleToggleText: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: colors.accent,
-    flex: 1,
-  },
-  exampleBox: {
-    backgroundColor: colors.softGreen,
-    borderRadius: radius.md,
-    padding: 14,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: colors.accent,
-  },
-  exampleLabel: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: colors.accent,
-    marginBottom: 8,
-  },
-  exampleText: {
-    fontSize: 13,
-    color: colors.textSecondary,
-    lineHeight: 19,
-    marginBottom: 8,
-  },
-  exampleBold: {
-    fontWeight: '600',
-    color: colors.text,
-  },
-  contextInput: {
-    backgroundColor: colors.surface,
-    borderRadius: radius.md,
-    padding: 14,
-    fontSize: 15,
-    color: colors.text,
-    minHeight: 80,
-    textAlignVertical: 'top',
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-  },
-  confirmCheckbox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 20,
-    marginBottom: 20,
-    gap: 12,
-  },
-  checkbox: {
-    width: 24,
-    height: 24,
-    borderRadius: 6,
-    borderWidth: 2,
-    borderColor: colors.cardBorder,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  checkboxActive: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
-  },
-  confirmText: {
-    flex: 1,
-    fontSize: 14,
-    color: colors.text,
   },
   footer: {
     padding: 16,
@@ -784,7 +534,11 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: colors.border,
   },
-  nextButton: {
+  footerRow: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  primaryButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -793,12 +547,28 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     gap: 8,
   },
-  nextButtonText: {
+  primaryButtonText: {
     fontSize: 16,
     fontWeight: '600',
     color: colors.white,
   },
-  submitButton: {
+  skipButton: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: radius.md,
+    paddingVertical: 16,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
+  },
+  skipButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.textSecondary,
+  },
+  doneButton: {
+    flex: 2,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -807,12 +577,12 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     gap: 8,
   },
-  submitButtonText: {
+  doneButtonText: {
     fontSize: 16,
     fontWeight: '600',
     color: colors.white,
   },
   buttonDisabled: {
-    opacity: 0.7,
+    opacity: 0.5,
   },
 });
