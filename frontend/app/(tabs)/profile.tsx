@@ -182,7 +182,7 @@ export default function Profile() {
             <View style={styles.menuIcon}>
               <Ionicons name="document-text-outline" size={22} color={colors.primary} />
             </View>
-            <Text style={styles.menuText}>My Problems</Text>
+            <Text style={styles.menuText}>My Frikts</Text>
             <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
           </TouchableOpacity>
 
