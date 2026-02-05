@@ -4,55 +4,69 @@
     "success": true,
     "message": "Test admin user logged in successfully with admin role",
     "details": null,
-    "timestamp": "2026-02-05T12:51:49.095078"
+    "timestamp": "2026-02-05T12:52:51.399380"
   },
   {
     "test": "Regular User Registration",
     "success": true,
     "message": "Regular user already exists and logged in successfully with user role",
     "details": null,
-    "timestamp": "2026-02-05T12:51:49.400616"
+    "timestamp": "2026-02-05T12:52:51.720276"
   },
   {
     "test": "Admin Analytics",
     "success": true,
     "message": "Analytics endpoint returned all required data",
     "details": null,
-    "timestamp": "2026-02-05T12:51:49.484258"
+    "timestamp": "2026-02-05T12:52:51.771107"
   },
   {
     "test": "Admin Reports - List",
     "success": true,
     "message": "Reports endpoint returned 0 reports",
     "details": null,
-    "timestamp": "2026-02-05T12:51:49.524604"
+    "timestamp": "2026-02-05T12:52:51.812442"
   },
   {
     "test": "Admin Reports - Dismiss",
     "success": true,
     "message": "No reports to dismiss (empty list)",
     "details": null,
-    "timestamp": "2026-02-05T12:51:49.524630"
+    "timestamp": "2026-02-05T12:52:51.812464"
   },
   {
-    "test": "Admin User Management",
-    "success": false,
-    "message": "Request failed: 520",
-    "details": "Internal Server Error",
-    "timestamp": "2026-02-05T12:51:49.566476"
+    "test": "Admin Users - List",
+    "success": true,
+    "message": "Users endpoint returned 3 users",
+    "details": null,
+    "timestamp": "2026-02-05T12:52:51.851675"
+  },
+  {
+    "test": "Admin Users - Ban",
+    "success": true,
+    "message": "User banned successfully",
+    "details": null,
+    "timestamp": "2026-02-05T12:52:51.914212"
+  },
+  {
+    "test": "Admin Users - Unban",
+    "success": true,
+    "message": "User unbanned successfully",
+    "details": null,
+    "timestamp": "2026-02-05T12:52:51.956761"
   },
   {
     "test": "Admin Audit Log",
-    "success": true,
-    "message": "Audit log endpoint returned 0 log entries",
-    "details": null,
-    "timestamp": "2026-02-05T12:51:49.605852"
+    "success": false,
+    "message": "Request failed: 520",
+    "details": "Internal Server Error",
+    "timestamp": "2026-02-05T12:52:51.998865"
   },
   {
     "test": "Security Check",
     "success": true,
     "message": "All admin endpoints properly blocked for non-admin users",
     "details": null,
-    "timestamp": "2026-02-05T12:51:49.767075"
+    "timestamp": "2026-02-05T12:52:52.197994"
   }
 ]
