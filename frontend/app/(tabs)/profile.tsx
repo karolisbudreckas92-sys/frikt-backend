@@ -110,6 +110,23 @@ export default function Profile() {
           </View>
         )}
 
+        {isAdmin && (
+          <View style={styles.menuSection}>
+            <Text style={styles.menuTitle}>Administration</Text>
+            
+            <TouchableOpacity style={styles.adminMenuItem} onPress={() => router.push('/admin')}>
+              <View style={styles.adminMenuIcon}>
+                <Ionicons name="shield-checkmark" size={22} color={colors.white} />
+              </View>
+              <Text style={styles.menuText}>Admin Panel</Text>
+              <View style={styles.adminBadge}>
+                <Text style={styles.adminBadgeText}>ADMIN</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
+            </TouchableOpacity>
+          </View>
+        )}
+
         <View style={styles.menuSection}>
           <Text style={styles.menuTitle}>Your Activity</Text>
           
