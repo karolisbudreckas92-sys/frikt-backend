@@ -559,6 +559,16 @@ async def relate_to_problem(problem_id: str, user: dict = Depends(require_auth))
             message=f"{user['name']} relates to your problem"
         )
         await db.notifications.insert_one(notification.dict())
+        
+        # Send push notification
+        settings = await db.notification_settings.find_one({"user_id": problem["user_id"]})
+        if not settings or settings.get("new_relates", True):
+            await send_notification_to_user(
+                problem["user_id"],
+                "Someone relates to your problem",
+                f"{user['name']} relates to: {problem['title'][:50]}...",
+                {"type": "new_relate", "problemId": problem_id}
+            )
     
     return {"relates_count": new_count, "signal_score": new_score}
 
