@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -15,6 +15,25 @@ import { Ionicons } from '@expo/vector-icons';
 import { colors } from '@/src/theme/colors';
 import { api } from '@/src/services/api';
 import ProblemCard from '@/src/components/ProblemCard';
+import Toast from 'react-native-root-toast';
+
+const showToast = (message: string, isError: boolean = false) => {
+  Toast.show(message, {
+    duration: Toast.durations.SHORT,
+    position: Toast.positions.BOTTOM,
+    shadow: true,
+    animation: true,
+    hideOnPress: true,
+    backgroundColor: isError ? colors.error : colors.accent,
+    textColor: colors.white,
+    containerStyle: {
+      borderRadius: 8,
+      paddingHorizontal: 20,
+      paddingVertical: 12,
+      marginBottom: 80,
+    },
+  });
+};
 
 export default function Search() {
   const router = useRouter();
@@ -35,30 +54,45 @@ export default function Search() {
       setResults(data);
     } catch (error) {
       console.error('Error searching:', error);
+      showToast('Search failed', true);
     } finally {
       setIsLoading(false);
     }
   }, [query]);
 
   const handleRelate = async (problemId: string, isRelated: boolean) => {
+    // Optimistic update
+    setResults(prev => prev.map(p => {
+      if (p.id === problemId) {
+        return {
+          ...p,
+          user_has_related: !isRelated,
+          relates_count: isRelated ? p.relates_count - 1 : p.relates_count + 1,
+        };
+      }
+      return p;
+    }));
+
     try {
       if (isRelated) {
         await api.unrelateToProblem(problemId);
       } else {
         await api.relateToProblem(problemId);
+        showToast('Relates +1 ❤️');
       }
+    } catch (error) {
+      // Rollback
       setResults(prev => prev.map(p => {
         if (p.id === problemId) {
           return {
             ...p,
-            user_has_related: !isRelated,
-            relates_count: isRelated ? p.relates_count - 1 : p.relates_count + 1,
+            user_has_related: isRelated,
+            relates_count: isRelated ? p.relates_count : p.relates_count - 1,
           };
         }
         return p;
       }));
-    } catch (error) {
-      console.error('Error toggling relate:', error);
+      showToast('Failed to update', true);
     }
   };
 
@@ -66,7 +100,7 @@ export default function Search() {
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
         <Text style={styles.title}>Search</Text>
-        <Text style={styles.subtitle}>Find problems that matter to you</Text>
+        <Text style={styles.subtitle}>Find Frikts that matter to you</Text>
       </View>
 
       <View style={styles.searchContainer}>
@@ -74,7 +108,7 @@ export default function Search() {
           <Ionicons name="search-outline" size={20} color={colors.textMuted} />
           <TextInput
             style={styles.searchInput}
-            placeholder="Search problems..."
+            placeholder="Search Frikts..."
             placeholderTextColor={colors.textMuted}
             value={query}
             onChangeText={setQuery}
@@ -82,12 +116,17 @@ export default function Search() {
             returnKeyType="search"
           />
           {query.length > 0 && (
-            <TouchableOpacity onPress={() => setQuery('')}>
+            <TouchableOpacity onPress={() => setQuery('')} activeOpacity={0.7}>
               <Ionicons name="close-circle" size={20} color={colors.textMuted} />
             </TouchableOpacity>
           )}
         </View>
-        <TouchableOpacity style={styles.searchButton} onPress={handleSearch}>
+        <TouchableOpacity 
+          style={[styles.searchButton, !query.trim() && styles.searchButtonDisabled]} 
+          onPress={handleSearch}
+          disabled={!query.trim()}
+          activeOpacity={0.7}
+        >
           <Text style={styles.searchButtonText}>Search</Text>
         </TouchableOpacity>
       </View>
@@ -111,14 +150,14 @@ export default function Search() {
             hasSearched ? (
               <View style={styles.emptyContainer}>
                 <Ionicons name="search-outline" size={64} color={colors.textMuted} />
-                <Text style={styles.emptyTitle}>No results found</Text>
+                <Text style={styles.emptyTitle}>No Frikts found</Text>
                 <Text style={styles.emptyText}>Try different keywords</Text>
               </View>
             ) : (
               <View style={styles.emptyContainer}>
                 <Ionicons name="bulb-outline" size={64} color={colors.textMuted} />
                 <Text style={styles.emptyTitle}>Start searching</Text>
-                <Text style={styles.emptyText}>Find problems others have shared</Text>
+                <Text style={styles.emptyText}>Find Frikts others have shared</Text>
               </View>
             )
           }
@@ -178,6 +217,9 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     paddingHorizontal: 20,
     justifyContent: 'center',
+  },
+  searchButtonDisabled: {
+    opacity: 0.5,
   },
   searchButtonText: {
     color: colors.white,

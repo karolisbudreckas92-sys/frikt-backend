@@ -15,8 +15,27 @@ import { colors } from '@/src/theme/colors';
 import { api } from '@/src/services/api';
 import ProblemCard from '@/src/components/ProblemCard';
 import MissionBanner from '@/src/components/MissionBanner';
+import Toast from 'react-native-root-toast';
 
 type FeedType = 'foryou' | 'trending' | 'new';
+
+const showToast = (message: string, isError: boolean = false) => {
+  Toast.show(message, {
+    duration: Toast.durations.SHORT,
+    position: Toast.positions.BOTTOM,
+    shadow: true,
+    animation: true,
+    hideOnPress: true,
+    backgroundColor: isError ? colors.error : colors.accent,
+    textColor: colors.white,
+    containerStyle: {
+      borderRadius: 8,
+      paddingHorizontal: 20,
+      paddingVertical: 12,
+      marginBottom: 80,
+    },
+  });
+};
 
 export default function Home() {
   const router = useRouter();
@@ -26,16 +45,19 @@ export default function Home() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
   const [showMission, setShowMission] = useState(true);
+  const [hasError, setHasError] = useState(false);
 
   const loadProblems = useCallback(async (refresh = false) => {
     if (refresh) setIsRefreshing(true);
     else setIsLoading(true);
+    setHasError(false);
     
     try {
       const data = await api.getProblems(feed);
       setProblems(data);
     } catch (error) {
-      console.error('Error loading problems:', error);
+      console.error('Error loading Frikts:', error);
+      setHasError(true);
     } finally {
       setIsLoading(false);
       setIsRefreshing(false);
@@ -56,26 +78,40 @@ export default function Home() {
     loadNotifications();
   }, [feed]);
 
+  // Optimistic UI for relate
   const handleRelate = async (problemId: string, isRelated: boolean) => {
+    // Optimistic update
+    setProblems(prev => prev.map(p => {
+      if (p.id === problemId) {
+        return {
+          ...p,
+          user_has_related: !isRelated,
+          relates_count: isRelated ? p.relates_count - 1 : p.relates_count + 1,
+        };
+      }
+      return p;
+    }));
+
     try {
       if (isRelated) {
         await api.unrelateToProblem(problemId);
       } else {
         await api.relateToProblem(problemId);
+        showToast('Relates +1 ❤️');
       }
-      // Update local state
+    } catch (error) {
+      // Rollback on failure
       setProblems(prev => prev.map(p => {
         if (p.id === problemId) {
           return {
             ...p,
-            user_has_related: !isRelated,
-            relates_count: isRelated ? p.relates_count - 1 : p.relates_count + 1,
+            user_has_related: isRelated,
+            relates_count: isRelated ? p.relates_count : p.relates_count - 1,
           };
         }
         return p;
       }));
-    } catch (error) {
-      console.error('Error toggling relate:', error);
+      showToast('Failed to update', true);
     }
   };
 
@@ -91,6 +127,7 @@ export default function Home() {
             key={tab}
             style={[styles.feedTab, feed === tab && styles.feedTabActive]}
             onPress={() => setFeed(tab)}
+            activeOpacity={0.7}
           >
             <Text style={[styles.feedTabText, feed === tab && styles.feedTabTextActive]}>
               {tab === 'foryou' ? 'For You' : tab === 'trending' ? 'Trending' : 'New'}
@@ -101,6 +138,44 @@ export default function Home() {
     </View>
   );
 
+  const renderEmpty = () => {
+    if (isLoading) return null;
+    
+    if (hasError) {
+      return (
+        <View style={styles.emptyContainer}>
+          <Ionicons name="cloud-offline-outline" size={64} color={colors.textMuted} />
+          <Text style={styles.emptyTitle}>Couldn't load Frikts</Text>
+          <Text style={styles.emptyText}>Check your connection and try again</Text>
+          <TouchableOpacity 
+            style={styles.retryButton}
+            onPress={() => loadProblems()}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="refresh" size={18} color={colors.white} />
+            <Text style={styles.retryButtonText}>Retry</Text>
+          </TouchableOpacity>
+        </View>
+      );
+    }
+
+    return (
+      <View style={styles.emptyContainer}>
+        <Ionicons name="chatbubble-ellipses-outline" size={64} color={colors.textMuted} />
+        <Text style={styles.emptyTitle}>No Frikts yet</Text>
+        <Text style={styles.emptyText}>Be the first to share a friction!</Text>
+        <TouchableOpacity 
+          style={styles.ctaButton}
+          onPress={() => router.push('/(tabs)/post')}
+          activeOpacity={0.7}
+        >
+          <Ionicons name="add" size={20} color={colors.white} />
+          <Text style={styles.ctaButtonText}>Drop a Frikt</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  };
+
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
@@ -108,6 +183,7 @@ export default function Home() {
         <TouchableOpacity 
           style={styles.notifButton}
           onPress={() => router.push('/notifications')}
+          activeOpacity={0.7}
         >
           <Ionicons name="notifications-outline" size={24} color={colors.text} />
           {unreadCount > 0 && (
@@ -129,15 +205,7 @@ export default function Home() {
           />
         )}
         ListHeaderComponent={renderHeader}
-        ListEmptyComponent={
-          !isLoading ? (
-            <View style={styles.emptyContainer}>
-              <Ionicons name="chatbubble-ellipses-outline" size={64} color={colors.textMuted} />
-              <Text style={styles.emptyTitle}>No problems yet</Text>
-              <Text style={styles.emptyText}>Be the first to share a friction!</Text>
-            </View>
-          ) : null
-        }
+        ListEmptyComponent={renderEmpty}
         refreshControl={
           <RefreshControl
             refreshing={isRefreshing}
@@ -244,6 +312,36 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.textSecondary,
     marginTop: 8,
+  },
+  ctaButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.primary,
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 12,
+    marginTop: 20,
+    gap: 8,
+  },
+  ctaButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.white,
+  },
+  retryButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.primary,
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 12,
+    marginTop: 20,
+    gap: 8,
+  },
+  retryButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.white,
   },
   loadingOverlay: {
     position: 'absolute',
