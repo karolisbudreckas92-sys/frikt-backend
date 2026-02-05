@@ -7,17 +7,18 @@ import {
   TouchableOpacity,
   Alert,
   ActivityIndicator,
+  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { colors } from '@/src/theme/colors';
+import { colors, radius } from '@/src/theme/colors';
 import { api } from '@/src/services/api';
 import { useAuth } from '@/src/context/AuthContext';
 
 export default function Profile() {
   const router = useRouter();
-  const { user, logout, isAdmin } = useAuth();
+  const { user, logout, isAdmin, refreshUser } = useAuth();
   const [stats, setStats] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -38,6 +39,11 @@ export default function Profile() {
     loadStats();
   }, [user]);
 
+  // Refresh user data when screen comes into focus
+  useEffect(() => {
+    refreshUser();
+  }, []);
+
   const handleLogout = () => {
     Alert.alert(
       'Sign Out',
@@ -56,6 +62,14 @@ export default function Profile() {
     );
   };
 
+  const getDisplayName = () => {
+    return user?.displayName || user?.name || 'User';
+  };
+
+  const getInitial = () => {
+    return getDisplayName().charAt(0).toUpperCase();
+  };
+
   if (!user) {
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
@@ -69,12 +83,42 @@ export default function Profile() {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
+        {/* Profile Header */}
         <View style={styles.header}>
-          <View style={styles.avatarContainer}>
-            <Text style={styles.avatarText}>{user.name.charAt(0).toUpperCase()}</Text>
-          </View>
-          <Text style={styles.name}>{user.name}</Text>
-          <Text style={styles.email}>{user.email}</Text>
+          <TouchableOpacity 
+            style={styles.avatarContainer}
+            onPress={() => router.push('/edit-profile')}
+          >
+            {user.avatarUrl ? (
+              <Image source={{ uri: user.avatarUrl }} style={styles.avatar} />
+            ) : (
+              <View style={styles.avatarPlaceholder}>
+                <Text style={styles.avatarText}>{getInitial()}</Text>
+              </View>
+            )}
+          </TouchableOpacity>
+          
+          <Text style={styles.name}>{getDisplayName()}</Text>
+          
+          {user.bio && (
+            <Text style={styles.bio}>{user.bio}</Text>
+          )}
+          
+          {user.showCity && user.city && (
+            <View style={styles.locationRow}>
+              <Ionicons name="location-outline" size={14} color={colors.textMuted} />
+              <Text style={styles.location}>{user.city}</Text>
+            </View>
+          )}
+
+          {/* Edit Profile Button */}
+          <TouchableOpacity 
+            style={styles.editProfileButton}
+            onPress={() => router.push('/edit-profile')}
+          >
+            <Text style={styles.editProfileText}>Edit profile</Text>
+          </TouchableOpacity>
+
           {stats?.rocket10_completed && (
             <View style={styles.badge}>
               <Ionicons name="rocket" size={14} color={colors.accent} />
@@ -83,6 +127,7 @@ export default function Profile() {
           )}
         </View>
 
+        {/* Stats */}
         <View style={styles.statsContainer}>
           <View style={styles.statItem}>
             <Text style={styles.statValue}>{stats?.posts_count || 0}</Text>
@@ -100,6 +145,7 @@ export default function Profile() {
           </View>
         </View>
 
+        {/* Streak Card */}
         {stats?.streak_days > 0 && (
           <View style={styles.streakCard}>
             <Ionicons name="flame" size={24} color={colors.warning} />
@@ -110,6 +156,7 @@ export default function Profile() {
           </View>
         )}
 
+        {/* Admin Section */}
         {isAdmin && (
           <View style={styles.menuSection}>
             <Text style={styles.menuTitle}>Administration</Text>
@@ -127,6 +174,7 @@ export default function Profile() {
           </View>
         )}
 
+        {/* Activity Menu */}
         <View style={styles.menuSection}>
           <Text style={styles.menuTitle}>Your Activity</Text>
           
@@ -163,6 +211,7 @@ export default function Profile() {
           </TouchableOpacity>
         </View>
 
+        {/* Logout */}
         <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
           <Ionicons name="log-out-outline" size={20} color={colors.error} />
           <Text style={styles.logoutText}>Sign Out</Text>
@@ -187,21 +236,29 @@ const styles = StyleSheet.create({
   },
   header: {
     alignItems: 'center',
-    paddingVertical: 32,
+    paddingVertical: 24,
+    paddingHorizontal: 16,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
   },
   avatarContainer: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+    marginBottom: 16,
+  },
+  avatar: {
+    width: 88,
+    height: 88,
+    borderRadius: 44,
+  },
+  avatarPlaceholder: {
+    width: 88,
+    height: 88,
+    borderRadius: 44,
     backgroundColor: colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 16,
   },
   avatarText: {
-    fontSize: 32,
+    fontSize: 36,
     fontWeight: '700',
     color: colors.white,
   },
@@ -210,15 +267,41 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: colors.text,
   },
-  email: {
+  bio: {
     fontSize: 14,
     color: colors.textSecondary,
     marginTop: 4,
+    textAlign: 'center',
+    paddingHorizontal: 32,
+  },
+  locationRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 6,
+    gap: 4,
+  },
+  location: {
+    fontSize: 13,
+    color: colors.textMuted,
+  },
+  editProfileButton: {
+    marginTop: 16,
+    paddingHorizontal: 24,
+    paddingVertical: 10,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
+  },
+  editProfileText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.text,
   },
   badge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.accent + '20',
+    backgroundColor: colors.accentLight,
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 16,
@@ -259,7 +342,7 @@ const styles = StyleSheet.create({
   streakCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.warning + '15',
+    backgroundColor: colors.softAmber,
     marginHorizontal: 16,
     marginTop: 16,
     borderRadius: 12,
@@ -321,7 +404,7 @@ const styles = StyleSheet.create({
     marginRight: 12,
   },
   adminBadge: {
-    backgroundColor: colors.primary + '15',
+    backgroundColor: colors.softRed,
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 6,
