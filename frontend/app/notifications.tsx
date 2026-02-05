@@ -12,8 +12,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { formatDistanceToNow } from 'date-fns';
-import { colors } from '../src/theme/colors';
-import { api } from '../src/services/api';
+import { colors } from '@/src/theme/colors';
+import { api } from '@/src/services/api';
 
 export default function Notifications() {
   const router = useRouter();

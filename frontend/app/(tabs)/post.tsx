@@ -1,8 +1,8 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
-import { colors } from '../../src/theme/colors';
-import PostWizard from '../../src/components/PostWizard';
+import { colors } from '@/src/theme/colors';
+import PostWizard from '@/src/components/PostWizard';
 
 export default function PostTab() {
   const router = useRouter();

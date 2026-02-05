@@ -11,10 +11,10 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { colors } from '../../src/theme/colors';
-import { api } from '../../src/services/api';
-import ProblemCard from '../../src/components/ProblemCard';
-import MissionBanner from '../../src/components/MissionBanner';
+import { colors } from '@/src/theme/colors';
+import { api } from '@/src/services/api';
+import ProblemCard from '@/src/components/ProblemCard';
+import MissionBanner from '@/src/components/MissionBanner';
 
 type FeedType = 'foryou' | 'trending' | 'new';
 

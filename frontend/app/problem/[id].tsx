@@ -16,9 +16,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { formatDistanceToNow } from 'date-fns';
-import { colors } from '../src/theme/colors';
-import { api } from '../src/services/api';
-import { useAuth } from '../src/context/AuthContext';
+import { colors } from '@/src/theme/colors';
+import { api } from '@/src/services/api';
+import { useAuth } from '@/src/context/AuthContext';
 
 const COMMENT_CHIPS = [
   'I relate because...',

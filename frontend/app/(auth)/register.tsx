@@ -14,8 +14,8 @@ import {
 import { useRouter, Link } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { useAuth } from '../../src/context/AuthContext';
-import { colors } from '../../src/theme/colors';
+import { useAuth } from '@/src/context/AuthContext';
+import { colors } from '@/src/theme/colors';
 
 export default function Register() {
   const router = useRouter();
