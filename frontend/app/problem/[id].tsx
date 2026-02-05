@@ -177,8 +177,8 @@ export default function ProblemDetail() {
     if (!problem) return;
     
     Alert.alert(
-      'Report Problem',
-      'Are you sure you want to report this problem?',
+      'Report Frikt',
+      'Are you sure you want to report this?',
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -187,9 +187,9 @@ export default function ProblemDetail() {
           onPress: async () => {
             try {
               await api.reportProblem(problem.id);
-              Alert.alert('Reported', 'Thank you for your report');
+              showToast('Reported. Thanks!');
             } catch (error) {
-              console.error('Error reporting:', error);
+              showToast('Failed to report', true);
             }
           },
         },
