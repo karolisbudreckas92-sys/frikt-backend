@@ -139,6 +139,36 @@ export default function EditProblem() {
     }
   };
 
+  // Check if user can delete (owner or admin)
+  const canDelete = problem && user && (user.id === problem.user_id || isAdmin);
+
+  const handleDelete = () => {
+    Alert.alert(
+      'Delete this Frikt?',
+      "This can't be undone.",
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            setIsDeleting(true);
+            try {
+              await api.deleteProblem(id!);
+              showToast('Deleted ✅');
+              router.replace('/(tabs)/home');
+            } catch (error: any) {
+              console.error('Error deleting:', error);
+              showToast('Failed to delete. Try again.', true);
+            } finally {
+              setIsDeleting(false);
+            }
+          },
+        },
+      ]
+    );
+  };
+
   if (isLoading) {
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
