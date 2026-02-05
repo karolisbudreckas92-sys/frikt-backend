@@ -127,6 +127,11 @@ class ApiService {
     return response.data;
   }
 
+  async deleteProblem(id: string) {
+    const response = await this.client.delete(`/problems/${id}`);
+    return response.data;
+  }
+
   async getSimilarProblems(title: string) {
     const response = await this.client.get('/problems/similar', { params: { title } });
     return response.data;
