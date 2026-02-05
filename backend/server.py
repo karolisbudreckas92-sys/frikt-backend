@@ -1042,7 +1042,7 @@ async def update_profile(profile: ProfileUpdate, user: dict = Depends(require_au
     )
 
 @api_router.post("/users/me/avatar")
-async def upload_avatar(file: UploadFile = File(...), user: dict = Depends(require_auth)):
+async def upload_avatar(file: UploadFile = FastAPIFile(...), user: dict = Depends(require_auth)):
     """Upload avatar image"""
     import base64
     import os
