@@ -736,7 +736,7 @@ async def get_comments(problem_id: str, user: dict = Depends(get_current_user)):
     # Get user's helpful marks
     user_helpfuls = set()
     if user:
-        helpfuls = await db.helpfuls.find({"user_id": user["id"]}).to_list(1000)
+        helpfuls = await db.helpfuls.find({"user_id": user["id"]}, {"comment_id": 1}).to_list(1000)
         user_helpfuls = {h["comment_id"] for h in helpfuls}
     
     return [
