@@ -11,7 +11,7 @@ interface Problem {
   category_color: string;
   relates_count: number;
   comments_count: number;
-  when_happens: string;
+  when_happens?: string | null;
   created_at: string;
   user_has_related: boolean;
 }
@@ -24,9 +24,9 @@ interface ProblemCardProps {
 
 export default function ProblemCard({ problem, onPress, onRelate }: ProblemCardProps) {
   const timeAgo = formatDistanceToNow(new Date(problem.created_at), { addSuffix: true });
-  const snippet = problem.when_happens.length > 80 
+  const snippet = problem.when_happens && problem.when_happens.length > 80 
     ? problem.when_happens.substring(0, 80) + '...' 
-    : problem.when_happens;
+    : (problem.when_happens || '');
 
   return (
     <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.7}>
