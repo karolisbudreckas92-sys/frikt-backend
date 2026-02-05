@@ -96,18 +96,19 @@ export default function EditProfile() {
       mediaTypes: ['images'],
       allowsEditing: true,
       aspect: [1, 1],
-      quality: 0.8,
+      quality: 0.7,
+      base64: true,
     });
 
     if (!result.canceled && result.assets[0]) {
-      await uploadImage(result.assets[0].uri);
+      await uploadImage(result.assets[0]);
     }
   };
 
-  const uploadImage = async (uri: string) => {
+  const uploadImage = async (asset: ImagePicker.ImagePickerAsset) => {
     setIsUploading(true);
     try {
-      const response = await api.uploadAvatar(uri);
+      const response = await api.uploadAvatarBase64(asset.base64!, asset.mimeType || 'image/jpeg');
       setAvatarUrl(response.url);
     } catch (error) {
       console.error('Upload error:', error);
