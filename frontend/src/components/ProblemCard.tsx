@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { colors } from '../theme/colors';
+import { colors, shadows, radius } from '../theme/colors';
 import { formatDistanceToNow } from 'date-fns';
 
 interface Problem {
@@ -31,8 +31,8 @@ export default function ProblemCard({ problem, onPress, onRelate }: ProblemCardP
   return (
     <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.7}>
       <View style={styles.header}>
-        <View style={[styles.categoryPill, { backgroundColor: problem.category_color + '25' }]}>
-          <Text style={[styles.categoryText, { color: problem.category_color }]}>
+        <View style={styles.categoryPill}>
+          <Text style={styles.categoryText}>
             {problem.category_name}
           </Text>
         </View>
@@ -53,7 +53,7 @@ export default function ProblemCard({ problem, onPress, onRelate }: ProblemCardP
           <Ionicons 
             name={problem.user_has_related ? 'heart' : 'heart-outline'} 
             size={18} 
-            color={problem.user_has_related ? colors.relateActive : colors.textSecondary} 
+            color={problem.user_has_related ? colors.primary : colors.textSecondary} 
           />
           <Text style={[
             styles.relateText, 
@@ -77,10 +77,11 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
     marginHorizontal: 16,
     marginTop: 12,
-    borderRadius: 16,
+    borderRadius: radius.lg,
     padding: 16,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.cardBorder,
+    ...shadows.card,
   },
   header: {
     flexDirection: 'row',
@@ -91,11 +92,13 @@ const styles = StyleSheet.create({
   categoryPill: {
     paddingHorizontal: 10,
     paddingVertical: 4,
-    borderRadius: 12,
+    borderRadius: radius.sm,
+    backgroundColor: colors.softRed,
   },
   categoryText: {
     fontSize: 12,
     fontWeight: '600',
+    color: colors.primary,
   },
   timeText: {
     fontSize: 12,
@@ -125,11 +128,14 @@ const styles = StyleSheet.create({
     gap: 6,
     paddingVertical: 6,
     paddingHorizontal: 12,
-    borderRadius: 20,
-    backgroundColor: colors.surfaceLight,
+    borderRadius: radius.xl,
+    backgroundColor: colors.background,
+    borderWidth: 1,
+    borderColor: colors.divider,
   },
   relateButtonActive: {
-    backgroundColor: colors.relateActive + '20',
+    backgroundColor: colors.softRed,
+    borderColor: colors.primary,
   },
   relateText: {
     fontSize: 13,
@@ -137,7 +143,7 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
   },
   relateTextActive: {
-    color: colors.relateActive,
+    color: colors.primary,
   },
   statItem: {
     flexDirection: 'row',
