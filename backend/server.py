@@ -855,6 +855,164 @@ async def report_problem(problem_id: str, user: dict = Depends(require_auth)):
     
     return {"reported": True, "is_hidden": is_hidden}
 
+# ===================== PUSH NOTIFICATIONS =====================
+
+EXPO_PUSH_URL = "https://exp.host/--/api/v2/push/send"
+
+async def send_push_notification(tokens: List[str], title: str, body: str, data: dict = None):
+    """Send push notification via Expo's push notification service"""
+    if not tokens:
+        return
+    
+    messages = []
+    for token in tokens:
+        # Skip invalid tokens
+        if not token or token.startswith('simulator-') or token.startswith('web-'):
+            continue
+            
+        message = {
+            "to": token,
+            "sound": "default",
+            "title": title,
+            "body": body,
+            "data": data or {},
+        }
+        messages.append(message)
+    
+    if not messages:
+        return
+    
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                EXPO_PUSH_URL,
+                json=messages,
+                headers={
+                    "Accept": "application/json",
+                    "Accept-Encoding": "gzip, deflate",
+                    "Content-Type": "application/json",
+                }
+            )
+            result = response.json()
+            logger.info(f"Push notification sent: {result}")
+            
+            # Handle failed tokens (remove them from database)
+            if "data" in result:
+                for i, ticket in enumerate(result["data"]):
+                    if ticket.get("status") == "error":
+                        error_type = ticket.get("details", {}).get("error")
+                        if error_type in ["DeviceNotRegistered", "InvalidCredentials"]:
+                            # Remove invalid token
+                            await db.push_tokens.delete_one({"token": messages[i]["to"]})
+                            logger.info(f"Removed invalid push token: {messages[i]['to']}")
+    except Exception as e:
+        logger.error(f"Failed to send push notification: {e}")
+
+async def send_notification_to_user(user_id: str, title: str, body: str, data: dict = None):
+    """Send push notification to a specific user"""
+    # Get user's notification settings
+    settings = await db.notification_settings.find_one({"user_id": user_id})
+    
+    # Get user's push tokens
+    tokens_cursor = db.push_tokens.find({"user_id": user_id, "is_active": True})
+    tokens = [t["token"] async for t in tokens_cursor]
+    
+    if tokens:
+        await send_push_notification(tokens, title, body, data)
+
+@api_router.post("/push/register")
+async def register_push_token(token_data: PushTokenCreate, user: dict = Depends(require_auth)):
+    """Register a push notification token for the user"""
+    # Check if token already exists for this user
+    existing = await db.push_tokens.find_one({
+        "user_id": user["id"],
+        "token": token_data.token
+    })
+    
+    if existing:
+        # Update to active
+        await db.push_tokens.update_one(
+            {"id": existing["id"]},
+            {"$set": {"is_active": True, "created_at": datetime.utcnow()}}
+        )
+        return {"success": True, "message": "Token updated"}
+    
+    # Check if token exists for another user (device transfer)
+    old_token = await db.push_tokens.find_one({"token": token_data.token})
+    if old_token:
+        await db.push_tokens.delete_one({"id": old_token["id"]})
+    
+    # Create new token
+    push_token = PushToken(
+        user_id=user["id"],
+        token=token_data.token
+    )
+    await db.push_tokens.insert_one(push_token.dict())
+    
+    # Initialize notification settings if not exists
+    settings = await db.notification_settings.find_one({"user_id": user["id"]})
+    if not settings:
+        default_settings = NotificationSettings(user_id=user["id"])
+        await db.notification_settings.insert_one(default_settings.dict())
+    
+    return {"success": True, "message": "Token registered"}
+
+@api_router.delete("/push/unregister")
+async def unregister_push_token(user: dict = Depends(require_auth)):
+    """Unregister all push tokens for the user"""
+    await db.push_tokens.update_many(
+        {"user_id": user["id"]},
+        {"$set": {"is_active": False}}
+    )
+    return {"success": True, "message": "Tokens unregistered"}
+
+@api_router.get("/push/settings")
+async def get_push_settings(user: dict = Depends(require_auth)):
+    """Get user's notification settings"""
+    settings = await db.notification_settings.find_one({"user_id": user["id"]})
+    if not settings:
+        # Return defaults
+        return {
+            "new_comments": True,
+            "new_relates": True,
+            "trending": True
+        }
+    return {
+        "new_comments": settings.get("new_comments", True),
+        "new_relates": settings.get("new_relates", True),
+        "trending": settings.get("trending", True)
+    }
+
+@api_router.put("/push/settings")
+async def update_push_settings(
+    settings_update: NotificationSettingsUpdate,
+    user: dict = Depends(require_auth)
+):
+    """Update user's notification settings"""
+    update_data = {k: v for k, v in settings_update.dict().items() if v is not None}
+    
+    if not update_data:
+        raise HTTPException(status_code=400, detail="No settings to update")
+    
+    await db.notification_settings.update_one(
+        {"user_id": user["id"]},
+        {"$set": update_data},
+        upsert=True
+    )
+    
+    return {"success": True, "updated": update_data}
+
+@api_router.post("/push/test")
+async def test_push_notification(user: dict = Depends(require_auth)):
+    """Send a test push notification to the user"""
+    await send_notification_to_user(
+        user["id"],
+        "Test Notification",
+        "Push notifications are working! 🎉",
+        {"type": "test"}
+    )
+    return {"success": True, "message": "Test notification sent"}
+
 # ===================== HEALTH CHECK =====================
 
 @api_router.get("/")
