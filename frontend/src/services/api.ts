@@ -61,11 +61,25 @@ class ApiService {
     const match = /\.(\w+)$/.exec(filename);
     const type = match ? `image/${match[1]}` : 'image/jpeg';
     
-    formData.append('file', {
-      uri,
-      name: filename,
-      type,
-    } as any);
+    // Check if running on web
+    if (typeof window !== 'undefined' && uri.startsWith('blob:')) {
+      // Web: fetch the blob and append as File
+      const response = await fetch(uri);
+      const blob = await response.blob();
+      formData.append('file', blob, filename);
+    } else if (typeof window !== 'undefined' && uri.startsWith('data:')) {
+      // Web: handle data URI
+      const response = await fetch(uri);
+      const blob = await response.blob();
+      formData.append('file', blob, filename);
+    } else {
+      // Native: use the React Native format
+      formData.append('file', {
+        uri,
+        name: filename,
+        type,
+      } as any);
+    }
 
     const response = await this.client.post('/users/me/avatar', formData, {
       headers: {
