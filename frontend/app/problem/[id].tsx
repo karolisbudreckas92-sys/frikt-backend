@@ -525,10 +525,10 @@ export default function ProblemDetail() {
             )}
           </View>
 
-          {/* Related Problems */}
+          {/* Related Frikts */}
           {relatedProblems.length > 0 && (
             <View style={styles.relatedSection}>
-              <Text style={styles.sectionTitle}>Related Problems</Text>
+              <Text style={styles.sectionTitle}>Related Frikts</Text>
               {relatedProblems.map((related) => (
                 <TouchableOpacity 
                   key={related.id} 
