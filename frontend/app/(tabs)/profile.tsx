@@ -131,7 +131,7 @@ export default function Profile() {
         <View style={styles.statsContainer}>
           <View style={styles.statItem}>
             <Text style={styles.statValue}>{stats?.posts_count || 0}</Text>
-            <Text style={styles.statLabel}>Problems</Text>
+            <Text style={styles.statLabel}>Frikts</Text>
           </View>
           <View style={styles.statDivider} />
           <View style={styles.statItem}>
