@@ -14,6 +14,25 @@ import { Ionicons } from '@expo/vector-icons';
 import { colors } from '@/src/theme/colors';
 import { api } from '@/src/services/api';
 import ProblemCard from '@/src/components/ProblemCard';
+import Toast from 'react-native-root-toast';
+
+const showToast = (message: string, isError: boolean = false) => {
+  Toast.show(message, {
+    duration: Toast.durations.SHORT,
+    position: Toast.positions.BOTTOM,
+    shadow: true,
+    animation: true,
+    hideOnPress: true,
+    backgroundColor: isError ? colors.error : colors.accent,
+    textColor: colors.white,
+    containerStyle: {
+      borderRadius: 8,
+      paddingHorizontal: 20,
+      paddingVertical: 12,
+      marginBottom: 80,
+    },
+  });
+};
 
 export default function SavedProblems() {
   const router = useRouter();
@@ -41,24 +60,38 @@ export default function SavedProblems() {
   }, []);
 
   const handleRelate = async (problemId: string, isRelated: boolean) => {
+    // Optimistic update
+    setProblems(prev => prev.map(p => {
+      if (p.id === problemId) {
+        return {
+          ...p,
+          user_has_related: !isRelated,
+          relates_count: isRelated ? p.relates_count - 1 : p.relates_count + 1,
+        };
+      }
+      return p;
+    }));
+
     try {
       if (isRelated) {
         await api.unrelateToProblem(problemId);
       } else {
         await api.relateToProblem(problemId);
+        showToast('Relates +1 ❤️');
       }
+    } catch (error) {
+      // Rollback
       setProblems(prev => prev.map(p => {
         if (p.id === problemId) {
           return {
             ...p,
-            user_has_related: !isRelated,
-            relates_count: isRelated ? p.relates_count - 1 : p.relates_count + 1,
+            user_has_related: isRelated,
+            relates_count: isRelated ? p.relates_count : p.relates_count - 1,
           };
         }
         return p;
       }));
-    } catch (error) {
-      console.error('Error toggling relate:', error);
+      showToast('Failed to update', true);
     }
   };
 
@@ -66,10 +99,10 @@ export default function SavedProblems() {
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+          <TouchableOpacity onPress={() => router.back()} style={styles.backButton} activeOpacity={0.7}>
             <Ionicons name="arrow-back" size={24} color={colors.text} />
           </TouchableOpacity>
-          <Text style={styles.title}>Saved Problems</Text>
+          <Text style={styles.title}>Saved Frikts</Text>
           <View style={{ width: 32 }} />
         </View>
         <View style={styles.loadingContainer}>
@@ -82,10 +115,10 @@ export default function SavedProblems() {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+        <TouchableOpacity onPress={() => router.back()} style={styles.backButton} activeOpacity={0.7}>
           <Ionicons name="arrow-back" size={24} color={colors.text} />
         </TouchableOpacity>
-        <Text style={styles.title}>Saved Problems</Text>
+        <Text style={styles.title}>Saved Frikts</Text>
         <View style={{ width: 32 }} />
       </View>
 
@@ -110,8 +143,8 @@ export default function SavedProblems() {
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
             <Ionicons name="bookmark-outline" size={64} color={colors.textMuted} />
-            <Text style={styles.emptyTitle}>No saved problems</Text>
-            <Text style={styles.emptyText}>Save problems to revisit later</Text>
+            <Text style={styles.emptyTitle}>No saved Frikts</Text>
+            <Text style={styles.emptyText}>Save Frikts to revisit later</Text>
           </View>
         }
       />
