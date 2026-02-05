@@ -495,6 +495,56 @@ async def create_problem(problem_data: ProblemCreate, user: dict = Depends(requi
         category_color=category["color"]
     )
 
+class ProblemUpdate(BaseModel):
+    title: Optional[str] = Field(None, min_length=10)
+    category_id: Optional[str] = None
+    frequency: Optional[str] = None
+    pain_level: Optional[int] = Field(None, ge=1, le=5)
+    when_happens: Optional[str] = None
+    who_affected: Optional[str] = None
+    what_tried: Optional[str] = None
+
+@api_router.patch("/problems/{problem_id}")
+async def update_problem(problem_id: str, update: ProblemUpdate, user: dict = Depends(require_auth)):
+    """Update a problem (owner only)"""
+    problem = await db.problems.find_one({"id": problem_id})
+    if not problem:
+        raise HTTPException(status_code=404, detail="Problem not found")
+    
+    # Check ownership
+    if problem["user_id"] != user["id"]:
+        raise HTTPException(status_code=403, detail="Not authorized to edit this problem")
+    
+    # Build update dict with only provided fields
+    update_data = {}
+    if update.title is not None:
+        update_data["title"] = update.title.strip()
+    if update.category_id is not None:
+        update_data["category_id"] = update.category_id
+    if update.frequency is not None:
+        update_data["frequency"] = update.frequency
+    if update.pain_level is not None:
+        update_data["pain_level"] = update.pain_level
+    if update.when_happens is not None:
+        update_data["when_happens"] = update.when_happens.strip() if update.when_happens else None
+    if update.who_affected is not None:
+        update_data["who_affected"] = update.who_affected.strip() if update.who_affected else None
+    if update.what_tried is not None:
+        update_data["what_tried"] = update.what_tried.strip() if update.what_tried else None
+    
+    if update_data:
+        await db.problems.update_one({"id": problem_id}, {"$set": update_data})
+    
+    # Return updated problem
+    updated = await db.problems.find_one({"id": problem_id})
+    category = next((c for c in CATEGORIES if c["id"] == updated["category_id"]), CATEGORIES[-1])
+    
+    return ProblemResponse(
+        **updated,
+        category_name=category["name"],
+        category_color=category["color"]
+    )
+
 @api_router.get("/problems", response_model=List[ProblemResponse])
 async def get_problems(
     feed: str = "new",  # "new", "trending", "foryou"
