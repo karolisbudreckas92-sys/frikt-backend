@@ -9,11 +9,36 @@ import {
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, shadows, radius } from '../theme/colors';
 import { api } from '../services/api';
+import Toast from 'react-native-root-toast';
+
+interface PostWizardProps {
+  onComplete: (problemId?: string) => void;
+  onCancel: () => void;
+}
+
+const showToast = (message: string, isError: boolean = false) => {
+  Toast.show(message, {
+    duration: Toast.durations.SHORT,
+    position: Toast.positions.BOTTOM,
+    shadow: true,
+    animation: true,
+    hideOnPress: true,
+    backgroundColor: isError ? colors.error : colors.accent,
+    textColor: colors.white,
+    containerStyle: {
+      borderRadius: 8,
+      paddingHorizontal: 20,
+      paddingVertical: 12,
+      marginBottom: 80,
+    },
+  });
+};
 
 interface PostWizardProps {
   onComplete: (problemId?: string) => void;
