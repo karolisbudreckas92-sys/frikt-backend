@@ -40,7 +40,9 @@ export default function ProblemCard({ problem, onPress, onRelate }: ProblemCardP
       </View>
 
       <Text style={styles.title} numberOfLines={2}>{problem.title}</Text>
-      <Text style={styles.snippet} numberOfLines={2}>{snippet}</Text>
+      {snippet ? (
+        <Text style={styles.snippet} numberOfLines={2}>{snippet}</Text>
+      ) : null}
 
       <View style={styles.footer}>
         <TouchableOpacity 
