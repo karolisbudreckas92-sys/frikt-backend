@@ -43,6 +43,38 @@ class ApiService {
     return response.data;
   }
 
+  // Profile
+  async updateProfile(data: {
+    displayName: string;
+    bio?: string;
+    city?: string;
+    showCity?: boolean;
+    avatarUrl?: string | null;
+  }) {
+    const response = await this.client.put('/users/me/profile', data);
+    return response.data;
+  }
+
+  async uploadAvatar(uri: string) {
+    const formData = new FormData();
+    const filename = uri.split('/').pop() || 'avatar.jpg';
+    const match = /\.(\w+)$/.exec(filename);
+    const type = match ? `image/${match[1]}` : 'image/jpeg';
+    
+    formData.append('file', {
+      uri,
+      name: filename,
+      type,
+    } as any);
+
+    const response = await this.client.post('/users/me/avatar', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return response.data;
+  }
+
   // Categories
   async getCategories() {
     const response = await this.client.get('/categories');
