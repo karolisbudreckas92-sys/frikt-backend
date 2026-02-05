@@ -89,6 +89,14 @@ class ApiService {
     return response.data;
   }
 
+  async uploadAvatarBase64(base64: string, mimeType: string = 'image/jpeg') {
+    const response = await this.client.post('/users/me/avatar-base64', {
+      image: base64,
+      mimeType,
+    });
+    return response.data;
+  }
+
   // Categories
   async getCategories() {
     const response = await this.client.get('/categories');
