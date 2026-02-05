@@ -202,8 +202,8 @@ export default function ProblemDetail() {
   };
 
   const handleAddComment = async () => {
-    if (!commentText.trim() || commentText.trim().length < 10) {
-      Alert.alert('Too Short', 'Comment must be at least 10 characters');
+    if (!commentText.trim() || commentText.trim().length < 5) {
+      Alert.alert('Too Short', 'Comment must be at least 5 characters');
       return;
     }
     
@@ -213,8 +213,9 @@ export default function ProblemDetail() {
       setComments([newComment, ...comments]);
       setCommentText('');
       setProblem({ ...problem, comments_count: problem.comments_count + 1 });
+      showToast('Comment added ✓');
     } catch (error) {
-      Alert.alert('Error', 'Failed to add comment');
+      showToast('Failed to add comment', true);
     } finally {
       setIsSubmitting(false);
     }
