@@ -1,4 +1,5 @@
-from fastapi import FastAPI, APIRouter, HTTPException, Depends, status, BackgroundTasks, UploadFile, File
+from fastapi import FastAPI, APIRouter, HTTPException, Depends, status, BackgroundTasks, UploadFile
+from fastapi import File as FastAPIFile
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.staticfiles import StaticFiles
 from dotenv import load_dotenv
