@@ -136,6 +136,14 @@ export default function Profile() {
             <Text style={styles.menuText}>Notifications</Text>
             <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
           </TouchableOpacity>
+
+          <TouchableOpacity style={styles.menuItem} onPress={() => router.push('/notification-settings')}>
+            <View style={styles.menuIcon}>
+              <Ionicons name="settings-outline" size={22} color={colors.info} />
+            </View>
+            <Text style={styles.menuText}>Notification Settings</Text>
+            <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
+          </TouchableOpacity>
         </View>
 
         <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
