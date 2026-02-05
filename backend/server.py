@@ -1724,10 +1724,21 @@ async def get_analytics(admin: dict = Depends(require_admin)):
     comments_week = await db.comments.count_documents({"created_at": {"$gte": week_start}})
     
     # Top problems by SignalScore
-    top_problems = await db.problems.find(
+    top_problems_cursor = await db.problems.find(
         {"status": "active"},
-        {"id": 1, "title": 1, "signal_score": 1, "relates_count": 1, "comments_count": 1}
+        {"_id": 0, "id": 1, "title": 1, "signal_score": 1, "relates_count": 1, "comments_count": 1}
     ).sort("signal_score", -1).limit(10).to_list(10)
+    
+    # Convert to plain dicts to avoid ObjectId issues
+    top_problems = []
+    for p in top_problems_cursor:
+        top_problems.append({
+            "id": p.get("id", ""),
+            "title": p.get("title", ""),
+            "signal_score": p.get("signal_score", 0),
+            "relates_count": p.get("relates_count", 0),
+            "comments_count": p.get("comments_count", 0)
+        })
     
     # Pending reports
     pending_reports = await db.reports.count_documents({"status": "pending"})
