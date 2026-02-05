@@ -104,7 +104,7 @@ export default function Home() {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
-        <Text style={styles.logo}>PathGro</Text>
+        <Text style={styles.logo}>frikt</Text>
         <TouchableOpacity 
           style={styles.notifButton}
           onPress={() => router.push('/notifications')}
