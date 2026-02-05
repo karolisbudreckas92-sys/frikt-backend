@@ -419,7 +419,7 @@ async def get_problems(
     user_saves = set()
     user_follows = set()
     if user:
-        relates = await db.relates.find({"user_id": user["id"]}).to_list(1000)
+        relates = await db.relates.find({"user_id": user["id"]}, {"problem_id": 1}).to_list(1000)
         user_relates = {r["problem_id"] for r in relates}
         user_saves = set(user.get("saved_problems", []))
         user_follows = set(user.get("followed_problems", []))
