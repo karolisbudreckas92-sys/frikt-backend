@@ -100,6 +100,11 @@ class ApiService {
     return response.data;
   }
 
+  async updateProblem(id: string, data: any) {
+    const response = await this.client.patch(`/problems/${id}`, data);
+    return response.data;
+  }
+
   async getSimilarProblems(title: string) {
     const response = await this.client.get('/problems/similar', { params: { title } });
     return response.data;
