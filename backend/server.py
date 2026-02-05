@@ -705,12 +705,26 @@ async def create_comment(comment_data: CommentCreate, user: dict = Depends(requi
                 {"type": "new_comment", "problemId": comment_data.problem_id}
             )
     
-    # Notify followers
-    followers = await db.users.find({"followed_problems": comment_data.problem_id}).to_list(100)
-    for follower in followers:
-        if follower["id"] != user["id"] and follower["id"] != problem["user_id"]:
+    # Notify followers - optimized with projections and batch query
+    followers = await db.users.find(
+        {"followed_problems": comment_data.problem_id},
+        {"id": 1}
+    ).to_list(100)
+    
+    # Get all follower IDs to exclude current user and problem owner
+    follower_ids = [f["id"] for f in followers if f["id"] != user["id"] and f["id"] != problem["user_id"]]
+    
+    if follower_ids:
+        # Batch query notification settings to avoid N+1
+        follower_settings_list = await db.notification_settings.find(
+            {"user_id": {"$in": follower_ids}},
+            {"user_id": 1, "new_comments": 1}
+        ).to_list(100)
+        follower_settings_map = {s["user_id"]: s for s in follower_settings_list}
+        
+        for follower_id in follower_ids:
             notification = Notification(
-                user_id=follower["id"],
+                user_id=follower_id,
                 type="new_comment",
                 problem_id=comment_data.problem_id,
                 message=f"New comment on a problem you follow"
@@ -718,10 +732,10 @@ async def create_comment(comment_data: CommentCreate, user: dict = Depends(requi
             await db.notifications.insert_one(notification.dict())
             
             # Send push notification to follower
-            follower_settings = await db.notification_settings.find_one({"user_id": follower["id"]})
+            follower_settings = follower_settings_map.get(follower_id)
             if not follower_settings or follower_settings.get("new_comments", True):
                 await send_notification_to_user(
-                    follower["id"],
+                    follower_id,
                     "New comment on followed problem",
                     f"{user['name']} commented on: {problem['title'][:40]}...",
                     {"type": "new_comment", "problemId": comment_data.problem_id}
