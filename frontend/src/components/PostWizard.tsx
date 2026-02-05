@@ -267,7 +267,7 @@ export default function PostWizard({ onComplete, onCancel }: PostWizardProps) {
           <TouchableOpacity onPress={handleBack} style={styles.backButton}>
             <Ionicons name="arrow-back" size={24} color={colors.text} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Post a problem</Text>
+          <Text style={styles.headerTitle}>Drop a Frikt</Text>
           <View style={styles.stepIndicator}>
             <Text style={styles.stepIndicatorText}>{step}/2</Text>
           </View>
