@@ -44,9 +44,11 @@ const SEVERITY_LEVELS = [1, 2, 3, 4, 5];
 export default function EditProblem() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
+  const { user, isAdmin } = useAuth();
   
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [problem, setProblem] = useState<any>(null);
   
   // Form fields
