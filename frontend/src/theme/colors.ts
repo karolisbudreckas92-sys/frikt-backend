@@ -1,8 +1,8 @@
 export const colors = {
-  // Primary Accent (Rose Red)
-  primary: '#E11D48',
-  primaryDark: '#BE123C',
-  primaryLight: '#FFF1F2',
+  // Primary Accent (FRIKT Red/Coral)
+  primary: '#E55A3C',
+  primaryDark: '#C94A30',
+  primaryLight: '#FEF2EF',
   
   // Background (Warm Paper)
   background: '#F6F4EF',
@@ -10,7 +10,7 @@ export const colors = {
   surfaceLight: '#FAFAF8',
   
   // Text
-  text: '#121212',
+  text: '#2D2D2D',
   textSecondary: '#4B5563',
   textMuted: '#8A8F98',
   
@@ -26,7 +26,7 @@ export const colors = {
   info: '#4B5563',
   
   // Relates (using primary red)
-  relateActive: '#E11D48',
+  relateActive: '#E55A3C',
   relateInactive: '#8A8F98',
   
   // Borders & Dividers
@@ -38,12 +38,12 @@ export const colors = {
   cardBorder: '#E7E1D7',
   
   // Misc
-  overlay: 'rgba(18, 18, 18, 0.5)',
+  overlay: 'rgba(45, 45, 45, 0.5)',
   white: '#FFFFFF',
-  black: '#121212',
+  black: '#2D2D2D',
   
   // Soft backgrounds for chips/badges
-  softRed: '#FFF1F2',
+  softRed: '#FEF2EF',
   softGreen: '#E8F5F1',
   softAmber: '#FEF3C7',
 };
@@ -51,14 +51,14 @@ export const colors = {
 // Shadow styles for cards
 export const shadows = {
   card: {
-    shadowColor: '#111827',
+    shadowColor: '#2D2D2D',
     shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.08,
     shadowRadius: 30,
     elevation: 3,
   },
   subtle: {
-    shadowColor: '#111827',
+    shadowColor: '#2D2D2D',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.04,
     shadowRadius: 12,

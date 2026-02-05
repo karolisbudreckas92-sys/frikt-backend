@@ -1,25 +1,25 @@
 {
   "expo": {
-    "name": "PathGro",
-    "slug": "pathgro",
+    "name": "FRIKT",
+    "slug": "frikt",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "pathgro",
+    "scheme": "frikt",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
       "infoPlist": {
-        "NSCameraUsageDescription": "Take photos to illustrate your problems",
-        "NSPhotoLibraryUsageDescription": "Upload images to describe your friction",
+        "NSCameraUsageDescription": "Take photos for your profile",
+        "NSPhotoLibraryUsageDescription": "Upload a profile photo",
         "UIBackgroundModes": ["remote-notification"]
       }
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
-        "backgroundColor": "#0F0F1A"
+        "backgroundColor": "#F6F4EF"
       },
       "edgeToEdgeEnabled": true,
       "permissions": [
@@ -41,14 +41,20 @@
           "image": "./assets/images/splash-icon.png",
           "imageWidth": 200,
           "resizeMode": "contain",
-          "backgroundColor": "#0F0F1A"
+          "backgroundColor": "#F6F4EF"
         }
       ],
       [
         "expo-notifications",
         {
           "icon": "./assets/images/notification-icon.png",
-          "color": "#6366F1"
+          "color": "#E55A3C"
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Upload a profile photo"
         }
       ]
     ],
@@ -57,9 +63,9 @@
     },
     "notification": {
       "icon": "./assets/images/notification-icon.png",
-      "color": "#6366F1",
+      "color": "#E55A3C",
       "androidMode": "default",
-      "androidCollapsedTitle": "PathGro"
+      "androidCollapsedTitle": "FRIKT"
     }
   }
 }

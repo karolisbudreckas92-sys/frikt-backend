@@ -65,7 +65,7 @@ export default function Register() {
           keyboardShouldPersistTaps="handled"
         >
           <View style={styles.header}>
-            <Text style={styles.logo}>PathGro</Text>
+            <Text style={styles.logo}>frikt</Text>
             <Text style={styles.tagline}>Share frictions. Find patterns.</Text>
           </View>
 
@@ -175,10 +175,10 @@ const styles = StyleSheet.create({
     marginBottom: 48,
   },
   logo: {
-    fontSize: 40,
-    fontWeight: '800',
-    color: colors.primary,
-    letterSpacing: -1,
+    fontSize: 48,
+    fontWeight: '700',
+    color: colors.text,
+    letterSpacing: -2,
   },
   tagline: {
     fontSize: 16,
