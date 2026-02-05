@@ -204,6 +204,148 @@ class ApiService {
     const response = await this.client.get('/push/settings');
     return response.data;
   }
+
+  // Enhanced Reports
+  async reportProblemWithReason(problemId: string, reason: string, details?: string) {
+    const response = await this.client.post(`/report/problem/${problemId}`, { reason, details });
+    return response.data;
+  }
+
+  async reportCommentWithReason(commentId: string, reason: string, details?: string) {
+    const response = await this.client.post(`/report/comment/${commentId}`, { reason, details });
+    return response.data;
+  }
+
+  // ===================== ADMIN API =====================
+
+  // Admin: Reports
+  async getAdminReports(status: string = 'pending', targetType?: string) {
+    const params: any = { status };
+    if (targetType) params.target_type = targetType;
+    const response = await this.client.get('/admin/reports', { params });
+    return response.data;
+  }
+
+  async dismissReport(reportId: string) {
+    const response = await this.client.post(`/admin/reports/${reportId}/dismiss`);
+    return response.data;
+  }
+
+  async markReportReviewed(reportId: string) {
+    const response = await this.client.post(`/admin/reports/${reportId}/reviewed`);
+    return response.data;
+  }
+
+  // Admin: Problems
+  async getReportedProblems() {
+    const response = await this.client.get('/admin/reported-problems');
+    return response.data;
+  }
+
+  async hideProblem(problemId: string) {
+    const response = await this.client.post(`/admin/problems/${problemId}/hide`);
+    return response.data;
+  }
+
+  async unhideProblem(problemId: string) {
+    const response = await this.client.post(`/admin/problems/${problemId}/unhide`);
+    return response.data;
+  }
+
+  async deleteProblemAdmin(problemId: string) {
+    const response = await this.client.delete(`/admin/problems/${problemId}`);
+    return response.data;
+  }
+
+  async pinProblem(problemId: string) {
+    const response = await this.client.post(`/admin/problems/${problemId}/pin`);
+    return response.data;
+  }
+
+  async unpinProblem(problemId: string) {
+    const response = await this.client.post(`/admin/problems/${problemId}/unpin`);
+    return response.data;
+  }
+
+  async markNeedsContext(problemId: string) {
+    const response = await this.client.post(`/admin/problems/${problemId}/needs-context`);
+    return response.data;
+  }
+
+  async clearNeedsContext(problemId: string) {
+    const response = await this.client.post(`/admin/problems/${problemId}/clear-needs-context`);
+    return response.data;
+  }
+
+  async mergeDuplicates(primaryId: string, duplicateIds: string[]) {
+    const response = await this.client.post(`/admin/problems/${primaryId}/merge`, { duplicate_ids: duplicateIds });
+    return response.data;
+  }
+
+  // Admin: Comments
+  async getReportedComments() {
+    const response = await this.client.get('/admin/reported-comments');
+    return response.data;
+  }
+
+  async hideComment(commentId: string) {
+    const response = await this.client.post(`/admin/comments/${commentId}/hide`);
+    return response.data;
+  }
+
+  async unhideComment(commentId: string) {
+    const response = await this.client.post(`/admin/comments/${commentId}/unhide`);
+    return response.data;
+  }
+
+  async deleteCommentAdmin(commentId: string) {
+    const response = await this.client.delete(`/admin/comments/${commentId}`);
+    return response.data;
+  }
+
+  // Admin: Users
+  async getAdminUsers(status?: string, role?: string) {
+    const params: any = {};
+    if (status) params.status = status;
+    if (role) params.role = role;
+    const response = await this.client.get('/admin/users', { params });
+    return response.data;
+  }
+
+  async getAdminUserDetail(userId: string) {
+    const response = await this.client.get(`/admin/users/${userId}`);
+    return response.data;
+  }
+
+  async banUser(userId: string) {
+    const response = await this.client.post(`/admin/users/${userId}/ban`);
+    return response.data;
+  }
+
+  async shadowbanUser(userId: string) {
+    const response = await this.client.post(`/admin/users/${userId}/shadowban`);
+    return response.data;
+  }
+
+  async unbanUser(userId: string) {
+    const response = await this.client.post(`/admin/users/${userId}/unban`);
+    return response.data;
+  }
+
+  // Admin: Analytics
+  async getAdminAnalytics() {
+    const response = await this.client.get('/admin/analytics');
+    return response.data;
+  }
+
+  // Admin: Audit Log
+  async getAuditLog(adminId?: string, action?: string) {
+    const params: any = {};
+    if (adminId) params.admin_id = adminId;
+    if (action) params.action = action;
+    const response = await this.client.get('/admin/audit-log', { params });
+    return response.data;
+  }
 }
 
 export const api = new ApiService();
