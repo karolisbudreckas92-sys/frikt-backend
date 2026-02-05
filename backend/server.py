@@ -694,6 +694,16 @@ async def create_comment(comment_data: CommentCreate, user: dict = Depends(requi
             message=f"{user['name']} commented on your problem"
         )
         await db.notifications.insert_one(notification.dict())
+        
+        # Send push notification to problem owner
+        settings = await db.notification_settings.find_one({"user_id": problem["user_id"]})
+        if not settings or settings.get("new_comments", True):
+            await send_notification_to_user(
+                problem["user_id"],
+                "New comment on your problem",
+                f"{user['name']}: {comment_data.content[:60]}...",
+                {"type": "new_comment", "problemId": comment_data.problem_id}
+            )
     
     # Notify followers
     followers = await db.users.find({"followed_problems": comment_data.problem_id}).to_list(100)
@@ -706,6 +716,16 @@ async def create_comment(comment_data: CommentCreate, user: dict = Depends(requi
                 message=f"New comment on a problem you follow"
             )
             await db.notifications.insert_one(notification.dict())
+            
+            # Send push notification to follower
+            follower_settings = await db.notification_settings.find_one({"user_id": follower["id"]})
+            if not follower_settings or follower_settings.get("new_comments", True):
+                await send_notification_to_user(
+                    follower["id"],
+                    "New comment on followed problem",
+                    f"{user['name']} commented on: {problem['title'][:40]}...",
+                    {"type": "new_comment", "problemId": comment_data.problem_id}
+                )
     
     return CommentResponse(**comment.dict())
 
