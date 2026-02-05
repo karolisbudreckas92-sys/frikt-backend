@@ -992,6 +992,94 @@ async def get_my_posts(user: dict = Depends(require_auth)):
     
     return results
 
+@api_router.put("/users/me/profile")
+async def update_profile(profile: ProfileUpdate, user: dict = Depends(require_auth)):
+    """Update user profile"""
+    # Validate display name
+    display_name = profile.displayName.strip()
+    if len(display_name) < 2 or len(display_name) > 20:
+        raise HTTPException(status_code=400, detail="Name must be 2-20 characters")
+    
+    # Check for at least one alphanumeric character
+    import re
+    if not re.search(r'[a-zA-Z0-9]', display_name):
+        raise HTTPException(status_code=400, detail="Name must contain at least one letter or number")
+    
+    update_data = {
+        "displayName": display_name,
+        "bio": (profile.bio or "").strip()[:80],
+        "city": (profile.city or "").strip()[:50],
+        "showCity": profile.showCity or False,
+    }
+    
+    if profile.avatarUrl is not None:
+        update_data["avatarUrl"] = profile.avatarUrl
+    
+    await db.users.update_one(
+        {"id": user["id"]},
+        {"$set": update_data}
+    )
+    
+    # Return updated user
+    updated_user = await db.users.find_one({"id": user["id"]})
+    return UserResponse(
+        id=updated_user["id"],
+        email=updated_user["email"],
+        name=updated_user["name"],
+        displayName=updated_user.get("displayName"),
+        avatarUrl=updated_user.get("avatarUrl"),
+        bio=updated_user.get("bio"),
+        city=updated_user.get("city"),
+        showCity=updated_user.get("showCity", False),
+        created_at=updated_user["created_at"],
+        role=updated_user.get("role", "user"),
+        status=updated_user.get("status", "active"),
+        rocket10_completed=updated_user.get("rocket10_completed", False),
+        streak_days=updated_user.get("streak_days", 0),
+        followed_categories=updated_user.get("followed_categories", [])
+    )
+
+@api_router.post("/users/me/avatar")
+async def upload_avatar(file: UploadFile = File(...), user: dict = Depends(require_auth)):
+    """Upload avatar image"""
+    import base64
+    import os
+    
+    # Validate file type
+    if not file.content_type or not file.content_type.startswith('image/'):
+        raise HTTPException(status_code=400, detail="File must be an image")
+    
+    # Read file content
+    content = await file.read()
+    
+    # Limit file size (2MB)
+    if len(content) > 2 * 1024 * 1024:
+        raise HTTPException(status_code=400, detail="File too large (max 2MB)")
+    
+    # Create uploads directory if it doesn't exist
+    upload_dir = "/app/backend/uploads/avatars"
+    os.makedirs(upload_dir, exist_ok=True)
+    
+    # Generate unique filename
+    file_ext = file.filename.split('.')[-1] if file.filename else 'jpg'
+    filename = f"{user['id']}_{str(uuid.uuid4())[:8]}.{file_ext}"
+    filepath = os.path.join(upload_dir, filename)
+    
+    # Save file
+    with open(filepath, 'wb') as f:
+        f.write(content)
+    
+    # Generate URL (served via static files)
+    avatar_url = f"/api/uploads/avatars/{filename}"
+    
+    # Update user record
+    await db.users.update_one(
+        {"id": user["id"]},
+        {"$set": {"avatarUrl": avatar_url}}
+    )
+    
+    return {"url": avatar_url, "message": "Avatar uploaded successfully"}
+
 # ===================== REPORT =====================
 
 @api_router.post("/problems/{problem_id}/report")
