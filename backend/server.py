@@ -154,8 +154,8 @@ class Problem(BaseModel):
     pain_level: Optional[int] = None
     willing_to_pay: str = "$0"
     when_happens: Optional[str] = None
-    who_affected: str
-    what_tried: str
+    who_affected: Optional[str] = None
+    what_tried: Optional[str] = None
     created_at: datetime = Field(default_factory=datetime.utcnow)
     relates_count: int = 0
     comments_count: int = 0
