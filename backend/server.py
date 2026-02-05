@@ -545,6 +545,27 @@ async def update_problem(problem_id: str, update: ProblemUpdate, user: dict = De
         category_color=category["color"]
     )
 
+@api_router.delete("/problems/{problem_id}")
+async def delete_problem(problem_id: str, user: dict = Depends(require_auth)):
+    """Delete a problem (owner or admin only)"""
+    problem = await db.problems.find_one({"id": problem_id})
+    if not problem:
+        raise HTTPException(status_code=404, detail="Problem not found")
+    
+    # Check ownership or admin
+    is_admin = user.get("role") == "admin"
+    if problem["user_id"] != user["id"] and not is_admin:
+        raise HTTPException(status_code=403, detail="Not authorized to delete this problem")
+    
+    # Delete problem
+    await db.problems.delete_one({"id": problem_id})
+    
+    # Also delete associated comments and relates
+    await db.comments.delete_many({"problem_id": problem_id})
+    await db.relates.delete_many({"problem_id": problem_id})
+    
+    return {"message": "Problem deleted successfully"}
+
 @api_router.get("/problems", response_model=List[ProblemResponse])
 async def get_problems(
     feed: str = "new",  # "new", "trending", "foryou"
