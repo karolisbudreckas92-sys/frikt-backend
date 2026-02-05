@@ -150,13 +150,13 @@ export default function PostWizard({ onComplete, onCancel }: PostWizardProps) {
       {isSearching && (
         <View style={styles.searchingContainer}>
           <ActivityIndicator size="small" color={colors.primary} />
-          <Text style={styles.searchingText}>Looking for similar problems...</Text>
+          <Text style={styles.searchingText}>Looking for similar Frikts...</Text>
         </View>
       )}
 
       {similarProblems.length > 0 && (
         <View style={styles.similarSection}>
-          <Text style={styles.similarTitle}>Similar problems found</Text>
+          <Text style={styles.similarTitle}>Similar Frikts found</Text>
           <Text style={styles.similarHint}>Join an existing thread to concentrate signal</Text>
           
           {similarProblems.map((problem) => (
