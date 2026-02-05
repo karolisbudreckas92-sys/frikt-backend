@@ -7,6 +7,8 @@ interface User {
   email: string;
   name: string;
   created_at: string;
+  role: string;
+  status: string;
   rocket10_completed: boolean;
   streak_days: number;
   followed_categories: string[];
@@ -16,6 +18,7 @@ interface AuthContextType {
   user: User | null;
   token: string | null;
   isLoading: boolean;
+  isAdmin: boolean;
   login: (email: string, password: string) => Promise<void>;
   register: (name: string, email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
@@ -28,6 +31,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+
+  const isAdmin = user?.role === 'admin';
 
   useEffect(() => {
     loadStoredAuth();
@@ -105,7 +110,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, token, isLoading, login, register, logout, refreshUser }}>
+    <AuthContext.Provider value={{ user, token, isLoading, isAdmin, login, register, logout, refreshUser }}>
       {children}
     </AuthContext.Provider>
   );
