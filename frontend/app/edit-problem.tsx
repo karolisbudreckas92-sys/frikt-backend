@@ -347,6 +347,24 @@ export default function EditProblem() {
             </View>
           )}
 
+          {/* Delete Button - Only show if owner or admin */}
+          {canDelete && (
+            <TouchableOpacity 
+              style={styles.deleteButton} 
+              onPress={handleDelete}
+              disabled={isDeleting}
+            >
+              {isDeleting ? (
+                <ActivityIndicator size="small" color={colors.error} />
+              ) : (
+                <>
+                  <Ionicons name="trash-outline" size={20} color={colors.error} />
+                  <Text style={styles.deleteButtonText}>Delete this Frikt</Text>
+                </>
+              )}
+            </TouchableOpacity>
+          )}
+
           <View style={styles.bottomPadding} />
         </ScrollView>
       </KeyboardAvoidingView>
