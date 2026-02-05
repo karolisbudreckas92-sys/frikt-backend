@@ -567,10 +567,24 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    padding: 32,
   },
   errorText: {
     fontSize: 16,
     color: colors.textSecondary,
+    marginTop: 16,
+  },
+  retryButton: {
+    backgroundColor: colors.primary,
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: radius.md,
+    marginTop: 20,
+  },
+  retryButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.white,
   },
   header: {
     flexDirection: 'row',
