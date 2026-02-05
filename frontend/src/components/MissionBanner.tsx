@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { colors } from '../theme/colors';
+import { colors, shadows, radius } from '../theme/colors';
 import { api } from '../services/api';
 
 interface MissionBannerProps {
@@ -36,7 +36,7 @@ export default function MissionBanner({ onDismiss }: MissionBannerProps) {
       
       <View style={styles.content}>
         <View style={styles.iconContainer}>
-          <Ionicons name="sunny" size={24} color={colors.warning} />
+          <Ionicons name="sunny" size={24} color={colors.accent} />
         </View>
         <View style={styles.textContainer}>
           <Text style={styles.label}>Today's theme: {mission.theme}</Text>
@@ -57,13 +57,14 @@ export default function MissionBanner({ onDismiss }: MissionBannerProps) {
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: colors.primaryDark + '20',
+    backgroundColor: colors.surface,
     marginHorizontal: 16,
     marginTop: 12,
-    borderRadius: 16,
+    borderRadius: radius.lg,
     padding: 16,
     borderWidth: 1,
-    borderColor: colors.primary + '30',
+    borderColor: colors.cardBorder,
+    ...shadows.subtle,
   },
   dismissButton: {
     position: 'absolute',
@@ -80,8 +81,8 @@ const styles = StyleSheet.create({
   iconContainer: {
     width: 44,
     height: 44,
-    borderRadius: 12,
-    backgroundColor: colors.warning + '20',
+    borderRadius: radius.md,
+    backgroundColor: colors.softGreen,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
@@ -93,7 +94,7 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 12,
     fontWeight: '600',
-    color: colors.primary,
+    color: colors.accent,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
     marginBottom: 4,
@@ -109,7 +110,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: colors.primary,
-    borderRadius: 12,
+    borderRadius: radius.md,
     paddingVertical: 12,
     gap: 8,
   },
