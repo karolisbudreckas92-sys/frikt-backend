@@ -450,24 +450,23 @@ async def get_categories():
 
 @api_router.post("/problems", response_model=ProblemResponse)
 async def create_problem(problem_data: ProblemCreate, user: dict = Depends(require_auth)):
-    # Check rate limit (max 3 posts/day)
+    # Check rate limit (max 10 posts/day - generous for MVP)
     today = datetime.utcnow().strftime("%Y-%m-%d")
-    if user.get("last_post_date") == today and user.get("posts_today", 0) >= 3:
-        raise HTTPException(status_code=429, detail="Maximum 3 posts per day allowed")
+    if user.get("last_post_date") == today and user.get("posts_today", 0) >= 10:
+        raise HTTPException(status_code=429, detail="Maximum 10 Frikts per day allowed")
     
-    # Validate category
-    category = next((c for c in CATEGORIES if c["id"] == problem_data.category_id), None)
-    if not category:
-        raise HTTPException(status_code=400, detail="Invalid category")
+    # Validate category (default to "other" if not provided)
+    category_id = problem_data.category_id or "other"
+    category = next((c for c in CATEGORIES if c["id"] == category_id), CATEGORIES[-1])
     
-    # Validate frequency and pain
-    if problem_data.frequency not in FREQUENCY_OPTIONS:
-        raise HTTPException(status_code=400, detail="Invalid frequency")
+    # Frequency and pain are optional now - no validation needed for null values
+    frequency = problem_data.frequency if problem_data.frequency in FREQUENCY_OPTIONS else None
+    pain_level = problem_data.pain_level if problem_data.pain_level and 1 <= problem_data.pain_level <= 5 else None
     
     # Create problem
     problem = Problem(
         user_id=user["id"],
-        user_name=user["name"],
+        user_name=user.get("displayName") or user["name"],
         title=problem_data.title,
         category_id=problem_data.category_id,
         frequency=problem_data.frequency,
