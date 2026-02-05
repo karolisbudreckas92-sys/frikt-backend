@@ -1,50 +1,75 @@
 export const colors = {
-  // Primary
-  primary: '#6366F1',
-  primaryDark: '#4F46E5',
-  primaryLight: '#818CF8',
+  // Primary Accent (Rose Red)
+  primary: '#E11D48',
+  primaryDark: '#BE123C',
+  primaryLight: '#FFF1F2',
   
-  // Background
-  background: '#0F0F1A',
-  surface: '#1A1A2E',
-  surfaceLight: '#252542',
+  // Background (Warm Paper)
+  background: '#F6F4EF',
+  surface: '#FFFFFF',
+  surfaceLight: '#FAFAF8',
   
   // Text
-  text: '#FFFFFF',
-  textSecondary: '#A1A1AA',
-  textMuted: '#71717A',
+  text: '#121212',
+  textSecondary: '#4B5563',
+  textMuted: '#8A8F98',
   
-  // Accent
-  accent: '#10B981',
-  accentLight: '#34D399',
+  // Accent (Olive/Green for calm elements)
+  accent: '#2F6F5E',
+  accentLight: '#E8F5F1',
+  amber: '#B45309',
   
   // Status
-  error: '#EF4444',
-  warning: '#F59E0B',
-  success: '#10B981',
-  info: '#3B82F6',
+  error: '#B00020',
+  warning: '#B45309',
+  success: '#2F6F5E',
+  info: '#4B5563',
   
-  // Relates (previously votes)
-  relateActive: '#F97316',
-  relateInactive: '#71717A',
+  // Relates (using primary red)
+  relateActive: '#E11D48',
+  relateInactive: '#8A8F98',
   
-  // Categories (will be overridden by backend)
-  money: '#10B981',
-  work: '#3B82F6',
-  health: '#EF4444',
-  home: '#F59E0B',
-  tech: '#8B5CF6',
-  school: '#EC4899',
-  relationships: '#F97316',
-  travel: '#06B6D4',
-  services: '#84CC16',
+  // Borders & Dividers
+  border: '#E7E1D7',
+  borderLight: '#EFE9DF',
+  divider: '#EFE9DF',
   
-  // Border
-  border: '#27273D',
-  borderLight: '#3F3F5C',
+  // Card specific
+  cardBorder: '#E7E1D7',
   
   // Misc
-  overlay: 'rgba(0, 0, 0, 0.7)',
+  overlay: 'rgba(18, 18, 18, 0.5)',
   white: '#FFFFFF',
-  black: '#000000',
+  black: '#121212',
+  
+  // Soft backgrounds for chips/badges
+  softRed: '#FFF1F2',
+  softGreen: '#E8F5F1',
+  softAmber: '#FEF3C7',
+};
+
+// Shadow styles for cards
+export const shadows = {
+  card: {
+    shadowColor: '#111827',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.08,
+    shadowRadius: 30,
+    elevation: 3,
+  },
+  subtle: {
+    shadowColor: '#111827',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.04,
+    shadowRadius: 12,
+    elevation: 2,
+  },
+};
+
+// Border radius
+export const radius = {
+  sm: 8,
+  md: 12,
+  lg: 16,
+  xl: 20,
 };
