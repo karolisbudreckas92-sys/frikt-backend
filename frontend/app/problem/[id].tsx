@@ -291,17 +291,17 @@ export default function ProblemDetail() {
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+          <TouchableOpacity onPress={() => router.back()} style={styles.backButton} activeOpacity={0.7}>
             <Ionicons name="arrow-back" size={24} color={colors.text} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Problem</Text>
+          <Text style={styles.headerTitle}>Frikt</Text>
           <View style={styles.headerRight}>
             {isOwner && (
-              <TouchableOpacity onPress={handleEdit} style={styles.headerIconButton}>
+              <TouchableOpacity onPress={handleEdit} style={styles.headerIconButton} activeOpacity={0.7}>
                 <Ionicons name="pencil-outline" size={20} color={colors.text} />
               </TouchableOpacity>
             )}
-            <TouchableOpacity onPress={handleShare} style={styles.headerIconButton}>
+            <TouchableOpacity onPress={handleShare} style={styles.headerIconButton} activeOpacity={0.7}>
               <Ionicons name="share-outline" size={22} color={colors.text} />
             </TouchableOpacity>
           </View>
