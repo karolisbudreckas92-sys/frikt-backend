@@ -77,38 +77,57 @@ export default function CategoryProblems() {
   const handleFollow = async () => {
     if (!id) return;
     
+    // Optimistic update
+    const wasFollowing = isFollowing;
+    setIsFollowing(!wasFollowing);
+
     try {
-      if (isFollowing) {
+      if (wasFollowing) {
         await api.unfollowCategory(id);
-        setIsFollowing(false);
+        showToast('Unfollowed');
       } else {
         await api.followCategory(id);
-        setIsFollowing(true);
+        showToast('Following 🔔');
       }
     } catch (error) {
-      console.error('Error toggling follow:', error);
+      setIsFollowing(wasFollowing);
+      showToast('Failed to update', true);
     }
   };
 
   const handleRelate = async (problemId: string, isRelated: boolean) => {
+    // Optimistic update
+    setProblems(prev => prev.map(p => {
+      if (p.id === problemId) {
+        return {
+          ...p,
+          user_has_related: !isRelated,
+          relates_count: isRelated ? p.relates_count - 1 : p.relates_count + 1,
+        };
+      }
+      return p;
+    }));
+
     try {
       if (isRelated) {
         await api.unrelateToProblem(problemId);
       } else {
         await api.relateToProblem(problemId);
+        showToast('Relates +1 ❤️');
       }
+    } catch (error) {
+      // Rollback
       setProblems(prev => prev.map(p => {
         if (p.id === problemId) {
           return {
             ...p,
-            user_has_related: !isRelated,
-            relates_count: isRelated ? p.relates_count - 1 : p.relates_count + 1,
+            user_has_related: isRelated,
+            relates_count: isRelated ? p.relates_count : p.relates_count - 1,
           };
         }
         return p;
       }));
-    } catch (error) {
-      console.error('Error toggling relate:', error);
+      showToast('Failed to update', true);
     }
   };
 
