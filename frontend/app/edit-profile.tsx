@@ -20,6 +20,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { colors, radius } from '@/src/theme/colors';
 import { api } from '@/src/services/api';
 import { useAuth } from '@/src/context/AuthContext';
+import Toast from 'react-native-root-toast';
 
 export default function EditProfile() {
   const router = useRouter();
@@ -59,12 +60,29 @@ export default function EditProfile() {
   const validateName = (name: string): boolean => {
     const trimmed = name.trim();
     if (trimmed.length < 2 || trimmed.length > 20) return false;
-    // Check if not emoji-only (must have at least one letter or number)
     const hasAlphanumeric = /[a-zA-Z0-9]/.test(trimmed);
     return hasAlphanumeric;
   };
 
   const isNameValid = validateName(displayName);
+
+  const showToast = (message: string, isError: boolean = false) => {
+    Toast.show(message, {
+      duration: Toast.durations.SHORT,
+      position: Toast.positions.BOTTOM,
+      shadow: true,
+      animation: true,
+      hideOnPress: true,
+      backgroundColor: isError ? colors.error : colors.accent,
+      textColor: colors.white,
+      containerStyle: {
+        borderRadius: 8,
+        paddingHorizontal: 20,
+        paddingVertical: 12,
+        marginBottom: 80,
+      },
+    });
+  };
 
   const pickImage = async () => {
     const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -93,7 +111,7 @@ export default function EditProfile() {
       setAvatarUrl(response.url);
     } catch (error) {
       console.error('Upload error:', error);
-      Alert.alert('Error', 'Failed to upload image. Please try again.');
+      showToast('Failed to upload photo', true);
     } finally {
       setIsUploading(false);
     }
@@ -115,9 +133,14 @@ export default function EditProfile() {
         avatarUrl,
       });
       await refreshUser();
-      Alert.alert('Saved', '', [{ text: 'OK', onPress: () => router.back() }]);
+      
+      // Show success toast
+      showToast('Profile updated ✅');
+      
+      // Navigate back immediately
+      router.back();
     } catch (error: any) {
-      Alert.alert('Error', error.response?.data?.detail || 'Failed to save profile');
+      showToast("Couldn't save. Try again.", true);
     } finally {
       setIsLoading(false);
     }
@@ -125,6 +148,12 @@ export default function EditProfile() {
 
   const getInitial = () => {
     return (displayName || user?.name || 'U').charAt(0).toUpperCase();
+  };
+
+  const getSaveButtonText = () => {
+    if (isLoading) return 'Saving…';
+    if (isUploading) return 'Uploading photo…';
+    return 'Save';
   };
 
   return (
@@ -141,13 +170,15 @@ export default function EditProfile() {
           <Text style={styles.headerTitle}>Edit profile</Text>
           <TouchableOpacity 
             onPress={handleSave} 
-            style={[styles.headerButton, !isNameValid && styles.headerButtonDisabled]}
-            disabled={!isNameValid || isLoading}
+            style={[styles.headerButton, (!isNameValid || isLoading || isUploading) && styles.headerButtonDisabled]}
+            disabled={!isNameValid || isLoading || isUploading}
           >
             {isLoading ? (
               <ActivityIndicator size="small" color={colors.primary} />
             ) : (
-              <Text style={[styles.saveText, !isNameValid && styles.saveTextDisabled]}>Save</Text>
+              <Text style={[styles.saveText, (!isNameValid || isUploading) && styles.saveTextDisabled]}>
+                {getSaveButtonText()}
+              </Text>
             )}
           </TouchableOpacity>
         </View>
