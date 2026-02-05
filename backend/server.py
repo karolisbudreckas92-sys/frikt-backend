@@ -164,6 +164,8 @@ class Comment(BaseModel):
     created_at: datetime = Field(default_factory=datetime.utcnow)
     helpful_count: int = 0
     is_pinned: bool = False
+    status: str = "active"  # "active" | "hidden" | "removed"
+    reports_count: int = 0
 
 class CommentResponse(Comment):
     user_marked_helpful: bool = False
