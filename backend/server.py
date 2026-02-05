@@ -78,6 +78,8 @@ class UserLogin(BaseModel):
 class User(UserBase):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     created_at: datetime = Field(default_factory=datetime.utcnow)
+    role: str = "user"  # "user" | "admin"
+    status: str = "active"  # "active" | "banned" | "shadowbanned"
     rocket10_completed: bool = False
     rocket10_day: int = 0
     rocket10_start_date: Optional[datetime] = None
@@ -93,6 +95,8 @@ class UserResponse(BaseModel):
     email: str
     name: str
     created_at: datetime
+    role: str = "user"
+    status: str = "active"
     rocket10_completed: bool
     streak_days: int
     followed_categories: List[str]
