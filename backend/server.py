@@ -135,13 +135,13 @@ class TokenResponse(BaseModel):
 # Problem Models
 class ProblemCreate(BaseModel):
     title: str = Field(..., min_length=10)
-    category_id: str
-    frequency: str
-    pain_level: int = Field(..., ge=1, le=5)
+    category_id: str = "other"
+    frequency: Optional[str] = None
+    pain_level: Optional[int] = Field(None, ge=1, le=5)
     willing_to_pay: Optional[str] = "$0"
-    when_happens: str = Field(..., min_length=40)
-    who_affected: str = Field(..., min_length=40)
-    what_tried: str = Field(..., min_length=40)
+    when_happens: Optional[str] = None
+    who_affected: Optional[str] = None
+    what_tried: Optional[str] = None
     is_problem_not_solution: bool = True
 
 class Problem(BaseModel):
@@ -150,10 +150,10 @@ class Problem(BaseModel):
     user_name: str
     title: str
     category_id: str
-    frequency: str
-    pain_level: int
+    frequency: Optional[str] = None
+    pain_level: Optional[int] = None
     willing_to_pay: str = "$0"
-    when_happens: str
+    when_happens: Optional[str] = None
     who_affected: str
     what_tried: str
     created_at: datetime = Field(default_factory=datetime.utcnow)
