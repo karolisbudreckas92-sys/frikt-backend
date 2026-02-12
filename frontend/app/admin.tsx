@@ -191,6 +191,14 @@ export default function AdminPanel() {
             <Text style={styles.metricLabel}>Comments Today</Text>
           </View>
         </View>
+        
+        {/* DAU/WAU Definition */}
+        <View style={styles.definitionCard}>
+          <Ionicons name="information-circle-outline" size={16} color={colors.textMuted} />
+          <Text style={styles.definitionText}>
+            Active = posted, related, or commented (not just opened app)
+          </Text>
+        </View>
 
         {/* Totals */}
         <Text style={styles.sectionTitle}>Totals</Text>
