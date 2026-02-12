@@ -439,6 +439,16 @@ const styles = StyleSheet.create({
     textAlign: 'right',
     marginTop: 4,
   },
+  fieldFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 4,
+  },
+  helperText: {
+    fontSize: 12,
+    color: colors.textMuted,
+  },
   toggleContainer: {
     flexDirection: 'row',
     alignItems: 'center',
