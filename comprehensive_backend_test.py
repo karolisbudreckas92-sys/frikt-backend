@@ -191,8 +191,9 @@ class FRIKTTester:
         try:
             # Set displayName for user1
             headers1 = {"Authorization": f"Bearer {self.user1_token}"}
+            unique_name = f"SarahJ{uuid.uuid4().hex[:6]}"
             profile_data = {
-                "displayName": "SarahJ2024",
+                "displayName": unique_name,
                 "bio": "Love solving everyday problems!",
                 "city": "San Francisco",
                 "showCity": True
