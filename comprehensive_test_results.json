@@ -1,0 +1,254 @@
+[
+  {
+    "test": "Auth Register - Admin",
+    "success": true,
+    "message": "Admin user already exists, logged in successfully",
+    "details": null,
+    "timestamp": "2026-02-12T07:35:37.192120"
+  },
+  {
+    "test": "Auth Register - User1",
+    "success": true,
+    "message": "Regular user registered successfully",
+    "details": null,
+    "timestamp": "2026-02-12T07:35:37.455014"
+  },
+  {
+    "test": "Auth Register - User2",
+    "success": true,
+    "message": "Second user registered successfully",
+    "details": null,
+    "timestamp": "2026-02-12T07:35:37.715783"
+  },
+  {
+    "test": "Auth Login",
+    "success": true,
+    "message": "Login successful with valid JWT token",
+    "details": null,
+    "timestamp": "2026-02-12T07:35:37.973837"
+  },
+  {
+    "test": "Auth Me",
+    "success": true,
+    "message": "User data retrieved successfully for karolisbudreckas92@gmail.com",
+    "details": null,
+    "timestamp": "2026-02-12T07:35:38.015008"
+  },
+  {
+    "test": "Profile Update - User1",
+    "success": true,
+    "message": "Profile updated successfully",
+    "details": null,
+    "timestamp": "2026-02-12T07:35:38.051863"
+  },
+  {
+    "test": "Profile Unique Nickname - Conflict",
+    "success": true,
+    "message": "Duplicate nickname correctly rejected with 409",
+    "details": null,
+    "timestamp": "2026-02-12T07:35:38.088120"
+  },
+  {
+    "test": "Profile Unique Nickname - Case Insensitive",
+    "success": true,
+    "message": "Case-insensitive duplicate correctly rejected",
+    "details": null,
+    "timestamp": "2026-02-12T07:35:38.127681"
+  },
+  {
+    "test": "Avatar Upload",
+    "success": true,
+    "message": "Avatar uploaded successfully: /api/uploads/avatars/ee37c4b6-0064-4c6d-a6de-c61fc179e28f_2cf5299a.png",
+    "details": null,
+    "timestamp": "2026-02-12T07:35:38.164650"
+  },
+  {
+    "test": "Create Problem",
+    "success": true,
+    "message": "Problem created successfully: My coffee shop always runs out of oat milk by 10am...",
+    "details": null,
+    "timestamp": "2026-02-12T07:35:38.201328"
+  },
+  {
+    "test": "Problems Feed - New",
+    "success": true,
+    "message": "NEW feed returned 6 problems",
+    "details": null,
+    "timestamp": "2026-02-12T07:35:38.235452"
+  },
+  {
+    "test": "Problems Feed - New Sorting",
+    "success": true,
+    "message": "NEW feed correctly sorted by created_at desc",
+    "details": null,
+    "timestamp": "2026-02-12T07:35:38.235480"
+  },
+  {
+    "test": "Problems Feed - Trending",
+    "success": true,
+    "message": "TRENDING feed returned 6 problems",
+    "details": null,
+    "timestamp": "2026-02-12T07:35:38.275048"
+  },
+  {
+    "test": "Problems Feed - ForYou",
+    "success": true,
+    "message": "FORYOU feed returned 6 problems",
+    "details": null,
+    "timestamp": "2026-02-12T07:35:38.313648"
+  },
+  {
+    "test": "Get Single Problem",
+    "success": true,
+    "message": "Problem retrieved: My coffee shop always runs out of oat milk by 10am...",
+    "details": null,
+    "timestamp": "2026-02-12T07:35:38.346949"
+  },
+  {
+    "test": "Edit Problem - Owner",
+    "success": true,
+    "message": "Problem updated successfully by owner",
+    "details": null,
+    "timestamp": "2026-02-12T07:35:38.388192"
+  },
+  {
+    "test": "Edit Problem - Non-Owner",
+    "success": false,
+    "message": "Expected 403, got 422",
+    "details": null,
+    "timestamp": "2026-02-12T07:35:38.425828"
+  },
+  {
+    "test": "Delete Problem - Non-Owner",
+    "success": true,
+    "message": "Non-owner correctly blocked with 403",
+    "details": null,
+    "timestamp": "2026-02-12T07:35:38.496004"
+  },
+  {
+    "test": "Delete Problem - Owner",
+    "success": true,
+    "message": "Owner successfully deleted problem",
+    "details": null,
+    "timestamp": "2026-02-12T07:35:38.531328"
+  },
+  {
+    "test": "Relate to Problem",
+    "success": true,
+    "message": "Related successfully, count: 1",
+    "details": null,
+    "timestamp": "2026-02-12T07:35:38.581524"
+  },
+  {
+    "test": "Relate Duplicate",
+    "success": true,
+    "message": "Duplicate relate correctly rejected",
+    "details": null,
+    "timestamp": "2026-02-12T07:35:38.614598"
+  },
+  {
+    "test": "Comment on Problem",
+    "success": false,
+    "message": "Comment failed: 405 - {\"detail\":\"Method Not Allowed\"}",
+    "details": null,
+    "timestamp": "2026-02-12T07:35:38.687573"
+  },
+  {
+    "test": "Get Comments",
+    "success": true,
+    "message": "No comments found (empty list)",
+    "details": null,
+    "timestamp": "2026-02-12T07:35:38.721331"
+  },
+  {
+    "test": "Save Problem",
+    "success": true,
+    "message": "Problem saved successfully",
+    "details": null,
+    "timestamp": "2026-02-12T07:35:38.755852"
+  },
+  {
+    "test": "Unsave Problem",
+    "success": true,
+    "message": "Problem unsaved successfully",
+    "details": null,
+    "timestamp": "2026-02-12T07:35:38.786601"
+  },
+  {
+    "test": "Get Categories",
+    "success": true,
+    "message": "All 9 expected categories found",
+    "details": null,
+    "timestamp": "2026-02-12T07:35:38.821468"
+  },
+  {
+    "test": "Admin Analytics - Signal Formula",
+    "success": true,
+    "message": "Signal formula included: {'description': 'Signal = (relates\u00d73) + (comments\u00d72) + (unique_commenters\u00d71) + pain_bonus + recency_boost', 'weights': {'relate': 3.0, 'comment': 2.0, 'unique_commenter': 1.0, 'follow': 1.0, 'pain_base': 0.5, 'frequency_daily': 1.0, 'frequency_weekly': 0.5, 'frequency_monthly': 0.25, 'recency_max_boost': 2.0, 'recency_decay_hours': 72}, 'notes': 'Recency boost decays to 0 over 72h. Posts with engagement always beat posts without (except very new).'}",
+    "details": null,
+    "timestamp": "2026-02-12T07:35:38.864208"
+  },
+  {
+    "test": "Admin Analytics - Signal Breakdown",
+    "success": false,
+    "message": "Missing signal_breakdown",
+    "details": null,
+    "timestamp": "2026-02-12T07:35:38.864235"
+  },
+  {
+    "test": "Admin Users - List",
+    "success": true,
+    "message": "Retrieved 5 users",
+    "details": null,
+    "timestamp": "2026-02-12T07:35:38.900063"
+  },
+  {
+    "test": "Admin Users - Ban",
+    "success": true,
+    "message": "User banned successfully",
+    "details": null,
+    "timestamp": "2026-02-12T07:35:38.939461"
+  },
+  {
+    "test": "Admin Users - Unban",
+    "success": true,
+    "message": "User unbanned successfully",
+    "details": null,
+    "timestamp": "2026-02-12T07:35:38.973267"
+  },
+  {
+    "test": "Admin Reports",
+    "success": true,
+    "message": "Retrieved 0 reports",
+    "details": null,
+    "timestamp": "2026-02-12T07:35:39.007908"
+  },
+  {
+    "test": "Admin Audit Log",
+    "success": true,
+    "message": "Retrieved 6 audit log entries",
+    "details": null,
+    "timestamp": "2026-02-12T07:35:39.049709"
+  },
+  {
+    "test": "Error Handling - 401",
+    "success": true,
+    "message": "Unauthenticated request correctly returns 401",
+    "details": null,
+    "timestamp": "2026-02-12T07:35:39.080253"
+  },
+  {
+    "test": "Error Handling - 403",
+    "success": true,
+    "message": "Non-admin correctly blocked with 403",
+    "details": null,
+    "timestamp": "2026-02-12T07:35:39.110855"
+  },
+  {
+    "test": "Error Handling - 404",
+    "success": true,
+    "message": "Non-existent problem correctly returns 404",
+    "details": null,
+    "timestamp": "2026-02-12T07:35:39.145966"
+  }
+]
