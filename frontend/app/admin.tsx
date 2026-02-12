@@ -245,6 +245,18 @@ export default function AdminPanel() {
 
         {/* Top Frikts */}
         <Text style={styles.sectionTitle}>Top Frikts by Signal</Text>
+        
+        {/* Signal Formula Info */}
+        <View style={styles.formulaCard}>
+          <Text style={styles.formulaTitle}>Signal Formula</Text>
+          <Text style={styles.formulaText}>
+            (relates × 3) + (comments × 2) + (unique × 1) + pain + recency
+          </Text>
+          <Text style={styles.formulaNotes}>
+            Recency boost decays to 0 over 72h. Engagement always wins.
+          </Text>
+        </View>
+        
         {analytics.top_problems && analytics.top_problems.length > 0 ? (
           analytics.top_problems.map((problem: any, index: number) => (
             <TouchableOpacity 
@@ -261,6 +273,23 @@ export default function AdminPanel() {
                   <Text style={styles.topProblemStat}>{problem.relates_count || 0} relates</Text>
                   <Text style={styles.topProblemStat}>{problem.comments_count || 0} comments</Text>
                 </View>
+                {/* Signal Breakdown */}
+                {problem.signal_breakdown && (
+                  <View style={styles.breakdownRow}>
+                    <Text style={styles.breakdownItem}>
+                      R:{problem.signal_breakdown.relates?.score || 0}
+                    </Text>
+                    <Text style={styles.breakdownItem}>
+                      C:{problem.signal_breakdown.comments?.score || 0}
+                    </Text>
+                    <Text style={styles.breakdownItem}>
+                      U:{problem.signal_breakdown.unique_commenters?.score || 0}
+                    </Text>
+                    <Text style={styles.breakdownItem}>
+                      +{problem.signal_breakdown.recency?.boost?.toFixed(1) || 0} recency
+                    </Text>
+                  </View>
+                )}
               </View>
             </TouchableOpacity>
           ))
