@@ -1074,18 +1074,31 @@ async def get_my_posts(user: dict = Depends(require_auth)):
 @api_router.put("/users/me/profile")
 async def update_profile(profile: ProfileUpdate, user: dict = Depends(require_auth)):
     """Update user profile"""
+    import re
+    
     # Validate display name
     display_name = profile.displayName.strip()
     if len(display_name) < 2 or len(display_name) > 20:
         raise HTTPException(status_code=400, detail="Name must be 2-20 characters")
     
     # Check for at least one alphanumeric character
-    import re
     if not re.search(r'[a-zA-Z0-9]', display_name):
         raise HTTPException(status_code=400, detail="Name must contain at least one letter or number")
     
+    # Create normalized display name for uniqueness check (lowercase, trimmed)
+    normalized_name = display_name.lower().strip()
+    
+    # Check if this normalized name is already taken by another user
+    existing_user = await db.users.find_one({
+        "normalizedDisplayName": normalized_name,
+        "id": {"$ne": user["id"]}  # Exclude current user
+    })
+    if existing_user:
+        raise HTTPException(status_code=409, detail="Name already taken")
+    
     update_data = {
         "displayName": display_name,
+        "normalizedDisplayName": normalized_name,  # Store normalized version
         "bio": (profile.bio or "").strip()[:80],
         "city": (profile.city or "").strip()[:50],
         "showCity": profile.showCity or False,
