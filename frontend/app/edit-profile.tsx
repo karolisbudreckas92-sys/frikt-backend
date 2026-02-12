@@ -225,20 +225,29 @@ export default function EditProfile() {
           <View style={styles.form}>
             {/* Name Field */}
             <View style={styles.fieldContainer}>
-              <Text style={styles.fieldLabel}>Name</Text>
+              <Text style={styles.fieldLabel}>Name or nickname</Text>
               <TextInput
-                style={[styles.input, !isNameValid && displayName.length > 0 && styles.inputError]}
+                style={[styles.input, ((!isNameValid && displayName.length > 0) || nameError) && styles.inputError]}
                 value={displayName}
-                onChangeText={setDisplayName}
-                placeholder="Your name"
+                onChangeText={(text) => {
+                  setDisplayName(text);
+                  setNameError(null); // Clear error when typing
+                }}
+                placeholder="Pick a name people will recognize"
                 placeholderTextColor={colors.textMuted}
                 maxLength={20}
                 autoCapitalize="words"
               />
-              {!isNameValid && displayName.length > 0 && (
+              {nameError && (
+                <Text style={styles.errorText}>{nameError}</Text>
+              )}
+              {!nameError && !isNameValid && displayName.length > 0 && (
                 <Text style={styles.errorText}>2-20 characters, must include letters or numbers</Text>
               )}
-              <Text style={styles.charCount}>{displayName.length}/20</Text>
+              <View style={styles.fieldFooter}>
+                <Text style={styles.helperText}>Must be unique</Text>
+                <Text style={styles.charCount}>{displayName.length}/20</Text>
+              </View>
             </View>
 
             {/* Bio Field */}
