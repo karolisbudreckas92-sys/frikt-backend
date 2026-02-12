@@ -420,7 +420,8 @@ class FRIKTTester:
                     
                     # Test non-owner cannot edit (should get 403)
                     headers2 = {"Authorization": f"Bearer {self.user2_token}"}
-                    response2 = requests.patch(f"{BACKEND_URL}/problems/{self.test_problem_id}", json={"title": "Hacked!"}, headers=headers2)
+                    minimal_update = {"title": "My coffee shop ALWAYS runs out of oat milk by 10am and I desperately need my morning latte - HACKED!"}
+                    response2 = requests.patch(f"{BACKEND_URL}/problems/{self.test_problem_id}", json=minimal_update, headers=headers2)
                     
                     if response2.status_code == 403:
                         self.log_test("Edit Problem - Non-Owner", True, "Non-owner correctly blocked with 403")
