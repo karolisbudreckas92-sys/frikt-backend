@@ -574,7 +574,7 @@ async def get_problems(
     skip: int = 0,
     user: dict = Depends(get_current_user)
 ):
-    query = {"is_hidden": False}
+    query = {"is_hidden": False, "status": "active"}
     
     if category_id:
         query["category_id"] = category_id
@@ -586,23 +586,77 @@ async def get_problems(
             {"who_affected": {"$regex": search, "$options": "i"}},
         ]
     
-    # For "foryou" feed, filter by followed categories
-    if feed == "foryou" and user:
-        followed_cats = user.get("followed_categories", [])
-        followed_problems = user.get("followed_problems", [])
-        if followed_cats or followed_problems:
-            query["$or"] = [
-                {"category_id": {"$in": followed_cats}},
-                {"id": {"$in": followed_problems}}
-            ]
-    
-    # Sorting
-    if feed == "trending":
-        sort = [("signal_score", -1)]
-    else:  # new or foryou
+    # NEW feed: simply sort by created_at desc (latest first)
+    if feed == "new":
         sort = [("created_at", -1)]
+        problems = await db.problems.find(query).sort(sort).skip(skip).limit(limit).to_list(limit)
     
-    problems = await db.problems.find(query).sort(sort).skip(skip).limit(limit).to_list(limit)
+    # TRENDING feed: hot score over last 7 days
+    # hotScore = (relates * 3) + (comments * 2) + (follows * 1)
+    elif feed == "trending":
+        # Only include posts from last 7 days
+        week_ago = datetime.utcnow() - timedelta(days=7)
+        query["created_at"] = {"$gte": week_ago}
+        
+        # Use aggregation to calculate hot_score on the fly
+        pipeline = [
+            {"$match": query},
+            {"$addFields": {
+                "hot_score": {
+                    "$add": [
+                        {"$multiply": [{"$ifNull": ["$relates_count", 0]}, 3]},
+                        {"$multiply": [{"$ifNull": ["$comments_count", 0]}, 2]},
+                        {"$ifNull": ["$unique_commenters", 0]}
+                    ]
+                }
+            }},
+            {"$sort": {"hot_score": -1, "created_at": -1}},
+            {"$skip": skip},
+            {"$limit": limit}
+        ]
+        problems = await db.problems.aggregate(pipeline).to_list(limit)
+    
+    # FOR YOU feed: personalized based on followed categories
+    elif feed == "foryou":
+        if user:
+            followed_cats = user.get("followed_categories", [])
+            followed_problems = user.get("followed_problems", [])
+            
+            if followed_cats or followed_problems:
+                # Mix: prioritize followed categories + some new for freshness
+                # First get from followed categories
+                followed_query = {**query}
+                if followed_cats:
+                    followed_query["category_id"] = {"$in": followed_cats}
+                
+                # Sort by engagement + recency
+                pipeline = [
+                    {"$match": followed_query},
+                    {"$addFields": {
+                        "engagement_score": {
+                            "$add": [
+                                {"$multiply": [{"$ifNull": ["$relates_count", 0]}, 2]},
+                                {"$multiply": [{"$ifNull": ["$comments_count", 0]}, 1.5]}
+                            ]
+                        }
+                    }},
+                    {"$sort": {"engagement_score": -1, "created_at": -1}},
+                    {"$skip": skip},
+                    {"$limit": limit}
+                ]
+                problems = await db.problems.aggregate(pipeline).to_list(limit)
+            else:
+                # No followed categories: show balanced mix across categories
+                sort = [("created_at", -1)]
+                problems = await db.problems.find(query).sort(sort).skip(skip).limit(limit).to_list(limit)
+        else:
+            # No user: just show by recency
+            sort = [("created_at", -1)]
+            problems = await db.problems.find(query).sort(sort).skip(skip).limit(limit).to_list(limit)
+    else:
+        # Fallback
+        sort = [("created_at", -1)]
+        problems = await db.problems.find(query).sort(sort).skip(skip).limit(limit).to_list(limit)
     
     # Get user's relates and saves if authenticated
     user_relates = set()
