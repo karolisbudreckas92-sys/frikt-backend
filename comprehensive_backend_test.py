@@ -207,7 +207,7 @@ class FRIKTTester:
                 # Now try to set the same name (different case) for user2 - should fail with 409
                 headers2 = {"Authorization": f"Bearer {self.user2_token}"}
                 duplicate_profile = {
-                    "displayName": "sarahj2024",  # Same name, different case
+                    "displayName": unique_name.lower(),  # Same name, different case
                     "bio": "Trying to steal a name",
                     "city": "New York"
                 }
@@ -218,7 +218,7 @@ class FRIKTTester:
                     self.log_test("Profile Unique Nickname - Conflict", True, "Duplicate nickname correctly rejected with 409")
                     
                     # Try with uppercase version too
-                    duplicate_profile["displayName"] = "SARAHJ2024"
+                    duplicate_profile["displayName"] = unique_name.upper()
                     response3 = requests.put(f"{BACKEND_URL}/users/me/profile", json=duplicate_profile, headers=headers2)
                     
                     if response3.status_code == 409:
