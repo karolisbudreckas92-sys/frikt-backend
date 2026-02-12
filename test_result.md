@@ -103,40 +103,173 @@
 #====================================================================================================
 
 user_problem_statement: |
-  Build "PathGro" mobile app - a Problem Signal Engine where users can post problems, 
-  get "relates" (votes), and comment. Includes an admin panel for moderation, 
-  user management, and analytics. Admin user is identified by email: karolisbudreckas92@gmail.com
+  FRIKT - A social mobile app where users can post "Frikts" (friction points/problems), 
+  get "relates" (votes), and comment. Features include:
+  - User authentication (register/login)
+  - Create, edit, delete Frikts
+  - Relate to and comment on Frikts
+  - Save/bookmark Frikts
+  - Profile editing with avatar upload
+  - Unique nickname enforcement
+  - Home feed with For You / Trending / New tabs
+  - Category-based organization with consistent colors
+  - Admin panel for moderation (admin email: karolisbudreckas92@gmail.com)
+  - Signal score system for ranking posts
 
 backend:
-  - task: "User Registration with Admin Role Assignment"
+  - task: "User Registration & Login"
     implemented: true
     working: true
     file: "/app/backend/server.py"
     stuck_count: 0
     priority: "high"
-    needs_retesting: false
+    needs_retesting: true
     status_history:
-      - working: "NA"
-        agent: "main"
-        comment: "Registration endpoint assigns admin role to karolisbudreckas92@gmail.com"
       - working: true
         agent: "testing"
-        comment: "✅ TESTED: Admin role assignment working correctly. karolisbudreckas92@gmail.com gets admin role, other emails get user role. Fixed missing role field in existing admin user in database."
+        comment: "Previously tested and working"
+      - working: "NA"
+        agent: "main"
+        comment: "Needs comprehensive retest for AppStore readiness"
 
-  - task: "Admin Analytics Endpoint"
+  - task: "User Profile Update with Unique Nickname"
+    implemented: true
+    working: "NA"
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "PUT /api/users/me/profile - enforces unique displayName (case-insensitive). Returns 409 if name taken."
+
+  - task: "Avatar Upload (Base64)"
+    implemented: true
+    working: "NA"
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "POST /api/users/me/avatar-base64 - accepts base64 image, saves to uploads folder"
+
+  - task: "Create Problem (Frikt)"
+    implemented: true
+    working: "NA"
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "POST /api/problems - creates new frikt with title, optional context, category"
+
+  - task: "Edit Problem"
+    implemented: true
+    working: "NA"
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "PATCH /api/problems/{id} - owner or admin can edit title/context"
+
+  - task: "Delete Problem"
+    implemented: true
+    working: "NA"
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "DELETE /api/problems/{id} - owner or admin can delete"
+
+  - task: "Get Problems Feed (New/Trending/ForYou)"
+    implemented: true
+    working: "NA"
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: |
+          GET /api/problems?feed=new|trending|foryou
+          - new: sorted by created_at desc
+          - trending: hot score (relates*3 + comments*2 + unique*1) for last 7 days
+          - foryou: personalized by followed categories
+
+  - task: "Relate to Problem"
+    implemented: true
+    working: "NA"
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "POST /api/problems/{id}/relate - toggle relate on/off"
+
+  - task: "Comment on Problem"
+    implemented: true
+    working: "NA"
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "POST /api/problems/{id}/comments - add comment to problem"
+
+  - task: "Save/Unsave Problem"
+    implemented: true
+    working: "NA"
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "POST /api/problems/{id}/save - toggle save bookmark"
+
+  - task: "Admin Analytics with Signal Breakdown"
+    implemented: true
+    working: "NA"
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: "Previously tested"
+      - working: "NA"
+        agent: "main"
+        comment: "Updated with DAU/WAU definitions (active = post/relate/comment), signal breakdown per frikt"
+
+  - task: "Admin User Management (Ban/Unban)"
     implemented: true
     working: true
     file: "/app/backend/server.py"
     stuck_count: 0
     priority: "high"
-    needs_retesting: false
+    needs_retesting: true
     status_history:
-      - working: "NA"
-        agent: "main"
-        comment: "GET /api/admin/analytics returns DAU, WAU, total posts, comments, users"
       - working: true
         agent: "testing"
-        comment: "✅ TESTED: Analytics endpoint returns all required data (users: total/active/dau/wau, problems: total/today/week, comments: total/today/week, top_problems, pending_reports). Requires admin token."
+        comment: "Previously tested and working"
 
   - task: "Admin Reports Management"
     implemented: true
@@ -144,62 +277,76 @@ backend:
     file: "/app/backend/server.py"
     stuck_count: 0
     priority: "high"
-    needs_retesting: false
+    needs_retesting: true
     status_history:
-      - working: "NA"
-        agent: "main"
-        comment: "GET /api/admin/reports, POST dismiss, POST reviewed endpoints"
       - working: true
         agent: "testing"
-        comment: "✅ TESTED: Reports management working. GET /api/admin/reports returns reports list with total count. POST dismiss endpoint works (tested with empty list scenario). Requires admin token."
+        comment: "Previously tested and working"
 
-  - task: "Admin Problem Moderation"
+  - task: "Signal Score Calculation"
     implemented: true
-    working: true
+    working: "NA"
     file: "/app/backend/server.py"
     stuck_count: 0
-    priority: "high"
-    needs_retesting: false
+    priority: "medium"
+    needs_retesting: true
     status_history:
       - working: "NA"
         agent: "main"
-        comment: "Hide/unhide/delete/pin/unpin/needs-context endpoints for problems"
-      - working: true
-        agent: "testing"
-        comment: "✅ TESTED: Problem moderation endpoints implemented and accessible with admin token. Not directly tested due to no test problems, but endpoints are properly protected and structured."
-
-  - task: "Admin User Management"
-    implemented: true
-    working: true
-    file: "/app/backend/server.py"
-    stuck_count: 0
-    priority: "high"
-    needs_retesting: false
-    status_history:
-      - working: "NA"
-        agent: "main"
-        comment: "GET /api/admin/users, ban/unban/shadowban endpoints"
-      - working: true
-        agent: "testing"
-        comment: "✅ TESTED: User management fully working. GET /api/admin/users returns user list (3 users found). Ban/unban functionality tested successfully. Fixed ObjectId serialization issue. Requires admin token."
-
-  - task: "Admin Audit Log"
-    implemented: true
-    working: true
-    file: "/app/backend/server.py"
-    stuck_count: 0
-    priority: "high"
-    needs_retesting: false
-    status_history:
-      - working: "NA"
-        agent: "main"
-        comment: "GET /api/admin/audit-log returns admin action history"
-      - working: true
-        agent: "testing"
-        comment: "✅ TESTED: Audit log working correctly. Returns admin action history with proper logging of ban/unban actions. Fixed ObjectId serialization issue. Requires admin token."
+        comment: |
+          New formula: (relates*3) + (comments*2) + (unique_commenters*1) + pain_bonus + recency_boost
+          Recency decays to 0 over 72h. Posts with engagement beat posts without.
 
 frontend:
-  - task: "Admin Link in Profile Page"
+  - task: "Login/Register Flow"
+    implemented: true
+    working: "NA"
+    file: "/app/frontend/app/(auth)/login.tsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Email/password auth with JWT tokens"
+
+  - task: "Home Feed with Tabs"
+    implemented: true
+    working: "NA"
+    file: "/app/frontend/app/(tabs)/home.tsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "For You / Trending / New tabs with helper text explaining each"
+
+  - task: "Create Frikt Flow"
+    implemented: true
+    working: "NA"
+    file: "/app/frontend/src/components/PostWizard.tsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "2-step wizard: title -> category selection"
+
+  - task: "Edit/Delete Frikt"
+    implemented: true
+    working: "NA"
+    file: "/app/frontend/app/edit-problem.tsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Edit screen with delete confirmation"
+
+  - task: "Profile Page with Edit"
     implemented: true
     working: "NA"
     file: "/app/frontend/app/(tabs)/profile.tsx"
@@ -209,7 +356,34 @@ frontend:
     status_history:
       - working: "NA"
         agent: "main"
-        comment: "Conditional admin link shows only for users with admin role"
+        comment: "Shows user stats, edit profile button, sign out"
+
+  - task: "Edit Profile with Avatar Upload"
+    implemented: true
+    working: "NA"
+    file: "/app/frontend/app/edit-profile.tsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Name/nickname (unique), bio, city, avatar via base64 upload"
+
+  - task: "Sign Out Functionality"
+    implemented: true
+    working: true
+    file: "/app/frontend/app/(tabs)/profile.tsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: false
+        agent: "user"
+        comment: "User reported sign out not working"
+      - working: true
+        agent: "main"
+        comment: "Fixed - uses window.confirm on web, Alert.alert on native"
 
   - task: "Admin Panel UI"
     implemented: true
@@ -221,58 +395,90 @@ frontend:
     status_history:
       - working: "NA"
         agent: "main"
-        comment: "Full admin panel with Overview, Reports, Users, Audit tabs"
+        comment: "Overview with signal breakdown, Reports, Users, Audit tabs"
+
+  - task: "Category Color Consistency"
+    implemented: true
+    working: "NA"
+    file: "/app/frontend/src/theme/categoryStyles.ts"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Single source of truth for category colors used across all screens"
 
 metadata:
   created_by: "main_agent"
-  version: "1.0"
-  test_sequence: 1
-  run_ui: false
+  version: "2.0"
+  test_sequence: 2
+  run_ui: true
 
 test_plan:
-  current_focus: []
+  current_focus:
+    - "User Registration & Login"
+    - "User Profile Update with Unique Nickname"
+    - "Create Problem (Frikt)"
+    - "Edit Problem"
+    - "Delete Problem"
+    - "Get Problems Feed (New/Trending/ForYou)"
+    - "Relate to Problem"
+    - "Comment on Problem"
+    - "Save/Unsave Problem"
+    - "Admin Analytics with Signal Breakdown"
   stuck_tasks: []
-  test_all: false
+  test_all: true
   test_priority: "high_first"
 
 agent_communication:
   - agent: "main"
     message: |
-      Implemented admin feature for PathGro app:
-      1. Backend has all admin routes protected by require_admin middleware
-      2. Admin role assigned based on ADMIN_EMAIL env var (karolisbudreckas92@gmail.com)
-      3. Frontend admin.tsx has full UI for reports, users, analytics, audit log
-      4. Profile page shows conditional admin link for admin users
+      COMPREHENSIVE APPSTORE READINESS TEST REQUESTED
       
-      Please test backend endpoints first:
-      - Register user with admin email to verify role assignment
-      - Test admin analytics endpoint
-      - Test admin reports endpoint
-      - Test user management (ban/unban)
+      Please test ALL backend endpoints thoroughly. This is for AppStore submission.
       
-      Auth flow: POST /api/auth/register then use returned token for admin requests
-  - agent: "testing"
-    message: |
-      ✅ BACKEND TESTING COMPLETE - ALL ADMIN ENDPOINTS WORKING
+      Test Credentials:
+      - Admin email: karolisbudreckas92@gmail.com
+      - Admin password: Admin123!
+      - Can also register new test users
       
-      Comprehensive testing completed for all admin backend functionality:
+      Key Backend Endpoints to Test:
       
-      🔐 AUTHENTICATION & AUTHORIZATION:
-      - Admin role assignment: ✅ karolisbudreckas92@gmail.com gets admin role
-      - Regular users: ✅ Other emails get user role  
-      - Security: ✅ Non-admin users get 403 for admin endpoints
+      AUTH:
+      - POST /api/auth/register - {email, password, name}
+      - POST /api/auth/login - {email, password}
+      - GET /api/auth/me
       
-      📊 ADMIN ENDPOINTS TESTED:
-      - GET /api/admin/analytics: ✅ Returns DAU, WAU, user/post/comment counts
-      - GET /api/admin/reports: ✅ Returns reports list with pagination
-      - POST /api/admin/reports/{id}/dismiss: ✅ Dismiss functionality works
-      - GET /api/admin/users: ✅ Returns user list (3 users found)
-      - POST /api/admin/users/{id}/ban: ✅ Ban user functionality works
-      - POST /api/admin/users/{id}/unban: ✅ Unban user functionality works  
-      - GET /api/admin/audit-log: ✅ Returns admin action history
+      PROFILE:
+      - PUT /api/users/me/profile - {displayName, bio, city, showCity}
+        * Test unique nickname: same name with different case should fail (409)
+      - POST /api/users/me/avatar-base64 - {image: base64string}
       
-      🔧 ISSUES FIXED DURING TESTING:
-      - Fixed missing admin role for existing karolisbudreckas92@gmail.com user
-      - Fixed ObjectId serialization issues in admin/users and admin/audit-log endpoints
+      PROBLEMS (FRIKTS):
+      - GET /api/problems?feed=new|trending|foryou
+      - POST /api/problems - {title, category_id, context (optional)}
+      - GET /api/problems/{id}
+      - PATCH /api/problems/{id} - {title, context}
+      - DELETE /api/problems/{id}
+      - POST /api/problems/{id}/relate
+      - POST /api/problems/{id}/comments - {content}
+      - POST /api/problems/{id}/save
       
-      All backend admin functionality is working correctly and ready for production use.
+      ADMIN (requires admin token):
+      - GET /api/admin/analytics - should return signal_formula and signal_breakdown per top problem
+      - GET /api/admin/users
+      - POST /api/admin/users/{id}/ban
+      - POST /api/admin/users/{id}/unban
+      - GET /api/admin/reports
+      - GET /api/admin/audit-log
+      
+      Categories available: money, work, health, home, tech, school, relationships, travel, services, other
+      
+      Please verify:
+      1. All endpoints return correct status codes
+      2. Auth protection works (401 for unauthenticated, 403 for non-admin)
+      3. Unique nickname validation (409 on duplicate)
+      4. Feed sorting is correct (new=recent, trending=hot score)
+      5. Signal score breakdown is included in analytics
+      6. CRUD operations work correctly
