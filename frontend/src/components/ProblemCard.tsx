@@ -2,11 +2,13 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, shadows, radius } from '../theme/colors';
+import { getCategoryStyle } from '../theme/categoryStyles';
 import { formatDistanceToNow } from 'date-fns';
 
 interface Problem {
   id: string;
   title: string;
+  category_id?: string;
   category_name: string;
   category_color: string;
   relates_count: number;
