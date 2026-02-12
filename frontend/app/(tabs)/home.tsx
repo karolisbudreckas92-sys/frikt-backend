@@ -135,6 +135,13 @@ export default function Home() {
           </TouchableOpacity>
         ))}
       </View>
+      
+      {/* Tab Helper Text */}
+      <Text style={styles.feedHelperText}>
+        {feed === 'foryou' && 'Based on your categories'}
+        {feed === 'trending' && 'Hot this week'}
+        {feed === 'new' && 'Latest frikts'}
+      </Text>
     </View>
   );
 
