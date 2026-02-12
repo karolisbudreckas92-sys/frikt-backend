@@ -10,6 +10,8 @@
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
+      "bundleIdentifier": "com.frikt.app",
+      "buildNumber": "1",
       "infoPlist": {
         "NSCameraUsageDescription": "Take photos for your profile",
         "NSPhotoLibraryUsageDescription": "Upload a profile photo",
@@ -22,6 +24,8 @@
         "backgroundColor": "#F6F4EF"
       },
       "edgeToEdgeEnabled": true,
+      "package": "com.frikt.app",
+      "versionCode": 1,
       "permissions": [
         "android.permission.RECEIVE_BOOT_COMPLETED",
         "android.permission.VIBRATE"
@@ -66,6 +70,11 @@
       "color": "#E55A3C",
       "androidMode": "default",
       "androidCollapsedTitle": "FRIKT"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "your-project-id"
+      }
     }
   }
 }
