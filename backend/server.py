@@ -354,27 +354,83 @@ async def log_admin_action(admin: dict, action: str, target_type: str, target_id
 
 # ===================== SIGNAL SCORE =====================
 
-def calculate_signal_score(problem: dict) -> float:
-    """Calculate SignalScore based on relates, comments, frequency, and pain"""
+# Signal Score Weights (transparent and configurable)
+SIGNAL_WEIGHTS = {
+    "relate": 3.0,      # 1 relate = 3 points (most valuable - shows resonance)
+    "comment": 2.0,     # 1 comment = 2 points (engagement but easier to game)
+    "unique_commenter": 1.0,  # Bonus per unique person commenting
+    "follow": 1.0,      # 1 follow = 1 point
+    "pain_base": 0.5,   # Pain level multiplier (1-5 scale)
+    "frequency_daily": 1.0,    # Daily friction bonus
+    "frequency_weekly": 0.5,   # Weekly friction bonus
+    "frequency_monthly": 0.25, # Monthly friction bonus
+    "recency_max_boost": 2.0,  # Max recency boost for brand new posts
+    "recency_decay_hours": 72, # Hours until recency boost = 0
+}
+
+def calculate_signal_score(problem: dict, include_breakdown: bool = False) -> float | dict:
+    """
+    Calculate SignalScore based on engagement metrics.
+    
+    Formula: 
+    base_score = (relates × 3) + (comments × 2) + (unique_commenters × 1) + (pain × freq_modifier)
+    recency_boost = linear decay from 2.0 to 0 over 72 hours
+    final_score = base_score + recency_boost
+    
+    Key principle: Posts with interaction ALWAYS beat posts without (except for very new posts)
+    """
     relates = problem.get("relates_count", 0)
     comments = problem.get("comments_count", 0)
     unique_commenters = problem.get("unique_commenters", 0)
-    pain = problem.get("pain_level", 1)
+    pain = problem.get("pain_level") or 0  # Can be None
+    frequency = problem.get("frequency")
     
-    frequency_weights = {"daily": 4, "weekly": 3, "monthly": 2, "rare": 1}
-    freq_weight = frequency_weights.get(problem.get("frequency", "rare"), 1)
+    # Calculate base engagement score
+    relate_score = relates * SIGNAL_WEIGHTS["relate"]
+    comment_score = comments * SIGNAL_WEIGHTS["comment"]
+    commenter_score = unique_commenters * SIGNAL_WEIGHTS["unique_commenter"]
     
-    # Score formula: weighted combination
-    score = (relates * 2) + (comments * 1.5) + (unique_commenters * 3) + (pain * freq_weight)
+    # Pain/frequency bonus (small, doesn't dominate)
+    freq_bonus = 0
+    if frequency == "daily":
+        freq_bonus = SIGNAL_WEIGHTS["frequency_daily"]
+    elif frequency == "weekly":
+        freq_bonus = SIGNAL_WEIGHTS["frequency_weekly"]
+    elif frequency == "monthly":
+        freq_bonus = SIGNAL_WEIGHTS["frequency_monthly"]
     
-    # Time decay (optional, for trending)
+    pain_score = (pain * SIGNAL_WEIGHTS["pain_base"] * (1 + freq_bonus)) if pain else 0
+    
+    # Base score (engagement-driven)
+    base_score = relate_score + comment_score + commenter_score + pain_score
+    
+    # Recency boost (linear decay, small so it doesn't dominate engagement)
     created_at = problem.get("created_at", datetime.utcnow())
     if isinstance(created_at, str):
-        created_at = datetime.fromisoformat(created_at.replace('Z', '+00:00'))
-    hours_old = (datetime.utcnow() - created_at.replace(tzinfo=None)).total_seconds() / 3600
-    decay = max(0.5, 1 - (hours_old / 168))  # Decay over 1 week
+        try:
+            created_at = datetime.fromisoformat(created_at.replace('Z', '+00:00'))
+        except:
+            created_at = datetime.utcnow()
     
-    return round(score * decay, 2)
+    hours_old = (datetime.utcnow() - created_at.replace(tzinfo=None)).total_seconds() / 3600
+    recency_boost = max(0, SIGNAL_WEIGHTS["recency_max_boost"] * (1 - hours_old / SIGNAL_WEIGHTS["recency_decay_hours"]))
+    
+    final_score = round(base_score + recency_boost, 2)
+    
+    if include_breakdown:
+        return {
+            "total": final_score,
+            "breakdown": {
+                "relates": {"count": relates, "weight": SIGNAL_WEIGHTS["relate"], "score": round(relate_score, 2)},
+                "comments": {"count": comments, "weight": SIGNAL_WEIGHTS["comment"], "score": round(comment_score, 2)},
+                "unique_commenters": {"count": unique_commenters, "weight": SIGNAL_WEIGHTS["unique_commenter"], "score": round(commenter_score, 2)},
+                "pain_frequency": {"pain": pain or 0, "frequency": frequency or "none", "score": round(pain_score, 2)},
+                "recency": {"hours_old": round(hours_old, 1), "boost": round(recency_boost, 2)},
+            },
+            "formula": "Signal = (relates×3) + (comments×2) + (unique_commenters×1) + pain_bonus + recency_boost"
+        }
+    
+    return final_score
 
 # ===================== AUTH ROUTES =====================
 
