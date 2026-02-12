@@ -29,13 +29,16 @@ export default function ProblemCard({ problem, onPress, onRelate }: ProblemCardP
   const snippet = problem.when_happens && problem.when_happens.length > 80 
     ? problem.when_happens.substring(0, 80) + '...' 
     : (problem.when_happens || '');
+  
+  // Get consistent category styling
+  const categoryStyle = getCategoryStyle(problem.category_id || '');
 
   return (
     <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.7}>
       <View style={styles.header}>
-        <View style={styles.categoryPill}>
-          <Text style={styles.categoryText}>
-            {problem.category_name}
+        <View style={[styles.categoryPill, { backgroundColor: categoryStyle.bgColor }]}>
+          <Text style={[styles.categoryText, { color: categoryStyle.color }]}>
+            {problem.category_name || categoryStyle.name}
           </Text>
         </View>
         <Text style={styles.timeText}>{timeAgo}</Text>
