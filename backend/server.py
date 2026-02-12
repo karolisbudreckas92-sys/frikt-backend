@@ -1817,7 +1817,7 @@ async def unban_user(user_id: str, admin: dict = Depends(require_admin)):
 
 @api_router.get("/admin/analytics")
 async def get_analytics(admin: dict = Depends(require_admin)):
-    """Get basic analytics"""
+    """Get basic analytics with proper DAU/WAU and signal breakdown"""
     now = datetime.utcnow()
     today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
     week_start = today_start - timedelta(days=7)
@@ -1827,15 +1827,19 @@ async def get_analytics(admin: dict = Depends(require_admin)):
     active_users = await db.users.count_documents({"status": "active"})
     banned_users = await db.users.count_documents({"status": {"$in": ["banned", "shadowbanned"]}})
     
-    # DAU - users who posted or commented today
-    dau_posts = await db.problems.distinct("user_id", {"created_at": {"$gte": today_start}})
-    dau_comments = await db.comments.distinct("user_id", {"created_at": {"$gte": today_start}})
-    dau = len(set(dau_posts + dau_comments))
+    # DAU - unique users who performed an ACTION today (post / relate / comment / follow)
+    # "Active" = at least one action, not just app open
+    dau_posted = await db.problems.distinct("user_id", {"created_at": {"$gte": today_start}})
+    dau_commented = await db.comments.distinct("user_id", {"created_at": {"$gte": today_start}})
+    dau_related = await db.relates.distinct("user_id", {"created_at": {"$gte": today_start}})
+    # Note: follows don't have timestamps, so we skip them for now
+    dau = len(set(dau_posted + dau_commented + dau_related))
     
-    # WAU - users who posted or commented this week
-    wau_posts = await db.problems.distinct("user_id", {"created_at": {"$gte": week_start}})
-    wau_comments = await db.comments.distinct("user_id", {"created_at": {"$gte": week_start}})
-    wau = len(set(wau_posts + wau_comments))
+    # WAU - unique users who performed an ACTION in last 7 days
+    wau_posted = await db.problems.distinct("user_id", {"created_at": {"$gte": week_start}})
+    wau_commented = await db.comments.distinct("user_id", {"created_at": {"$gte": week_start}})
+    wau_related = await db.relates.distinct("user_id", {"created_at": {"$gte": week_start}})
+    wau = len(set(wau_posted + wau_commented + wau_related))
     
     # Content counts
     total_problems = await db.problems.count_documents({})
@@ -1846,21 +1850,25 @@ async def get_analytics(admin: dict = Depends(require_admin)):
     comments_today = await db.comments.count_documents({"created_at": {"$gte": today_start}})
     comments_week = await db.comments.count_documents({"created_at": {"$gte": week_start}})
     
-    # Top problems by SignalScore
+    # Top problems by SignalScore WITH BREAKDOWN
     top_problems_cursor = await db.problems.find(
         {"status": "active"},
-        {"_id": 0, "id": 1, "title": 1, "signal_score": 1, "relates_count": 1, "comments_count": 1}
+        {"_id": 0}
     ).sort("signal_score", -1).limit(10).to_list(10)
     
-    # Convert to plain dicts to avoid ObjectId issues
+    # Build top problems with signal breakdown
     top_problems = []
     for p in top_problems_cursor:
+        # Recalculate with breakdown for transparency
+        signal_data = calculate_signal_score(p, include_breakdown=True)
         top_problems.append({
             "id": p.get("id", ""),
             "title": p.get("title", ""),
-            "signal_score": p.get("signal_score", 0),
+            "signal_score": signal_data["total"],
+            "signal_breakdown": signal_data["breakdown"],
             "relates_count": p.get("relates_count", 0),
-            "comments_count": p.get("comments_count", 0)
+            "comments_count": p.get("comments_count", 0),
+            "unique_commenters": p.get("unique_commenters", 0),
         })
     
     # Pending reports
@@ -1872,7 +1880,9 @@ async def get_analytics(admin: dict = Depends(require_admin)):
             "active": active_users,
             "banned": banned_users,
             "dau": dau,
-            "wau": wau
+            "wau": wau,
+            "dau_definition": "Users who posted, related, or commented today",
+            "wau_definition": "Users who posted, related, or commented in last 7 days"
         },
         "problems": {
             "total": total_problems,
@@ -1885,6 +1895,11 @@ async def get_analytics(admin: dict = Depends(require_admin)):
             "week": comments_week
         },
         "top_problems": top_problems,
+        "signal_formula": {
+            "description": "Signal = (relates×3) + (comments×2) + (unique_commenters×1) + pain_bonus + recency_boost",
+            "weights": SIGNAL_WEIGHTS,
+            "notes": "Recency boost decays to 0 over 72h. Posts with engagement always beat posts without (except very new)."
+        },
         "pending_reports": pending_reports
     }
 
