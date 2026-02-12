@@ -126,6 +126,7 @@ export default function EditProfile() {
     }
 
     setIsLoading(true);
+    setNameError(null);
     try {
       await api.updateProfile({
         displayName: displayName.trim(),
@@ -142,7 +143,13 @@ export default function EditProfile() {
       // Navigate back immediately
       router.back();
     } catch (error: any) {
-      showToast("Couldn't save. Try again.", true);
+      // Check for 409 Conflict (name taken)
+      if (error?.response?.status === 409) {
+        setNameError('Name already taken. Try another.');
+        showToast('Name already taken. Try another.', true);
+      } else {
+        showToast("Couldn't save. Try again.", true);
+      }
     } finally {
       setIsLoading(false);
     }
