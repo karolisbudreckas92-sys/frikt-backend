@@ -531,10 +531,11 @@ class FRIKTTester:
         try:
             headers = {"Authorization": f"Bearer {self.user2_token}"}
             comment_data = {
+                "problem_id": self.test_problem_id,
                 "content": "I have the exact same problem! My local Starbucks is always out of oat milk too. Maybe we should suggest they partner with a local oat milk supplier?"
             }
             
-            response = requests.post(f"{BACKEND_URL}/problems/{self.test_problem_id}/comments", json=comment_data, headers=headers)
+            response = requests.post(f"{BACKEND_URL}/comments", json=comment_data, headers=headers)
             
             if response.status_code == 200:
                 data = response.json()
