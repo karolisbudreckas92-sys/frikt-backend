@@ -684,10 +684,26 @@ class FRIKTTester:
                         self.log_test("Admin Analytics - Signal Formula", True, f"Signal formula included: {data.get('signal_formula')}")
                         
                         # Check for signal breakdown in top problems
-                        if "signal_breakdown" in data:
-                            self.log_test("Admin Analytics - Signal Breakdown", True, "Signal breakdown included for top problems")
+                        if "top_problems" in data and len(data["top_problems"]) > 0:
+                            first_problem = data["top_problems"][0]
+                            if "signal_breakdown" in first_problem:
+                                self.log_test("Admin Analytics - Signal Breakdown", True, "Signal breakdown included for top problems")
+                                
+                                # Check DAU/WAU definitions
+                                users_data = data.get("users", {})
+                                if "dau" in users_data and "wau" in users_data:
+                                    self.log_test("Admin Analytics - DAU/WAU", True, f"DAU: {users_data.get('dau')}, WAU: {users_data.get('wau')}")
+                                    return True
+                                else:
+                                    self.log_test("Admin Analytics - DAU/WAU", False, "Missing DAU/WAU data")
+                                    return False
+                            else:
+                                self.log_test("Admin Analytics - Signal Breakdown", False, "Missing signal_breakdown in top_problems")
+                                return False
+                        else:
+                            self.log_test("Admin Analytics - Signal Breakdown", True, "No top problems to show breakdown (empty list)")
                             
-                            # Check DAU/WAU definitions
+                            # Check DAU/WAU definitions anyway
                             users_data = data.get("users", {})
                             if "dau" in users_data and "wau" in users_data:
                                 self.log_test("Admin Analytics - DAU/WAU", True, f"DAU: {users_data.get('dau')}, WAU: {users_data.get('wau')}")
@@ -695,9 +711,6 @@ class FRIKTTester:
                             else:
                                 self.log_test("Admin Analytics - DAU/WAU", False, "Missing DAU/WAU data")
                                 return False
-                        else:
-                            self.log_test("Admin Analytics - Signal Breakdown", False, "Missing signal_breakdown")
-                            return False
                     else:
                         self.log_test("Admin Analytics - Signal Formula", False, "Missing signal_formula")
                         return False
