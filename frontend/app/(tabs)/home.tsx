@@ -283,6 +283,13 @@ const styles = StyleSheet.create({
     paddingTop: 12,
     gap: 8,
   },
+  feedHelperText: {
+    fontSize: 12,
+    color: colors.textMuted,
+    paddingHorizontal: 16,
+    paddingTop: 6,
+    fontStyle: 'italic',
+  },
   feedTab: {
     paddingVertical: 8,
     paddingHorizontal: 16,
