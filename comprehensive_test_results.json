@@ -4,251 +4,244 @@
     "success": true,
     "message": "Admin user already exists, logged in successfully",
     "details": null,
-    "timestamp": "2026-02-12T07:35:37.192120"
+    "timestamp": "2026-02-12T07:36:55.313756"
   },
   {
     "test": "Auth Register - User1",
     "success": true,
     "message": "Regular user registered successfully",
     "details": null,
-    "timestamp": "2026-02-12T07:35:37.455014"
+    "timestamp": "2026-02-12T07:36:55.572397"
   },
   {
     "test": "Auth Register - User2",
     "success": true,
     "message": "Second user registered successfully",
     "details": null,
-    "timestamp": "2026-02-12T07:35:37.715783"
+    "timestamp": "2026-02-12T07:36:55.832204"
   },
   {
     "test": "Auth Login",
     "success": true,
     "message": "Login successful with valid JWT token",
     "details": null,
-    "timestamp": "2026-02-12T07:35:37.973837"
+    "timestamp": "2026-02-12T07:36:56.090880"
   },
   {
     "test": "Auth Me",
     "success": true,
     "message": "User data retrieved successfully for karolisbudreckas92@gmail.com",
     "details": null,
-    "timestamp": "2026-02-12T07:35:38.015008"
+    "timestamp": "2026-02-12T07:36:56.125973"
   },
   {
     "test": "Profile Update - User1",
-    "success": true,
-    "message": "Profile updated successfully",
+    "success": false,
+    "message": "Profile update failed: 409 - {\"detail\":\"Name already taken\"}",
     "details": null,
-    "timestamp": "2026-02-12T07:35:38.051863"
-  },
-  {
-    "test": "Profile Unique Nickname - Conflict",
-    "success": true,
-    "message": "Duplicate nickname correctly rejected with 409",
-    "details": null,
-    "timestamp": "2026-02-12T07:35:38.088120"
-  },
-  {
-    "test": "Profile Unique Nickname - Case Insensitive",
-    "success": true,
-    "message": "Case-insensitive duplicate correctly rejected",
-    "details": null,
-    "timestamp": "2026-02-12T07:35:38.127681"
+    "timestamp": "2026-02-12T07:36:56.159364"
   },
   {
     "test": "Avatar Upload",
     "success": true,
-    "message": "Avatar uploaded successfully: /api/uploads/avatars/ee37c4b6-0064-4c6d-a6de-c61fc179e28f_2cf5299a.png",
+    "message": "Avatar uploaded successfully: /api/uploads/avatars/93b826fa-f8e6-4a8d-b021-5dc5ed9feeb2_de21fff3.png",
     "details": null,
-    "timestamp": "2026-02-12T07:35:38.164650"
+    "timestamp": "2026-02-12T07:36:56.196818"
   },
   {
     "test": "Create Problem",
     "success": true,
     "message": "Problem created successfully: My coffee shop always runs out of oat milk by 10am...",
     "details": null,
-    "timestamp": "2026-02-12T07:35:38.201328"
+    "timestamp": "2026-02-12T07:36:56.231582"
   },
   {
     "test": "Problems Feed - New",
     "success": true,
-    "message": "NEW feed returned 6 problems",
+    "message": "NEW feed returned 7 problems",
     "details": null,
-    "timestamp": "2026-02-12T07:35:38.235452"
+    "timestamp": "2026-02-12T07:36:56.264307"
   },
   {
     "test": "Problems Feed - New Sorting",
     "success": true,
     "message": "NEW feed correctly sorted by created_at desc",
     "details": null,
-    "timestamp": "2026-02-12T07:35:38.235480"
+    "timestamp": "2026-02-12T07:36:56.264335"
   },
   {
     "test": "Problems Feed - Trending",
     "success": true,
-    "message": "TRENDING feed returned 6 problems",
+    "message": "TRENDING feed returned 7 problems",
     "details": null,
-    "timestamp": "2026-02-12T07:35:38.275048"
+    "timestamp": "2026-02-12T07:36:56.301325"
   },
   {
     "test": "Problems Feed - ForYou",
     "success": true,
-    "message": "FORYOU feed returned 6 problems",
+    "message": "FORYOU feed returned 7 problems",
     "details": null,
-    "timestamp": "2026-02-12T07:35:38.313648"
+    "timestamp": "2026-02-12T07:36:56.342702"
   },
   {
     "test": "Get Single Problem",
     "success": true,
     "message": "Problem retrieved: My coffee shop always runs out of oat milk by 10am...",
     "details": null,
-    "timestamp": "2026-02-12T07:35:38.346949"
+    "timestamp": "2026-02-12T07:36:56.376481"
   },
   {
     "test": "Edit Problem - Owner",
     "success": true,
     "message": "Problem updated successfully by owner",
     "details": null,
-    "timestamp": "2026-02-12T07:35:38.388192"
+    "timestamp": "2026-02-12T07:36:56.410170"
   },
   {
     "test": "Edit Problem - Non-Owner",
-    "success": false,
-    "message": "Expected 403, got 422",
+    "success": true,
+    "message": "Non-owner correctly blocked with 403",
     "details": null,
-    "timestamp": "2026-02-12T07:35:38.425828"
+    "timestamp": "2026-02-12T07:36:56.448208"
   },
   {
     "test": "Delete Problem - Non-Owner",
     "success": true,
     "message": "Non-owner correctly blocked with 403",
     "details": null,
-    "timestamp": "2026-02-12T07:35:38.496004"
+    "timestamp": "2026-02-12T07:36:56.524603"
   },
   {
     "test": "Delete Problem - Owner",
     "success": true,
     "message": "Owner successfully deleted problem",
     "details": null,
-    "timestamp": "2026-02-12T07:35:38.531328"
+    "timestamp": "2026-02-12T07:36:56.557847"
   },
   {
     "test": "Relate to Problem",
     "success": true,
     "message": "Related successfully, count: 1",
     "details": null,
-    "timestamp": "2026-02-12T07:35:38.581524"
+    "timestamp": "2026-02-12T07:36:56.600924"
   },
   {
     "test": "Relate Duplicate",
     "success": true,
     "message": "Duplicate relate correctly rejected",
     "details": null,
-    "timestamp": "2026-02-12T07:35:38.614598"
+    "timestamp": "2026-02-12T07:36:56.638475"
   },
   {
     "test": "Comment on Problem",
-    "success": false,
-    "message": "Comment failed: 405 - {\"detail\":\"Method Not Allowed\"}",
+    "success": true,
+    "message": "Comment added successfully: I have the exact same problem! My local Starbucks ...",
     "details": null,
-    "timestamp": "2026-02-12T07:35:38.687573"
+    "timestamp": "2026-02-12T07:36:56.675330"
   },
   {
     "test": "Get Comments",
     "success": true,
-    "message": "No comments found (empty list)",
+    "message": "Retrieved 1 comments successfully",
     "details": null,
-    "timestamp": "2026-02-12T07:35:38.721331"
+    "timestamp": "2026-02-12T07:36:56.709180"
   },
   {
     "test": "Save Problem",
     "success": true,
     "message": "Problem saved successfully",
     "details": null,
-    "timestamp": "2026-02-12T07:35:38.755852"
+    "timestamp": "2026-02-12T07:36:56.740644"
   },
   {
     "test": "Unsave Problem",
     "success": true,
     "message": "Problem unsaved successfully",
     "details": null,
-    "timestamp": "2026-02-12T07:35:38.786601"
+    "timestamp": "2026-02-12T07:36:56.778023"
   },
   {
     "test": "Get Categories",
     "success": true,
     "message": "All 9 expected categories found",
     "details": null,
-    "timestamp": "2026-02-12T07:35:38.821468"
+    "timestamp": "2026-02-12T07:36:56.812056"
   },
   {
     "test": "Admin Analytics - Signal Formula",
     "success": true,
     "message": "Signal formula included: {'description': 'Signal = (relates\u00d73) + (comments\u00d72) + (unique_commenters\u00d71) + pain_bonus + recency_boost', 'weights': {'relate': 3.0, 'comment': 2.0, 'unique_commenter': 1.0, 'follow': 1.0, 'pain_base': 0.5, 'frequency_daily': 1.0, 'frequency_weekly': 0.5, 'frequency_monthly': 0.25, 'recency_max_boost': 2.0, 'recency_decay_hours': 72}, 'notes': 'Recency boost decays to 0 over 72h. Posts with engagement always beat posts without (except very new).'}",
     "details": null,
-    "timestamp": "2026-02-12T07:35:38.864208"
+    "timestamp": "2026-02-12T07:36:56.853400"
   },
   {
     "test": "Admin Analytics - Signal Breakdown",
-    "success": false,
-    "message": "Missing signal_breakdown",
+    "success": true,
+    "message": "Signal breakdown included for top problems",
     "details": null,
-    "timestamp": "2026-02-12T07:35:38.864235"
+    "timestamp": "2026-02-12T07:36:56.853446"
+  },
+  {
+    "test": "Admin Analytics - DAU/WAU",
+    "success": true,
+    "message": "DAU: 5, WAU: 5",
+    "details": null,
+    "timestamp": "2026-02-12T07:36:56.853452"
   },
   {
     "test": "Admin Users - List",
     "success": true,
-    "message": "Retrieved 5 users",
+    "message": "Retrieved 7 users",
     "details": null,
-    "timestamp": "2026-02-12T07:35:38.900063"
+    "timestamp": "2026-02-12T07:36:56.887927"
   },
   {
     "test": "Admin Users - Ban",
     "success": true,
     "message": "User banned successfully",
     "details": null,
-    "timestamp": "2026-02-12T07:35:38.939461"
+    "timestamp": "2026-02-12T07:36:56.920161"
   },
   {
     "test": "Admin Users - Unban",
     "success": true,
     "message": "User unbanned successfully",
     "details": null,
-    "timestamp": "2026-02-12T07:35:38.973267"
+    "timestamp": "2026-02-12T07:36:56.952652"
   },
   {
     "test": "Admin Reports",
     "success": true,
     "message": "Retrieved 0 reports",
     "details": null,
-    "timestamp": "2026-02-12T07:35:39.007908"
+    "timestamp": "2026-02-12T07:36:56.987139"
   },
   {
     "test": "Admin Audit Log",
     "success": true,
-    "message": "Retrieved 6 audit log entries",
+    "message": "Retrieved 8 audit log entries",
     "details": null,
-    "timestamp": "2026-02-12T07:35:39.049709"
+    "timestamp": "2026-02-12T07:36:57.020288"
   },
   {
     "test": "Error Handling - 401",
     "success": true,
     "message": "Unauthenticated request correctly returns 401",
     "details": null,
-    "timestamp": "2026-02-12T07:35:39.080253"
+    "timestamp": "2026-02-12T07:36:57.051152"
   },
   {
     "test": "Error Handling - 403",
     "success": true,
     "message": "Non-admin correctly blocked with 403",
     "details": null,
-    "timestamp": "2026-02-12T07:35:39.110855"
+    "timestamp": "2026-02-12T07:36:57.084853"
   },
   {
     "test": "Error Handling - 404",
     "success": true,
     "message": "Non-existent problem correctly returns 404",
     "details": null,
-    "timestamp": "2026-02-12T07:35:39.145966"
+    "timestamp": "2026-02-12T07:36:57.117655"
   }
 ]
