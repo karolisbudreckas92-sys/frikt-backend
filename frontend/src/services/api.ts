@@ -118,7 +118,12 @@ class ApiService {
       image: base64,
       mimeType,
     });
-    return response.data;
+    // Convert relative URL to full URL
+    const data = response.data;
+    if (data.url && data.url.startsWith('/')) {
+      data.url = BASE_URL + data.url;
+    }
+    return data;
   }
 
   // Categories
