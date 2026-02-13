@@ -26,12 +26,9 @@ export default function PostTab() {
       },
     });
 
-    // Navigate to the problem detail or home
-    if (problemId) {
-      router.replace(`/problem/${problemId}`);
-    } else {
-      router.replace('/(tabs)/home');
-    }
+    // Navigate to home first, then to the problem detail
+    // This ensures back button works properly
+    router.replace('/(tabs)/home');
   };
 
   const handleCancel = () => {
