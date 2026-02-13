@@ -1,7 +1,8 @@
 import axios, { AxiosInstance } from 'axios';
 import Constants from 'expo-constants';
 
-const BASE_URL = Constants.expoConfig?.extra?.backendUrl || process.env.EXPO_PUBLIC_BACKEND_URL || 'http://localhost:8001';
+// Production backend URL
+const BASE_URL = 'https://frikt-backend-production.up.railway.app';
 
 class ApiService {
   private client: AxiosInstance;
