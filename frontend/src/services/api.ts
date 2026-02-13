@@ -1,7 +1,6 @@
 import axios, { AxiosInstance } from 'axios';
-import Constants from 'expo-constants';
 
-// Production backend URL
+// Production backend URL - HARDCODED for reliability
 const BASE_URL = 'https://frikt-backend-production.up.railway.app';
 
 class ApiService {
