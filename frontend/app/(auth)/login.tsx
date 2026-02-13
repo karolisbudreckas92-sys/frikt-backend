@@ -36,7 +36,11 @@ export default function Login() {
       await login(email.trim(), password);
       router.replace('/(tabs)/home');
     } catch (error: any) {
-      Alert.alert('Error', error.response?.data?.detail || 'Login failed. Please try again.');
+      console.log('Login error:', JSON.stringify(error, null, 2));
+      const errorMessage = error.response?.data?.detail || 
+                          error.message || 
+                          'Network error - please check your connection';
+      Alert.alert('Login Failed', errorMessage);
     } finally {
       setIsLoading(false);
     }
