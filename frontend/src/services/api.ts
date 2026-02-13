@@ -3,24 +3,48 @@ import axios, { AxiosInstance } from 'axios';
 // Production backend URL - HARDCODED for reliability
 const BASE_URL = 'https://frikt-backend-production.up.railway.app';
 
+// Log the URL being used (for debugging)
+console.log('[API] Using backend URL:', BASE_URL);
+
 class ApiService {
   private client: AxiosInstance;
   private token: string | null = null;
 
   constructor() {
+    console.log('[API] Initializing with baseURL:', `${BASE_URL}/api`);
+    
     this.client = axios.create({
       baseURL: `${BASE_URL}/api`,
+      timeout: 30000, // 30 second timeout
       headers: {
         'Content-Type': 'application/json',
       },
     });
 
     this.client.interceptors.request.use((config) => {
+      console.log('[API] Request:', config.method?.toUpperCase(), config.url);
       if (this.token) {
         config.headers.Authorization = `Bearer ${this.token}`;
       }
       return config;
     });
+
+    this.client.interceptors.response.use(
+      (response) => {
+        console.log('[API] Response OK:', response.status);
+        return response;
+      },
+      (error) => {
+        console.log('[API] Error:', error.message);
+        if (error.response) {
+          console.log('[API] Error status:', error.response.status);
+          console.log('[API] Error data:', JSON.stringify(error.response.data));
+        } else if (error.request) {
+          console.log('[API] No response received - network error');
+        }
+        throw error;
+      }
+    );
   }
 
   setToken(token: string | null) {
