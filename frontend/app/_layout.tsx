@@ -6,11 +6,26 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { usePushNotifications } from '@/src/services/notifications';
 import * as Notifications from 'expo-notifications';
 import { RootSiblingParent } from 'react-native-root-siblings';
+import { Alert } from 'react-native';
+
+// Debug: Show backend URL on first launch
+const BACKEND_URL = 'https://frikt-backend-production.up.railway.app';
+let hasShownDebug = false;
 
 function RootLayoutNav() {
   const router = useRouter();
   const { user } = useAuth();
   const { notification } = usePushNotifications();
+
+  // Debug alert - show once to verify URL
+  useEffect(() => {
+    if (!hasShownDebug) {
+      hasShownDebug = true;
+      // Uncomment below line to see debug alert:
+      // Alert.alert('Debug', `Backend URL: ${BACKEND_URL}`);
+      console.log('[APP] Backend URL:', BACKEND_URL);
+    }
+  }, []);
 
   // Handle notification tap navigation
   useEffect(() => {
