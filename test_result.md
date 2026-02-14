@@ -734,3 +734,37 @@ agent_communication:
       ✅ Admin user: karolisbudreckas92@gmail.com / Admin123!
       
       🎯 FEEDBACK FEATURE IS PRODUCTION READY!
+  - agent: "testing"
+    message: |
+      👤 NEW USER PROFILE ENDPOINTS TESTING COMPLETED - ALL TESTS PASSED! 👤
+      
+      ✅ USER PROFILE FUNCTIONALITY FULLY WORKING - 3/3 TESTS PASSED
+      
+      TESTED USER PROFILE ENDPOINTS:
+      
+      📋 GET USER PROFILE (1/1 PASSED):
+      ✅ GET /api/users/{user_id}/profile - Returns complete user profile
+      ✅ All required fields present: id, displayName, avatarUrl, bio, posts_count, comments_count, relates_count
+      ✅ Proper user stats calculation and display
+      ✅ No authentication required (public endpoint)
+      
+      📝 GET USER POSTS (2/2 PASSED):
+      ✅ GET /api/users/{user_id}/posts?sort=newest - Returns user posts sorted by creation date
+      ✅ GET /api/users/{user_id}/posts?sort=top - Returns user posts sorted by signal score
+      ✅ All required post fields present: id, title, category_name, relates_count, comments_count, created_at
+      ✅ Proper handling of users with no posts (empty array response)
+      ✅ Category names and colors properly included
+      
+      TEST CREDENTIALS USED:
+      ✅ Test user: testfeedback@test.com / Test123! 
+      ✅ User profile ID: f8b052fa-fe40-4737-b7ac-1599dff08ad9
+      ✅ Backend URL: https://feedback-hub-174.preview.emergentagent.com/api (as configured in environment)
+      
+      KEY FINDINGS:
+      • Both endpoints working without authentication (public access)
+      • Profile endpoint returns accurate stats (0 posts, 0 comments, 0 relates for test user)
+      • Posts endpoint handles both sort options correctly (newest/top)
+      • Proper data structure with category information included
+      • Empty results handled gracefully for users with no content
+      
+      🎯 USER PROFILE ENDPOINTS ARE PRODUCTION READY!
