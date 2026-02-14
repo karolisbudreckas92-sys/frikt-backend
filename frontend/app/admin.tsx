@@ -17,7 +17,7 @@ import { api } from '@/src/services/api';
 import { useAuth } from '@/src/context/AuthContext';
 import { formatDistanceToNow } from 'date-fns';
 
-type Tab = 'overview' | 'reports' | 'users' | 'audit';
+type Tab = 'overview' | 'feedback' | 'reports' | 'users' | 'audit';
 
 export default function AdminPanel() {
   const router = useRouter();
@@ -28,6 +28,11 @@ export default function AdminPanel() {
   
   // Analytics data
   const [analytics, setAnalytics] = useState<any>(null);
+  
+  // Feedback data
+  const [feedbacks, setFeedbacks] = useState<any[]>([]);
+  const [feedbackFilter, setFeedbackFilter] = useState('all');
+  const [unreadFeedbackCount, setUnreadFeedbackCount] = useState(0);
   
   // Reports data
   const [reports, setReports] = useState<any[]>([]);
@@ -57,6 +62,17 @@ export default function AdminPanel() {
         case 'overview':
           const analyticsData = await api.getAdminAnalytics();
           setAnalytics(analyticsData);
+          // Also load unread feedback count for the badge
+          try {
+            const feedbackData = await api.getAdminFeedback('false');
+            setUnreadFeedbackCount(feedbackData.unread_count || 0);
+          } catch (e) {}
+          break;
+        case 'feedback':
+          const isReadParam = feedbackFilter === 'all' ? undefined : feedbackFilter === 'unread' ? 'false' : 'true';
+          const feedbackResult = await api.getAdminFeedback(isReadParam);
+          setFeedbacks(feedbackResult.feedbacks || []);
+          setUnreadFeedbackCount(feedbackResult.unread_count || 0);
           break;
         case 'reports':
           const reportsData = await api.getAdminReports(reportFilter);
@@ -79,6 +95,10 @@ export default function AdminPanel() {
       setIsRefreshing(false);
     }
   };
+
+  useEffect(() => {
+    if (activeTab === 'feedback') loadData();
+  }, [feedbackFilter]);
 
   useEffect(() => {
     if (activeTab === 'reports') loadData();
