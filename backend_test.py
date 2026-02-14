@@ -520,7 +520,7 @@ class PathGroTester:
     def run_all_tests(self):
         """Run all tests in sequence"""
         print("=" * 60)
-        print("PathGro Backend Admin API Testing")
+        print("PathGro Backend API Testing - Including Feedback Features")
         print("=" * 60)
         
         tests = [
@@ -530,7 +530,9 @@ class PathGroTester:
             self.test_admin_reports,
             self.test_admin_user_management,
             self.test_admin_audit_log,
-            self.test_security_non_admin_access
+            self.test_security_non_admin_access,
+            self.test_feedback_user_credentials,
+            self.test_feedback_system
         ]
         
         passed = 0
