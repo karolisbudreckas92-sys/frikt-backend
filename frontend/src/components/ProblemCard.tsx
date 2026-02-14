@@ -41,7 +41,6 @@ export default function ProblemCard({ problem, onPress, onRelate }: ProblemCardP
             {problem.category_name || categoryStyle.name}
           </Text>
         </View>
-        <Text style={styles.timeText}>{timeAgo}</Text>
       </View>
 
       <Text style={styles.title} numberOfLines={2}>{problem.title}</Text>
@@ -50,30 +49,34 @@ export default function ProblemCard({ problem, onPress, onRelate }: ProblemCardP
       ) : null}
 
       <View style={styles.footer}>
-        <TouchableOpacity 
-          style={[styles.relateButton, problem.user_has_related && styles.relateButtonActive]} 
-          onPress={(e) => {
-            e.stopPropagation();
-            onRelate();
-          }}
-        >
-          <Ionicons 
-            name={problem.user_has_related ? 'heart' : 'heart-outline'} 
-            size={18} 
-            color={problem.user_has_related ? colors.primary : colors.textSecondary} 
-          />
-          <Text style={[
-            styles.relateText, 
-            problem.user_has_related && styles.relateTextActive
-          ]}>
-            {problem.relates_count} Relate{problem.relates_count !== 1 ? 's' : ''}
-          </Text>
-        </TouchableOpacity>
+        <View style={styles.footerLeft}>
+          <TouchableOpacity 
+            style={[styles.relateButton, problem.user_has_related && styles.relateButtonActive]} 
+            onPress={(e) => {
+              e.stopPropagation();
+              onRelate();
+            }}
+          >
+            <Ionicons 
+              name={problem.user_has_related ? 'heart' : 'heart-outline'} 
+              size={18} 
+              color={problem.user_has_related ? colors.primary : colors.textSecondary} 
+            />
+            <Text style={[
+              styles.relateText, 
+              problem.user_has_related && styles.relateTextActive
+            ]}>
+              {problem.relates_count} Relate{problem.relates_count !== 1 ? 's' : ''}
+            </Text>
+          </TouchableOpacity>
 
-        <View style={styles.statItem}>
-          <Ionicons name="chatbubble-outline" size={16} color={colors.textSecondary} />
-          <Text style={styles.statText}>{problem.comments_count}</Text>
+          <View style={styles.statItem}>
+            <Ionicons name="chatbubble-outline" size={16} color={colors.textSecondary} />
+            <Text style={styles.statText}>{problem.comments_count}</Text>
+          </View>
         </View>
+        
+        <Text style={styles.timeText}>{timeAgo}</Text>
       </View>
     </TouchableOpacity>
   );
@@ -92,7 +95,7 @@ const styles = StyleSheet.create({
   },
   header: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'flex-start',
     alignItems: 'center',
     marginBottom: 10,
   },
@@ -106,10 +109,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '600',
     color: colors.primary,
-  },
-  timeText: {
-    fontSize: 12,
-    color: colors.textMuted,
   },
   title: {
     fontSize: 16,
@@ -125,6 +124,11 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   footer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  footerLeft: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 16,
@@ -160,5 +164,9 @@ const styles = StyleSheet.create({
   statText: {
     fontSize: 13,
     color: colors.textSecondary,
+  },
+  timeText: {
+    fontSize: 12,
+    color: colors.textMuted,
   },
 });
