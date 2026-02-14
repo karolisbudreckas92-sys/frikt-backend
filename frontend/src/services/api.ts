@@ -257,6 +257,16 @@ class ApiService {
     return response.data;
   }
 
+  async getUserProfile(userId: string) {
+    const response = await this.client.get(`/users/${userId}/profile`);
+    return response.data;
+  }
+
+  async getUserPosts(userId: string, sort: 'newest' | 'top' = 'newest') {
+    const response = await this.client.get(`/users/${userId}/posts`, { params: { sort } });
+    return response.data;
+  }
+
   async getSavedProblems() {
     const response = await this.client.get('/users/me/saved');
     return response.data;
