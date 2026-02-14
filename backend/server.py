@@ -1128,6 +1128,66 @@ async def get_mission_of_day():
 
 # ===================== USER STATS =====================
 
+@api_router.get("/users/{user_id}/profile")
+async def get_user_profile(user_id: str):
+    """Get public user profile"""
+    user = await db.users.find_one({"id": user_id})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    posts_count = await db.problems.count_documents({"user_id": user_id, "is_hidden": False})
+    comments_count = await db.comments.count_documents({"user_id": user_id})
+    relates_count = await db.relates.count_documents({"user_id": user_id})
+    
+    return {
+        "id": user["id"],
+        "displayName": user.get("displayName") or user.get("name"),
+        "avatarUrl": user.get("avatarUrl"),
+        "bio": user.get("bio"),
+        "created_at": user.get("created_at"),
+        "posts_count": posts_count,
+        "comments_count": comments_count,
+        "relates_count": relates_count,
+    }
+
+@api_router.get("/users/{user_id}/posts")
+async def get_user_posts(
+    user_id: str, 
+    sort: str = "newest",  # "newest" or "top"
+    limit: int = 50,
+    skip: int = 0
+):
+    """Get a user's public posts"""
+    user = await db.users.find_one({"id": user_id})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    query = {"user_id": user_id, "is_hidden": False, "status": "active"}
+    
+    if sort == "top":
+        sort_order = [("signal_score", -1), ("created_at", -1)]
+    else:
+        sort_order = [("created_at", -1)]
+    
+    problems = await db.problems.find(query).sort(sort_order).skip(skip).limit(limit).to_list(limit)
+    
+    results = []
+    for p in problems:
+        category = next((c for c in CATEGORIES if c["id"] == p["category_id"]), None)
+        results.append({
+            "id": p["id"],
+            "title": p["title"],
+            "category_id": p.get("category_id"),
+            "category_name": category["name"] if category else "",
+            "category_color": category["color"] if category else "#666",
+            "relates_count": p.get("relates_count", 0),
+            "comments_count": p.get("comments_count", 0),
+            "created_at": p.get("created_at"),
+            "signal_score": p.get("signal_score", 0),
+        })
+    
+    return results
+
 @api_router.get("/users/{user_id}/stats")
 async def get_user_stats(user_id: str):
     user = await db.users.find_one({"id": user_id})
