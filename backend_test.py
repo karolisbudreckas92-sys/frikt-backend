@@ -613,7 +613,8 @@ class PathGroTester:
             self.test_admin_audit_log,
             self.test_security_non_admin_access,
             self.test_feedback_user_credentials,
-            self.test_feedback_system
+            self.test_feedback_system,
+            self.test_user_profile_endpoints
         ]
         
         passed = 0
