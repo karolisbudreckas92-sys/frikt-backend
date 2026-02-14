@@ -195,17 +195,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 12,
   },
-  logoImage: {
-    width: 56,
-    height: 56,
-    borderRadius: 12,
-    marginRight: 12,
-  },
   logoText: {
     fontSize: 48,
     fontWeight: '700',
     color: colors.text,
     letterSpacing: -1,
+    marginLeft: 8,
   },
   tagline: {
     fontSize: 16,
