@@ -309,6 +309,13 @@ class ApiService {
     return response.data;
   }
 
+  // ===================== FEEDBACK =====================
+
+  async submitFeedback(data: { message: string; appVersion?: string }) {
+    const response = await this.client.post('/feedback', data);
+    return response.data;
+  }
+
   // ===================== ADMIN API =====================
 
   // Admin: Reports
