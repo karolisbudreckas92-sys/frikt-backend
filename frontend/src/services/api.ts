@@ -262,6 +262,11 @@ class ApiService {
     return response.data;
   }
 
+  async searchUsers(query: string, limit: number = 20) {
+    const response = await this.client.get('/users/search', { params: { q: query, limit } });
+    return response.data;
+  }
+
   async getUserPosts(userId: string, sort: 'newest' | 'top' = 'newest') {
     const response = await this.client.get(`/users/${userId}/posts`, { params: { sort } });
     return response.data;
