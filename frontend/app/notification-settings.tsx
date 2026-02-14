@@ -206,13 +206,8 @@ export default function NotificationSettings() {
           />
         </View>
 
-        <TouchableOpacity style={styles.testButton} onPress={handleTestNotification} disabled>
-          <Ionicons name="paper-plane-outline" size={18} color={colors.textMuted} />
-          <Text style={[styles.testButtonText, { color: colors.textMuted }]}>Test Notifications (Expo Go only)</Text>
-        </TouchableOpacity>
-
         <Text style={styles.footerText}>
-          Push notifications will be sent to your device when enabled. Test notifications only work in the Expo Go development app.
+          Push notifications will be sent to your device when enabled.
         </Text>
       </ScrollView>
     </SafeAreaView>
