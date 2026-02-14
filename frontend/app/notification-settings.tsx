@@ -292,23 +292,6 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     marginTop: 2,
   },
-  testButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.surface,
-    borderRadius: 12,
-    paddingVertical: 14,
-    marginTop: 16,
-    gap: 8,
-    borderWidth: 1,
-    borderColor: colors.primary + '40',
-  },
-  testButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.primary,
-  },
   footerText: {
     fontSize: 12,
     color: colors.textMuted,
