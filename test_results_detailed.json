@@ -4,69 +4,97 @@
     "success": true,
     "message": "Test admin user logged in successfully with admin role",
     "details": null,
-    "timestamp": "2026-02-05T12:53:34.332455"
+    "timestamp": "2026-02-14T20:07:42.043489"
   },
   {
     "test": "Regular User Registration",
     "success": true,
     "message": "Regular user already exists and logged in successfully with user role",
     "details": null,
-    "timestamp": "2026-02-05T12:53:34.645104"
+    "timestamp": "2026-02-14T20:07:42.566635"
   },
   {
     "test": "Admin Analytics",
     "success": true,
     "message": "Analytics endpoint returned all required data",
     "details": null,
-    "timestamp": "2026-02-05T12:53:34.711385"
+    "timestamp": "2026-02-14T20:07:42.735864"
   },
   {
     "test": "Admin Reports - List",
     "success": true,
     "message": "Reports endpoint returned 0 reports",
     "details": null,
-    "timestamp": "2026-02-05T12:53:34.751518"
+    "timestamp": "2026-02-14T20:07:42.855973"
   },
   {
     "test": "Admin Reports - Dismiss",
     "success": true,
     "message": "No reports to dismiss (empty list)",
     "details": null,
-    "timestamp": "2026-02-05T12:53:34.751609"
+    "timestamp": "2026-02-14T20:07:42.855998"
   },
   {
     "test": "Admin Users - List",
     "success": true,
-    "message": "Users endpoint returned 3 users",
+    "message": "Users endpoint returned 9 users",
     "details": null,
-    "timestamp": "2026-02-05T12:53:34.796543"
+    "timestamp": "2026-02-14T20:07:42.969026"
   },
   {
     "test": "Admin Users - Ban",
     "success": true,
     "message": "User banned successfully",
     "details": null,
-    "timestamp": "2026-02-05T12:53:34.855905"
+    "timestamp": "2026-02-14T20:07:43.128421"
   },
   {
     "test": "Admin Users - Unban",
     "success": true,
     "message": "User unbanned successfully",
     "details": null,
-    "timestamp": "2026-02-05T12:53:34.899357"
+    "timestamp": "2026-02-14T20:07:43.317953"
   },
   {
     "test": "Admin Audit Log",
     "success": true,
-    "message": "Audit log endpoint returned 4 log entries",
+    "message": "Audit log endpoint returned 12 log entries",
     "details": null,
-    "timestamp": "2026-02-05T12:53:34.979579"
+    "timestamp": "2026-02-14T20:07:43.436574"
   },
   {
     "test": "Security Check",
     "success": true,
     "message": "All admin endpoints properly blocked for non-admin users",
     "details": null,
-    "timestamp": "2026-02-05T12:53:35.173671"
+    "timestamp": "2026-02-14T20:07:44.002839"
+  },
+  {
+    "test": "Feedback User Registration",
+    "success": true,
+    "message": "Feedback user registered successfully",
+    "details": null,
+    "timestamp": "2026-02-14T20:07:44.368868"
+  },
+  {
+    "test": "Admin Credentials Test",
+    "success": true,
+    "message": "Admin credentials work correctly",
+    "details": null,
+    "timestamp": "2026-02-14T20:07:44.703598"
+  },
+  {
+    "test": "Feedback - Submit",
+    "success": true,
+    "message": "Feedback submitted successfully",
+    "details": null,
+    "timestamp": "2026-02-14T20:07:44.974325"
+  },
+  {
+    "test": "Feedback - Admin List",
+    "success": false,
+    "message": "List failed: 520",
+    "details": "<!DOCTYPE html>\n<!--[if lt IE 7]> <html class=\"no-js ie6 oldie\" lang=\"en-US\"> <![endif]-->\n<!--[if IE 7]>    <html class=\"no-js ie7 oldie\" lang=\"en-US\"> <![endif]-->\n<!--[if IE 8]>    <html class=\"no-js ie8 oldie\" lang=\"en-US\"> <![endif]-->\n<!--[if gt IE 8]><!--> <html class=\"no-js\" lang=\"en-US\"> <!--<![endif]-->\n<head>\n\n\n<title>feedback-hub-174.cluster-0.preview.emergentcf.cloud | 520: Web server is returning an unknown error</title>\n<meta charset=\"UTF-8\" />\n<meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\" />\n<meta http-equiv=\"X-UA-Compatible\" content=\"IE=Edge\" />\n<meta name=\"robots\" content=\"noindex, nofollow\" />\n<meta name=\"viewport\" content=\"width=device-width,initial-scale=1\" />\n<link rel=\"stylesheet\" id=\"cf_styles-css\" href=\"/cdn-cgi/styles/main.css\" />\n\n\n</head>\n<body>\n<div id=\"cf-wrapper\">\n    <div id=\"cf-error-details\" class=\"p-0\">\n        <header class=\"mx-auto pt-10 lg:pt-6 lg:px-8 w-240 lg:w-full mb-8\">\n            <h1 class=\"inline-block sm:block sm:mb-2 font-light text-60 lg:text-4xl text-black-dark leading-tight mr-2\">\n              <span class=\"inline-block\">Web server is returning an unknown error</span>\n              <span class=\"code-label\">Error code 520</span>\n            </h1>\n            <div>\n               Visit <a href=\"https://www.cloudflare.com/5xx-error-landing?utm_source=errorcode_520&utm_campaign=feedback-hub-174.cluster-0.preview.emergentcf.cloud\" target=\"_blank\" rel=\"noopener noreferrer\">cloudflare.com</a> for more information.\n            </div>\n            <div class=\"mt-3\">2026-02-14 20:07:45 UTC</div>\n        </header>\n        <div class=\"my-8 bg-gradient-gray\">\n            <div class=\"w-240 lg:w-full mx-auto\">\n                <div class=\"clearfix md:px-8\">\n                  \n<div id=\"cf-browser-status\" class=\" relative w-1/3 md:w-full py-15 md:p-0 md:py-8 md:text-left md:border-solid md:border-0 md:border-b md:border-gray-400 overflow-hidden float-left md:float-none text-center\">\n  <div class=\"relative mb-10 md:m-0\">\n    \n    <span class=\"cf-icon-browser block md:hidden h-20 bg-center bg-no-repeat\"></span>\n    <span class=\"cf-icon-ok w-12 h-12 absolute left-1/2 md:left-auto md:right-0 md:top-0 -ml-6 -bottom-4\"></span>\n    \n  </div>\n  <span class=\"md:block w-full truncate\">You</span>\n  <h3 class=\"md:inline-block mt-3 md:mt-0 text-2xl text-gray-600 font-light leading-1.3\">\n    \n    Browser\n    \n  </h3>\n  <span class=\"leading-1.3 text-2xl text-green-success\">Working</span>\n</div>\n\n<div id=\"cf-cloudflare-status\" class=\" relative w-1/3 md:w-full py-15 md:p-0 md:py-8 md:text-left md:border-solid md:border-0 md:border-b md:border-gray-400 overflow-hidden float-left md:float-none text-center\">\n  <div class=\"relative mb-10 md:m-0\">\n    <a href=\"https://www.cloudflare.com/5xx-error-landing?utm_source=errorcode_520&utm_campaign=feedback-hub-174.cluster-0.preview.emergentcf.cloud\" target=\"_blank\" rel=\"noopener noreferrer\">\n    <span class=\"cf-icon-cloud block md:hidden h-20 bg-center bg-no-repeat\"></span>\n    <span class=\"cf-icon-ok w-12 h-12 absolute left-1/2 md:left-auto md:right-0 md:top-0 -ml-6 -bottom-4\"></span>\n    </a>\n  </div>\n  <span class=\"md:block w-full truncate\">Chicago</span>\n  <h3 class=\"md:inline-block mt-3 md:mt-0 text-2xl text-gray-600 font-light leading-1.3\">\n    <a href=\"https://www.cloudflare.com/5xx-error-landing?utm_source=errorcode_520&utm_campaign=feedback-hub-174.cluster-0.preview.emergentcf.cloud\" target=\"_blank\" rel=\"noopener noreferrer\">\n    Cloudflare\n    </a>\n  </h3>\n  <span class=\"leading-1.3 text-2xl text-green-success\">Working</span>\n</div>\n\n<div id=\"cf-host-status\" class=\"cf-error-source relative w-1/3 md:w-full py-15 md:p-0 md:py-8 md:text-left md:border-solid md:border-0 md:border-b md:border-gray-400 overflow-hidden float-left md:float-none text-center\">\n  <div class=\"relative mb-10 md:m-0\">\n    \n    <span class=\"cf-icon-server block md:hidden h-20 bg-center bg-no-repeat\"></span>\n    <span class=\"cf-icon-error w-12 h-12 absolute left-1/2 md:left-auto md:right-0 md:top-0 -ml-6 -bottom-4\"></span>\n    \n  </div>\n  <span class=\"md:block w-full truncate\">feedback-hub-174.cluster-0.preview.emergentcf.cloud</span>\n  <h3 class=\"md:inline-block mt-3 md:mt-0 text-2xl text-gray-600 font-light leading-1.3\">\n    \n    Host\n    \n  </h3>\n  <span class=\"leading-1.3 text-2xl text-red-error\">Error</span>\n</div>\n\n                </div>\n            </div>\n        </div>\n\n        <div class=\"w-240 lg:w-full mx-auto mb-8 lg:px-8\">\n            <div class=\"clearfix\">\n                <div class=\"w-1/2 md:w-full float-left pr-6 md:pb-10 md:pr-0 leading-relaxed\">\n                    <h2 class=\"text-3xl font-normal leading-1.3 mb-4\">What happened?</h2>\n                    <p>There is an unknown connection issue between Cloudflare and the origin web server. As a result, the web page can not be displayed.</p>\n                </div>\n                <div class=\"w-1/2 md:w-full float-left leading-relaxed\">\n                    <h2 class=\"text-3xl font-normal leading-1.3 mb-4\">What can I do?</h2>\n                          <h3 class=\"text-15 font-semibold mb-2\">If you are a visitor of this website:</h3>\n      <p class=\"mb-6\">Please try again in a few minutes.</p>\n\n      <h3 class=\"text-15 font-semibold mb-2\">If you are the owner of this website:</h3>\n      <p><span>There is an issue between Cloudflare's cache and your origin web server. Cloudflare monitors for these errors and automatically investigates the cause. To help support the investigation, you can pull the corresponding error log from your web server and submit it our support team.  Please include the Ray ID (which is at the bottom of this error page).</span> <a rel=\"noopener noreferrer\" href=\"https://developers.cloudflare.com/support/troubleshooting/http-status-codes/cloudflare-5xx-errors/error-520/\">Additional troubleshooting resources</a>.</p>\n                </div>\n            </div>\n        </div>\n\n        <div class=\"cf-error-footer cf-wrapper w-240 lg:w-full py-10 sm:py-4 sm:px-8 mx-auto text-center sm:text-left border-solid border-0 border-t border-gray-300\">\n  <p class=\"text-13\">\n    <span class=\"cf-footer-item sm:block sm:mb-1\">Cloudflare Ray ID: <strong class=\"font-semibold\">9cdf318a907df83e</strong></span>\n    <span class=\"cf-footer-separator sm:hidden\">&bull;</span>\n    <span id=\"cf-footer-item-ip\" class=\"cf-footer-item hidden sm:block sm:mb-1\">\n      Your IP:\n      <button type=\"button\" id=\"cf-footer-ip-reveal\" class=\"cf-footer-ip-reveal-btn\">Click to reveal</button>\n      <span class=\"hidden\" id=\"cf-footer-ip\">34.16.56.64</span>\n      <span class=\"cf-footer-separator sm:hidden\">&bull;</span>\n    </span>\n    <span class=\"cf-footer-item sm:block sm:mb-1\"><span>Performance &amp; security by</span> <a rel=\"noopener noreferrer\" href=\"https://www.cloudflare.com/5xx-error-landing?utm_source=errorcode_520&utm_campaign=feedback-hub-174.cluster-0.preview.emergentcf.cloud\" id=\"brand_link\" target=\"_blank\">Cloudflare</a></span>\n    \n  </p>\n  <script>(function(){function d(){var b=a.getElementById(\"cf-footer-item-ip\"),c=a.getElementById(\"cf-footer-ip-reveal\");b&&\"classList\"in b&&(b.classList.remove(\"hidden\"),c.addEventListener(\"click\",function(){c.classList.add(\"hidden\");a.getElementById(\"cf-footer-ip\").classList.remove(\"hidden\")}))}var a=document;document.addEventListener&&a.addEventListener(\"DOMContentLoaded\",d)})();</script>\n</div><!-- /.error-footer -->\n\n\n    </div>\n</div>\n</body>\n</html>\n",
+    "timestamp": "2026-02-14T20:07:45.094354"
   }
 ]
