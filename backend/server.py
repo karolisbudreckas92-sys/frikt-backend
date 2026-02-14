@@ -2148,7 +2148,7 @@ async def get_admin_feedback(
     elif is_read == "false":
         query["is_read"] = False
     
-    feedbacks = await db.feedbacks.find(query).sort("created_at", -1).skip(skip).limit(limit).to_list(limit)
+    feedbacks = await db.feedbacks.find(query, {"_id": 0}).sort("created_at", -1).skip(skip).limit(limit).to_list(limit)
     total = await db.feedbacks.count_documents(query)
     unread_count = await db.feedbacks.count_documents({"is_read": False})
     
