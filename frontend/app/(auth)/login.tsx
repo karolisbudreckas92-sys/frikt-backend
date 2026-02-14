@@ -58,12 +58,14 @@ export default function Login() {
           keyboardShouldPersistTaps="handled"
         >
           <View style={styles.header}>
-            <Image 
-              source={require('../../assets/images/icon.png')} 
-              style={styles.logoImage}
-              resizeMode="contain"
-            />
-            <Text style={styles.logoText}>frikt</Text>
+            <View style={styles.logoContainer}>
+              <Image 
+                source={require('../../assets/images/icon.png')} 
+                style={styles.logoImage}
+                resizeMode="contain"
+              />
+              <Text style={styles.logoText}>frikt</Text>
+            </View>
             <Text style={styles.tagline}>Share frictions. Find patterns.</Text>
           </View>
 
