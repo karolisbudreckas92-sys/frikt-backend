@@ -2083,6 +2083,108 @@ async def test_push_notification(user: dict = Depends(require_auth)):
     )
     return {"success": True, "message": "Test notification sent"}
 
+# ===================== FEEDBACK =====================
+
+class FeedbackCreate(BaseModel):
+    message: str = Field(..., min_length=5, max_length=2000)
+    appVersion: Optional[str] = "1.0.0"
+
+class Feedback(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    user_id: str
+    user_name: str
+    user_email: str
+    message: str
+    app_version: str
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    is_read: bool = False
+
+@api_router.post("/feedback")
+async def submit_feedback(feedback_data: FeedbackCreate, user: dict = Depends(require_auth)):
+    """Submit user feedback"""
+    feedback = Feedback(
+        user_id=user["id"],
+        user_name=user.get("displayName") or user["name"],
+        user_email=user["email"],
+        message=feedback_data.message.strip(),
+        app_version=feedback_data.appVersion or "1.0.0"
+    )
+    
+    await db.feedbacks.insert_one(feedback.dict())
+    
+    # Send push notification to all admin users
+    admin_users = await db.users.find({"role": "admin"}, {"id": 1}).to_list(100)
+    for admin in admin_users:
+        if admin["id"] != user["id"]:  # Don't notify if admin sends feedback to themselves
+            await send_notification_to_user(
+                admin["id"],
+                "New Feedback Received",
+                f"From {user.get('displayName') or user['name']}: {feedback_data.message[:60]}...",
+                {"type": "new_feedback", "feedbackId": feedback.id}
+            )
+            # Also create in-app notification
+            notification = Notification(
+                user_id=admin["id"],
+                type="new_feedback",
+                problem_id=feedback.id,  # Repurpose this field for feedback ID
+                message=f"New feedback from {user.get('displayName') or user['name']}"
+            )
+            await db.notifications.insert_one(notification.dict())
+    
+    logger.info(f"Feedback submitted by {user['email']}: {feedback_data.message[:50]}...")
+    return {"success": True, "id": feedback.id}
+
+@api_router.get("/admin/feedback")
+async def get_admin_feedback(
+    is_read: Optional[str] = None,
+    limit: int = 50,
+    skip: int = 0,
+    admin: dict = Depends(require_admin)
+):
+    """Get all feedback (admin only)"""
+    query = {}
+    if is_read == "true":
+        query["is_read"] = True
+    elif is_read == "false":
+        query["is_read"] = False
+    
+    feedbacks = await db.feedbacks.find(query).sort("created_at", -1).skip(skip).limit(limit).to_list(limit)
+    total = await db.feedbacks.count_documents(query)
+    unread_count = await db.feedbacks.count_documents({"is_read": False})
+    
+    return {"feedbacks": feedbacks, "total": total, "unread_count": unread_count}
+
+@api_router.post("/admin/feedback/{feedback_id}/read")
+async def mark_feedback_read(feedback_id: str, admin: dict = Depends(require_admin)):
+    """Mark feedback as read"""
+    result = await db.feedbacks.update_one(
+        {"id": feedback_id},
+        {"$set": {"is_read": True}}
+    )
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Feedback not found")
+    return {"success": True}
+
+@api_router.post("/admin/feedback/{feedback_id}/unread")
+async def mark_feedback_unread(feedback_id: str, admin: dict = Depends(require_admin)):
+    """Mark feedback as unread"""
+    result = await db.feedbacks.update_one(
+        {"id": feedback_id},
+        {"$set": {"is_read": False}}
+    )
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Feedback not found")
+    return {"success": True}
+
+@api_router.delete("/admin/feedback/{feedback_id}")
+async def delete_feedback(feedback_id: str, admin: dict = Depends(require_admin)):
+    """Delete feedback"""
+    result = await db.feedbacks.delete_one({"id": feedback_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Feedback not found")
+    await log_admin_action(admin, "delete_feedback", "feedback", feedback_id)
+    return {"success": True}
+
 # ===================== HEALTH CHECK =====================
 
 @api_router.get("/")
