@@ -601,7 +601,7 @@ class PathGroTester:
     def run_all_tests(self):
         """Run all tests in sequence"""
         print("=" * 60)
-        print("PathGro Backend API Testing - Including Feedback Features")
+        print("PathGro Backend API Testing - Including User Profile Endpoints")
         print("=" * 60)
         
         tests = [
