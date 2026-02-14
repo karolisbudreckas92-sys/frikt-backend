@@ -152,7 +152,14 @@ const styles = StyleSheet.create({
     width: 88,
     height: 88,
     borderRadius: 20,
-    marginBottom: 12,
+    marginBottom: 8,
+  },
+  logoText: {
+    fontSize: 32,
+    fontWeight: '800',
+    color: colors.primary,
+    letterSpacing: -0.5,
+    marginBottom: 4,
   },
   tagline: {
     fontSize: 16,
