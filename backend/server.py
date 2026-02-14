@@ -2152,6 +2152,11 @@ async def get_admin_feedback(
     total = await db.feedbacks.count_documents(query)
     unread_count = await db.feedbacks.count_documents({"is_read": False})
     
+    # Convert datetime objects to strings for JSON serialization
+    for feedback in feedbacks:
+        if "created_at" in feedback and isinstance(feedback["created_at"], datetime):
+            feedback["created_at"] = feedback["created_at"].isoformat()
+    
     return {"feedbacks": feedbacks, "total": total, "unread_count": unread_count}
 
 @api_router.post("/admin/feedback/{feedback_id}/read")
