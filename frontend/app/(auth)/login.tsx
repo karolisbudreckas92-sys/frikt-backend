@@ -10,13 +10,57 @@ import {
   ScrollView,
   ActivityIndicator,
   Alert,
-  Image,
 } from 'react-native';
 import { useRouter, Link } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '@/src/context/AuthContext';
 import { colors } from '@/src/theme/colors';
+
+// Custom Logo Mark Component - just the lines and dot
+const LogoMark = ({ size = 48 }: { size?: number }) => {
+  const lineHeight = size * 0.14;
+  const lineGap = size * 0.08;
+  const dotSize = size * 0.22;
+  
+  return (
+    <View style={{ width: size, height: size, justifyContent: 'center' }}>
+      {/* Three horizontal lines */}
+      <View style={{ 
+        width: size * 0.75, 
+        height: lineHeight, 
+        backgroundColor: '#2D3748', 
+        borderRadius: lineHeight / 2,
+        marginBottom: lineGap 
+      }} />
+      <View style={{ 
+        flexDirection: 'row', 
+        alignItems: 'center',
+        marginBottom: lineGap 
+      }}>
+        <View style={{ 
+          width: size * 0.5, 
+          height: lineHeight, 
+          backgroundColor: '#2D3748', 
+          borderRadius: lineHeight / 2,
+          marginRight: size * 0.08
+        }} />
+        <View style={{ 
+          width: dotSize, 
+          height: dotSize, 
+          backgroundColor: '#E85D3D', 
+          borderRadius: dotSize / 2 
+        }} />
+      </View>
+      <View style={{ 
+        width: size * 0.6, 
+        height: lineHeight, 
+        backgroundColor: '#2D3748', 
+        borderRadius: lineHeight / 2 
+      }} />
+    </View>
+  );
+};
 
 export default function Login() {
   const router = useRouter();
