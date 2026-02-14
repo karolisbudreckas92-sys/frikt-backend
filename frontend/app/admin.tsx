@@ -323,6 +323,161 @@ export default function AdminPanel() {
     );
   };
 
+  // ============ FEEDBACK HANDLERS ============
+
+  const handleMarkFeedbackRead = async (feedbackId: string) => {
+    try {
+      await api.markFeedbackRead(feedbackId);
+      setFeedbacks(feedbacks.map(f => 
+        f.id === feedbackId ? { ...f, is_read: true } : f
+      ));
+      setUnreadFeedbackCount(prev => Math.max(0, prev - 1));
+    } catch (error) {
+      Alert.alert('Error', 'Failed to mark as read');
+    }
+  };
+
+  const handleMarkFeedbackUnread = async (feedbackId: string) => {
+    try {
+      await api.markFeedbackUnread(feedbackId);
+      setFeedbacks(feedbacks.map(f => 
+        f.id === feedbackId ? { ...f, is_read: false } : f
+      ));
+      setUnreadFeedbackCount(prev => prev + 1);
+    } catch (error) {
+      Alert.alert('Error', 'Failed to mark as unread');
+    }
+  };
+
+  const handleDeleteFeedback = async (feedbackId: string) => {
+    Alert.alert(
+      'Delete Feedback',
+      'Are you sure you want to delete this feedback?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await api.deleteFeedback(feedbackId);
+              const deleted = feedbacks.find(f => f.id === feedbackId);
+              setFeedbacks(feedbacks.filter(f => f.id !== feedbackId));
+              if (deleted && !deleted.is_read) {
+                setUnreadFeedbackCount(prev => Math.max(0, prev - 1));
+              }
+              Alert.alert('Success', 'Feedback deleted');
+            } catch (error) {
+              Alert.alert('Error', 'Failed to delete feedback');
+            }
+          }
+        }
+      ]
+    );
+  };
+
+  const renderFeedback = () => (
+    <View style={styles.tabContent}>
+      <View style={styles.filterRow}>
+        {['all', 'unread', 'read'].map((filter) => (
+          <TouchableOpacity
+            key={filter}
+            style={[styles.filterChip, feedbackFilter === filter && styles.filterChipActive]}
+            onPress={() => setFeedbackFilter(filter)}
+          >
+            <Text style={[styles.filterChipText, feedbackFilter === filter && styles.filterChipTextActive]}>
+              {filter.charAt(0).toUpperCase() + filter.slice(1)}
+              {filter === 'unread' && unreadFeedbackCount > 0 && ` (${unreadFeedbackCount})`}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+
+      <ScrollView 
+        style={styles.listContainer}
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefreshing}
+            onRefresh={() => loadData(true)}
+            tintColor={colors.primary}
+          />
+        }
+      >
+        {feedbacks.length === 0 ? (
+          <View style={styles.emptyState}>
+            <Ionicons name="chatbox-ellipses-outline" size={48} color={colors.textMuted} />
+            <Text style={styles.emptyTitle}>No feedback yet</Text>
+            <Text style={styles.emptySubtitle}>User feedback will appear here</Text>
+          </View>
+        ) : (
+          feedbacks.map((feedback) => (
+            <View 
+              key={feedback.id} 
+              style={[
+                styles.feedbackCard,
+                !feedback.is_read && styles.feedbackCardUnread
+              ]}
+            >
+              <View style={styles.feedbackHeader}>
+                <View style={styles.feedbackUser}>
+                  <View style={styles.feedbackAvatar}>
+                    <Text style={styles.feedbackAvatarText}>
+                      {(feedback.user_name || 'U').charAt(0).toUpperCase()}
+                    </Text>
+                  </View>
+                  <View>
+                    <Text style={styles.feedbackUserName}>{feedback.user_name}</Text>
+                    <Text style={styles.feedbackEmail}>{feedback.user_email}</Text>
+                  </View>
+                </View>
+                <View style={styles.feedbackMeta}>
+                  {!feedback.is_read && (
+                    <View style={styles.unreadDot} />
+                  )}
+                  <Text style={styles.feedbackTime}>
+                    {formatDistanceToNow(new Date(feedback.created_at), { addSuffix: true })}
+                  </Text>
+                </View>
+              </View>
+              
+              <Text style={styles.feedbackMessage}>{feedback.message}</Text>
+              
+              <View style={styles.feedbackFooter}>
+                <Text style={styles.feedbackVersion}>v{feedback.app_version}</Text>
+                <View style={styles.feedbackActions}>
+                  {feedback.is_read ? (
+                    <TouchableOpacity 
+                      style={styles.feedbackActionBtn}
+                      onPress={() => handleMarkFeedbackUnread(feedback.id)}
+                    >
+                      <Ionicons name="mail-outline" size={16} color={colors.textSecondary} />
+                      <Text style={styles.feedbackActionText}>Mark Unread</Text>
+                    </TouchableOpacity>
+                  ) : (
+                    <TouchableOpacity 
+                      style={styles.feedbackActionBtn}
+                      onPress={() => handleMarkFeedbackRead(feedback.id)}
+                    >
+                      <Ionicons name="checkmark-circle-outline" size={16} color={colors.accent} />
+                      <Text style={[styles.feedbackActionText, { color: colors.accent }]}>Mark Read</Text>
+                    </TouchableOpacity>
+                  )}
+                  <TouchableOpacity 
+                    style={styles.feedbackActionBtn}
+                    onPress={() => handleDeleteFeedback(feedback.id)}
+                  >
+                    <Ionicons name="trash-outline" size={16} color={colors.error} />
+                    <Text style={[styles.feedbackActionText, { color: colors.error }]}>Delete</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </View>
+          ))
+        )}
+      </ScrollView>
+    </View>
+  );
+
   const renderReports = () => (
     <View style={styles.tabContent}>
       <View style={styles.filterRow}>
