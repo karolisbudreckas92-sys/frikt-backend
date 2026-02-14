@@ -8,14 +8,25 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Keyboard,
+  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { colors } from '@/src/theme/colors';
+import { colors, radius } from '@/src/theme/colors';
 import { api } from '@/src/services/api';
 import ProblemCard from '@/src/components/ProblemCard';
 import Toast from 'react-native-root-toast';
+
+type SearchType = 'frikts' | 'users';
+
+interface UserResult {
+  id: string;
+  displayName: string;
+  avatarUrl?: string;
+  bio?: string;
+  posts_count: number;
+}
 
 const showToast = (message: string, isError: boolean = false) => {
   Toast.show(message, {
@@ -38,7 +49,9 @@ const showToast = (message: string, isError: boolean = false) => {
 export default function Search() {
   const router = useRouter();
   const [query, setQuery] = useState('');
-  const [results, setResults] = useState<any[]>([]);
+  const [searchType, setSearchType] = useState<SearchType>('frikts');
+  const [friktsResults, setFriktsResults] = useState<any[]>([]);
+  const [usersResults, setUsersResults] = useState<UserResult[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
 
@@ -50,19 +63,59 @@ export default function Search() {
     setHasSearched(true);
     
     try {
-      const data = await api.getProblems('new', undefined, query.trim());
-      setResults(data);
+      if (searchType === 'frikts') {
+        const data = await api.getProblems('new', undefined, query.trim());
+        setFriktsResults(data);
+      } else {
+        const data = await api.searchUsers(query.trim());
+        setUsersResults(data);
+      }
     } catch (error) {
       console.error('Error searching:', error);
       showToast('Search failed', true);
     } finally {
       setIsLoading(false);
     }
-  }, [query]);
+  }, [query, searchType]);
+
+  const handleSearchTypeChange = (type: SearchType) => {
+    setSearchType(type);
+    // Clear results when switching type
+    if (type === 'frikts') {
+      setUsersResults([]);
+    } else {
+      setFriktsResults([]);
+    }
+    // Re-search if there's a query
+    if (query.trim() && hasSearched) {
+      setTimeout(() => {
+        handleSearchWithType(type);
+      }, 100);
+    }
+  };
+
+  const handleSearchWithType = async (type: SearchType) => {
+    if (!query.trim()) return;
+    
+    setIsLoading(true);
+    try {
+      if (type === 'frikts') {
+        const data = await api.getProblems('new', undefined, query.trim());
+        setFriktsResults(data);
+      } else {
+        const data = await api.searchUsers(query.trim());
+        setUsersResults(data);
+      }
+    } catch (error) {
+      console.error('Error searching:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleRelate = async (problemId: string, isRelated: boolean) => {
     // Optimistic update
-    setResults(prev => prev.map(p => {
+    setFriktsResults(prev => prev.map(p => {
       if (p.id === problemId) {
         return {
           ...p,
@@ -82,7 +135,7 @@ export default function Search() {
       }
     } catch (error) {
       // Rollback
-      setResults(prev => prev.map(p => {
+      setFriktsResults(prev => prev.map(p => {
         if (p.id === problemId) {
           return {
             ...p,
@@ -96,11 +149,108 @@ export default function Search() {
     }
   };
 
+  const renderUserCard = ({ item }: { item: UserResult }) => (
+    <TouchableOpacity
+      style={styles.userCard}
+      onPress={() => router.push(`/user/${item.id}`)}
+      activeOpacity={0.7}
+      data-testid={`user-card-${item.id}`}
+    >
+      {item.avatarUrl ? (
+        <Image source={{ uri: item.avatarUrl }} style={styles.userAvatar} />
+      ) : (
+        <View style={[styles.userAvatar, styles.userAvatarPlaceholder]}>
+          <Text style={styles.userAvatarText}>
+            {(item.displayName || 'U').charAt(0).toUpperCase()}
+          </Text>
+        </View>
+      )}
+      <View style={styles.userInfo}>
+        <Text style={styles.userName}>{item.displayName}</Text>
+        {item.bio ? (
+          <Text style={styles.userBio} numberOfLines={2}>{item.bio}</Text>
+        ) : null}
+        <Text style={styles.userStats}>{item.posts_count} Frikts</Text>
+      </View>
+      <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
+    </TouchableOpacity>
+  );
+
+  const renderEmptyFrikts = () => {
+    if (isLoading) return null;
+    
+    return hasSearched ? (
+      <View style={styles.emptyContainer}>
+        <Ionicons name="search-outline" size={64} color={colors.textMuted} />
+        <Text style={styles.emptyTitle}>No Frikts found</Text>
+        <Text style={styles.emptyText}>Try different keywords</Text>
+      </View>
+    ) : (
+      <View style={styles.emptyContainer}>
+        <Ionicons name="bulb-outline" size={64} color={colors.textMuted} />
+        <Text style={styles.emptyTitle}>Start searching</Text>
+        <Text style={styles.emptyText}>Find Frikts others have shared</Text>
+      </View>
+    );
+  };
+
+  const renderEmptyUsers = () => {
+    if (isLoading) return null;
+    
+    return hasSearched ? (
+      <View style={styles.emptyContainer}>
+        <Ionicons name="person-outline" size={64} color={colors.textMuted} />
+        <Text style={styles.emptyTitle}>No users found</Text>
+        <Text style={styles.emptyText}>Try a different name</Text>
+      </View>
+    ) : (
+      <View style={styles.emptyContainer}>
+        <Ionicons name="people-outline" size={64} color={colors.textMuted} />
+        <Text style={styles.emptyTitle}>Find users</Text>
+        <Text style={styles.emptyText}>Search by name to find people</Text>
+      </View>
+    );
+  };
+
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
         <Text style={styles.title}>Search</Text>
-        <Text style={styles.subtitle}>Find Frikts that matter to you</Text>
+        <Text style={styles.subtitle}>Find Frikts and users</Text>
+      </View>
+
+      {/* Segmented Control */}
+      <View style={styles.segmentedControl}>
+        <TouchableOpacity
+          style={[styles.segmentButton, searchType === 'frikts' && styles.segmentButtonActive]}
+          onPress={() => handleSearchTypeChange('frikts')}
+          activeOpacity={0.7}
+          data-testid="search-tab-frikts"
+        >
+          <Ionicons 
+            name="document-text-outline" 
+            size={18} 
+            color={searchType === 'frikts' ? colors.white : colors.textSecondary} 
+          />
+          <Text style={[styles.segmentText, searchType === 'frikts' && styles.segmentTextActive]}>
+            Frikts
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.segmentButton, searchType === 'users' && styles.segmentButtonActive]}
+          onPress={() => handleSearchTypeChange('users')}
+          activeOpacity={0.7}
+          data-testid="search-tab-users"
+        >
+          <Ionicons 
+            name="people-outline" 
+            size={18} 
+            color={searchType === 'users' ? colors.white : colors.textSecondary} 
+          />
+          <Text style={[styles.segmentText, searchType === 'users' && styles.segmentTextActive]}>
+            Users
+          </Text>
+        </TouchableOpacity>
       </View>
 
       <View style={styles.searchContainer}>
@@ -108,12 +258,13 @@ export default function Search() {
           <Ionicons name="search-outline" size={20} color={colors.textMuted} />
           <TextInput
             style={styles.searchInput}
-            placeholder="Search Frikts..."
+            placeholder={searchType === 'frikts' ? 'Search Frikts...' : 'Search users...'}
             placeholderTextColor={colors.textMuted}
             value={query}
             onChangeText={setQuery}
             onSubmitEditing={handleSearch}
             returnKeyType="search"
+            data-testid="search-input"
           />
           {query.length > 0 && (
             <TouchableOpacity onPress={() => setQuery('')} activeOpacity={0.7}>
@@ -126,6 +277,7 @@ export default function Search() {
           onPress={handleSearch}
           disabled={!query.trim()}
           activeOpacity={0.7}
+          data-testid="search-submit-btn"
         >
           <Text style={styles.searchButtonText}>Search</Text>
         </TouchableOpacity>
@@ -135,9 +287,9 @@ export default function Search() {
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={colors.primary} />
         </View>
-      ) : (
+      ) : searchType === 'frikts' ? (
         <FlatList
-          data={results}
+          data={friktsResults}
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => (
             <ProblemCard
@@ -146,21 +298,15 @@ export default function Search() {
               onRelate={() => handleRelate(item.id, item.user_has_related)}
             />
           )}
-          ListEmptyComponent={
-            hasSearched ? (
-              <View style={styles.emptyContainer}>
-                <Ionicons name="search-outline" size={64} color={colors.textMuted} />
-                <Text style={styles.emptyTitle}>No Frikts found</Text>
-                <Text style={styles.emptyText}>Try different keywords</Text>
-              </View>
-            ) : (
-              <View style={styles.emptyContainer}>
-                <Ionicons name="bulb-outline" size={64} color={colors.textMuted} />
-                <Text style={styles.emptyTitle}>Start searching</Text>
-                <Text style={styles.emptyText}>Find Frikts others have shared</Text>
-              </View>
-            )
-          }
+          ListEmptyComponent={renderEmptyFrikts}
+          contentContainerStyle={styles.listContent}
+        />
+      ) : (
+        <FlatList
+          data={usersResults}
+          keyExtractor={(item) => item.id}
+          renderItem={renderUserCard}
+          ListEmptyComponent={renderEmptyUsers}
           contentContainerStyle={styles.listContent}
         />
       )}
@@ -188,6 +334,36 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.textSecondary,
     marginTop: 4,
+  },
+  segmentedControl: {
+    flexDirection: 'row',
+    marginHorizontal: 16,
+    marginTop: 12,
+    backgroundColor: colors.surface,
+    borderRadius: radius.md,
+    padding: 4,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  segmentButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 10,
+    borderRadius: radius.sm,
+    gap: 6,
+  },
+  segmentButtonActive: {
+    backgroundColor: colors.primary,
+  },
+  segmentText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.textSecondary,
+  },
+  segmentTextActive: {
+    color: colors.white,
   },
   searchContainer: {
     flexDirection: 'row',
@@ -250,5 +426,52 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.textSecondary,
     marginTop: 8,
+  },
+  // User card styles
+  userCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.surface,
+    marginHorizontal: 16,
+    marginTop: 12,
+    padding: 14,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  userAvatar: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+  },
+  userAvatarPlaceholder: {
+    backgroundColor: colors.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  userAvatarText: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: colors.white,
+  },
+  userInfo: {
+    flex: 1,
+    marginLeft: 12,
+  },
+  userName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.text,
+  },
+  userBio: {
+    fontSize: 13,
+    color: colors.textSecondary,
+    marginTop: 2,
+    lineHeight: 18,
+  },
+  userStats: {
+    fontSize: 12,
+    color: colors.textMuted,
+    marginTop: 4,
   },
 });
