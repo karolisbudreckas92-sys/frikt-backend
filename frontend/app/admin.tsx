@@ -1278,4 +1278,108 @@ const styles = StyleSheet.create({
     paddingVertical: 2,
     borderRadius: radius.xs,
   },
+  // ========== FEEDBACK STYLES ==========
+  feedbackCard: {
+    backgroundColor: colors.surface,
+    padding: 14,
+    borderRadius: radius.md,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  feedbackCardUnread: {
+    borderLeftWidth: 3,
+    borderLeftColor: colors.primary,
+    backgroundColor: colors.softRed,
+  },
+  feedbackHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 10,
+  },
+  feedbackUser: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  feedbackAvatar: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: colors.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 10,
+  },
+  feedbackAvatarText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.white,
+  },
+  feedbackUserName: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.text,
+  },
+  feedbackEmail: {
+    fontSize: 11,
+    color: colors.textMuted,
+  },
+  feedbackMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  unreadDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: colors.primary,
+  },
+  feedbackTime: {
+    fontSize: 11,
+    color: colors.textMuted,
+  },
+  feedbackMessage: {
+    fontSize: 14,
+    color: colors.text,
+    lineHeight: 20,
+    marginBottom: 12,
+  },
+  feedbackFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+  },
+  feedbackVersion: {
+    fontSize: 11,
+    color: colors.textMuted,
+    backgroundColor: colors.background,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: radius.xs,
+  },
+  feedbackActions: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  feedbackActionBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  feedbackActionText: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    fontWeight: '500',
+  },
+  emptySubtitle: {
+    fontSize: 13,
+    color: colors.textMuted,
+    marginTop: 4,
+  },
 });
