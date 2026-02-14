@@ -339,6 +339,21 @@ backend:
         agent: "testing"
         comment: "✅ COMPREHENSIVE TEST PASSED - Signal score calculation working correctly. Formula properly implemented with breakdown available in admin analytics. Recency boost and engagement scoring working as designed."
 
+  - task: "Feedback System (Submit, Admin List, Mark Read/Unread, Delete)"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "New feedback feature endpoints: POST /api/feedback (submit), GET /api/admin/feedback (list), POST /api/admin/feedback/{id}/read (mark read), POST /api/admin/feedback/{id}/unread (mark unread), DELETE /api/admin/feedback/{id} (delete)"
+      - working: true
+        agent: "testing"
+        comment: "✅ COMPREHENSIVE TEST PASSED - All feedback endpoints working correctly. User can submit feedback via POST /api/feedback. Admin can list feedbacks via GET /api/admin/feedback with proper is_read status. Admin can mark feedback as read/unread and delete feedback. ObjectId serialization issue was fixed during testing."
+
 frontend:
   - task: "Login/Register Flow"
     implemented: true
