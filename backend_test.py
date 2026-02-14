@@ -521,6 +521,83 @@ class PathGroTester:
             self.log_test("Feedback User Credentials", False, f"Exception occurred: {str(e)}")
             return False
     
+    def test_user_profile_endpoints(self):
+        """Test 10: User Profile Endpoints - GET /api/users/{user_id}/profile and GET /api/users/{user_id}/posts"""
+        if not self.user_token or not self.feedback_user_id:
+            self.log_test("User Profile Endpoints", False, "Missing user token or feedback user ID")
+            return False
+        
+        try:
+            # Test 1: Get User Profile
+            profile_response = requests.get(f"{BACKEND_URL}/users/{self.feedback_user_id}/profile")
+            
+            if profile_response.status_code == 200:
+                profile_data = profile_response.json()
+                
+                # Verify required fields
+                required_fields = ["id", "displayName", "avatarUrl", "bio", "posts_count", "comments_count", "relates_count"]
+                missing_fields = [field for field in required_fields if field not in profile_data]
+                
+                if not missing_fields:
+                    self.log_test("User Profile - Get Profile", True, 
+                                f"Profile endpoint returned all required fields: {profile_data['displayName'] or 'Test Feedback User'} with {profile_data['posts_count']} posts, {profile_data['comments_count']} comments, {profile_data['relates_count']} relates")
+                else:
+                    self.log_test("User Profile - Get Profile", False, f"Missing required fields: {missing_fields}", profile_data)
+                    return False
+            else:
+                self.log_test("User Profile - Get Profile", False, f"Profile request failed: {profile_response.status_code}", profile_response.text)
+                return False
+            
+            # Test 2: Get User Posts (newest sort)
+            posts_newest_response = requests.get(f"{BACKEND_URL}/users/{self.feedback_user_id}/posts?sort=newest")
+            
+            if posts_newest_response.status_code == 200:
+                posts_newest_data = posts_newest_response.json()
+                
+                if isinstance(posts_newest_data, list):
+                    # Check that posts have required fields
+                    if posts_newest_data:  # Only check if there are posts
+                        first_post = posts_newest_data[0]
+                        required_post_fields = ["id", "title", "category_name", "relates_count", "comments_count", "created_at"]
+                        missing_post_fields = [field for field in required_post_fields if field not in first_post]
+                        
+                        if not missing_post_fields:
+                            self.log_test("User Profile - Get Posts (newest)", True, 
+                                        f"Posts endpoint returned {len(posts_newest_data)} posts with all required fields")
+                        else:
+                            self.log_test("User Profile - Get Posts (newest)", False, 
+                                        f"Post missing required fields: {missing_post_fields}", first_post)
+                            return False
+                    else:
+                        self.log_test("User Profile - Get Posts (newest)", True, "Posts endpoint returned empty array (user has no posts)")
+                else:
+                    self.log_test("User Profile - Get Posts (newest)", False, "Response is not an array", posts_newest_data)
+                    return False
+            else:
+                self.log_test("User Profile - Get Posts (newest)", False, f"Posts request failed: {posts_newest_response.status_code}", posts_newest_response.text)
+                return False
+            
+            # Test 3: Get User Posts (top sort)
+            posts_top_response = requests.get(f"{BACKEND_URL}/users/{self.feedback_user_id}/posts?sort=top")
+            
+            if posts_top_response.status_code == 200:
+                posts_top_data = posts_top_response.json()
+                
+                if isinstance(posts_top_data, list):
+                    self.log_test("User Profile - Get Posts (top)", True, 
+                                f"Posts endpoint with 'top' sort returned {len(posts_top_data)} posts")
+                    return True
+                else:
+                    self.log_test("User Profile - Get Posts (top)", False, "Response is not an array", posts_top_data)
+                    return False
+            else:
+                self.log_test("User Profile - Get Posts (top)", False, f"Posts 'top' sort request failed: {posts_top_response.status_code}", posts_top_response.text)
+                return False
+                
+        except Exception as e:
+            self.log_test("User Profile Endpoints", False, f"Exception occurred: {str(e)}")
+            return False
+    
     def run_all_tests(self):
         """Run all tests in sequence"""
         print("=" * 60)
