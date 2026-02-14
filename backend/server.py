@@ -524,6 +524,7 @@ async def create_problem(problem_data: ProblemCreate, user: dict = Depends(requi
     problem = Problem(
         user_id=user["id"],
         user_name=user.get("displayName") or user["name"],
+        user_avatar_url=user.get("avatarUrl"),
         title=problem_data.title,
         category_id=category_id,
         frequency=frequency,
