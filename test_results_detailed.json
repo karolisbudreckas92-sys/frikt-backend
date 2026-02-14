@@ -4,118 +4,139 @@
     "success": true,
     "message": "Test admin user logged in successfully with admin role",
     "details": null,
-    "timestamp": "2026-02-14T20:08:44.051805"
+    "timestamp": "2026-02-14T21:09:04.054256"
   },
   {
     "test": "Regular User Registration",
     "success": true,
     "message": "Regular user already exists and logged in successfully with user role",
     "details": null,
-    "timestamp": "2026-02-14T20:08:44.533739"
+    "timestamp": "2026-02-14T21:09:04.577180"
   },
   {
     "test": "Admin Analytics",
     "success": true,
     "message": "Analytics endpoint returned all required data",
     "details": null,
-    "timestamp": "2026-02-14T20:08:44.647687"
+    "timestamp": "2026-02-14T21:09:04.712457"
   },
   {
     "test": "Admin Reports - List",
     "success": true,
     "message": "Reports endpoint returned 0 reports",
     "details": null,
-    "timestamp": "2026-02-14T20:08:44.759123"
+    "timestamp": "2026-02-14T21:09:04.831341"
   },
   {
     "test": "Admin Reports - Dismiss",
     "success": true,
     "message": "No reports to dismiss (empty list)",
     "details": null,
-    "timestamp": "2026-02-14T20:08:44.759147"
+    "timestamp": "2026-02-14T21:09:04.831364"
   },
   {
     "test": "Admin Users - List",
     "success": true,
     "message": "Users endpoint returned 10 users",
     "details": null,
-    "timestamp": "2026-02-14T20:08:44.902453"
+    "timestamp": "2026-02-14T21:09:04.944876"
   },
   {
     "test": "Admin Users - Ban",
     "success": true,
     "message": "User banned successfully",
     "details": null,
-    "timestamp": "2026-02-14T20:08:45.019964"
+    "timestamp": "2026-02-14T21:09:05.107891"
   },
   {
     "test": "Admin Users - Unban",
     "success": true,
     "message": "User unbanned successfully",
     "details": null,
-    "timestamp": "2026-02-14T20:08:45.159846"
+    "timestamp": "2026-02-14T21:09:05.272747"
   },
   {
     "test": "Admin Audit Log",
     "success": true,
-    "message": "Audit log endpoint returned 15 log entries",
+    "message": "Audit log endpoint returned 18 log entries",
     "details": null,
-    "timestamp": "2026-02-14T20:08:45.290548"
+    "timestamp": "2026-02-14T21:09:05.410551"
   },
   {
     "test": "Security Check",
     "success": true,
     "message": "All admin endpoints properly blocked for non-admin users",
     "details": null,
-    "timestamp": "2026-02-14T20:08:45.767845"
+    "timestamp": "2026-02-14T21:09:05.890553"
   },
   {
     "test": "Feedback User Registration",
     "success": true,
     "message": "Feedback user logged in successfully",
     "details": null,
-    "timestamp": "2026-02-14T20:08:46.257223"
+    "timestamp": "2026-02-14T21:09:06.522256"
   },
   {
     "test": "Admin Credentials Test",
     "success": true,
     "message": "Admin credentials work correctly",
     "details": null,
-    "timestamp": "2026-02-14T20:08:46.596906"
+    "timestamp": "2026-02-14T21:09:06.852768"
   },
   {
     "test": "Feedback - Submit",
     "success": true,
     "message": "Feedback submitted successfully",
     "details": null,
-    "timestamp": "2026-02-14T20:08:46.779497"
+    "timestamp": "2026-02-14T21:09:06.986889"
   },
   {
     "test": "Feedback - Admin List",
     "success": true,
     "message": "Feedback appears in admin list with is_read: false",
     "details": null,
-    "timestamp": "2026-02-14T20:08:46.918305"
+    "timestamp": "2026-02-14T21:09:07.115080"
   },
   {
     "test": "Feedback - Mark Read",
     "success": true,
     "message": "Feedback marked as read successfully",
     "details": null,
-    "timestamp": "2026-02-14T20:08:47.040826"
+    "timestamp": "2026-02-14T21:09:07.243551"
   },
   {
     "test": "Feedback - Mark Unread",
     "success": true,
     "message": "Feedback marked as unread successfully",
     "details": null,
-    "timestamp": "2026-02-14T20:08:47.179745"
+    "timestamp": "2026-02-14T21:09:07.356211"
   },
   {
     "test": "Feedback - Delete",
     "success": true,
     "message": "Feedback deleted successfully",
     "details": null,
-    "timestamp": "2026-02-14T20:08:47.301512"
+    "timestamp": "2026-02-14T21:09:07.496025"
+  },
+  {
+    "test": "User Profile - Get Profile",
+    "success": true,
+    "message": "Profile endpoint returned all required fields: Test Feedback User with 0 posts, 0 comments, 0 relates",
+    "details": null,
+    "timestamp": "2026-02-14T21:09:07.605736"
+  },
+  {
+    "test": "User Profile - Get Posts (newest)",
+    "success": true,
+    "message": "Posts endpoint returned empty array (user has no posts)",
+    "details": null,
+    "timestamp": "2026-02-14T21:09:07.723519"
+  },
+  {
+    "test": "User Profile - Get Posts (top)",
+    "success": true,
+    "message": "Posts endpoint with 'top' sort returned 0 posts",
+    "details": null,
+    "timestamp": "2026-02-14T21:09:07.831394"
   }
 ]
