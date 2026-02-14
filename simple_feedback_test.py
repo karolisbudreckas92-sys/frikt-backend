@@ -7,7 +7,7 @@ import json
 import time
 
 # Backend URL from frontend/.env
-BACKEND_URL = "https://feedback-hub-174.preview.emergentagent.com/api"
+BACKEND_URL = "https://frikt-ux-overhaul.preview.emergentagent.com/api"
 
 def test_auth_and_feedback():
     """Test feedback endpoints step by step"""
