@@ -322,6 +322,25 @@ export default function ProblemDetail() {
           {/* Title */}
           <Text style={styles.title}>{problem.title}</Text>
 
+          {/* Author Row */}
+          <TouchableOpacity 
+            style={styles.authorRow}
+            onPress={() => router.push(`/user/${problem.user_id}`)}
+            activeOpacity={0.7}
+          >
+            {problem.user_avatar_url ? (
+              <Image source={{ uri: problem.user_avatar_url }} style={styles.authorAvatar} />
+            ) : (
+              <View style={[styles.authorAvatar, styles.authorAvatarPlaceholder]}>
+                <Text style={styles.authorAvatarText}>
+                  {(problem.user_name || 'U').charAt(0).toUpperCase()}
+                </Text>
+              </View>
+            )}
+            <Text style={styles.authorName}>{problem.user_name || 'Anonymous'}</Text>
+            <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />
+          </TouchableOpacity>
+
           {/* Signal Summary - Only show fields that have values */}
           <View style={styles.signalSummary}>
             <View style={styles.signalItem}>
