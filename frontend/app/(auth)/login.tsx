@@ -10,6 +10,7 @@ import {
   ScrollView,
   ActivityIndicator,
   Alert,
+  Image,
 } from 'react-native';
 import { useRouter, Link } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -57,7 +58,11 @@ export default function Login() {
           keyboardShouldPersistTaps="handled"
         >
           <View style={styles.header}>
-            <Text style={styles.logo}>frikt</Text>
+            <Image 
+              source={require('../../assets/images/icon.png')} 
+              style={styles.logoImage}
+              resizeMode="contain"
+            />
             <Text style={styles.tagline}>Share frictions. Find patterns.</Text>
           </View>
 
@@ -140,18 +145,18 @@ const styles = StyleSheet.create({
   },
   header: {
     alignItems: 'center',
-    marginBottom: 48,
+    marginBottom: 40,
   },
-  logo: {
-    fontSize: 48,
-    fontWeight: '700',
-    color: colors.text,
-    letterSpacing: -2,
+  logoImage: {
+    width: 88,
+    height: 88,
+    borderRadius: 20,
+    marginBottom: 12,
   },
   tagline: {
     fontSize: 16,
     color: colors.textSecondary,
-    marginTop: 8,
+    marginTop: 4,
   },
   form: {
     width: '100%',
