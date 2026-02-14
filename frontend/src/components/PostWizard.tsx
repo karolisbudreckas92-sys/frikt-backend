@@ -117,6 +117,8 @@ export default function PostWizard({ onComplete, onCancel }: PostWizardProps) {
   };
 
   const handleSubmit = async () => {
+    if (isSubmitting) return; // Prevent double submission
+    
     setIsSubmitting(true);
     try {
       const result = await api.createProblem({
@@ -125,16 +127,30 @@ export default function PostWizard({ onComplete, onCancel }: PostWizardProps) {
         frequency: frequency || null,
         pain_level: severity || null,
       });
+      
+      // Reset state before calling onComplete
+      setIsSubmitting(false);
+      setProblemText('');
+      setCategoryId('other');
+      setFrequency(null);
+      setSeverity(null);
+      setStep(1);
+      setSimilarProblems([]);
+      
+      // Show success toast
+      showToast('Posted ✓');
+      
       onComplete(result.id);
     } catch (error: any) {
       console.error('Post error:', error);
-      const message = error.response?.data?.detail || 'Failed to post. Try again.';
+      setIsSubmitting(false);
+      
+      const message = error.response?.data?.detail || 'Something went wrong. Try again.';
       if (error.response?.status === 429) {
         showToast('Too many Frikts today. Try again tomorrow!', true);
       } else {
         showToast(message, true);
       }
-      setIsSubmitting(false);
     }
   };
 
