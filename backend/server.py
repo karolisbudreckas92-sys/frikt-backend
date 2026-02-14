@@ -148,6 +148,7 @@ class Problem(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     user_id: str
     user_name: str
+    user_avatar_url: Optional[str] = None
     title: str
     category_id: str
     frequency: Optional[str] = None
