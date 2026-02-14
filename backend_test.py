@@ -18,6 +18,7 @@ class PathGroTester:
         self.user_token = None
         self.admin_user_id = None
         self.regular_user_id = None
+        self.feedback_user_id = None
         self.test_results = []
         
     def log_test(self, test_name, success, message, details=None):
