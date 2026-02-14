@@ -664,7 +664,38 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: colors.text,
     lineHeight: 30,
+    marginBottom: 12,
+  },
+  authorRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+    backgroundColor: colors.surface,
+    borderRadius: radius.md,
     marginBottom: 16,
+  },
+  authorAvatar: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    marginRight: 10,
+  },
+  authorAvatarPlaceholder: {
+    backgroundColor: colors.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  authorAvatarText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.white,
+  },
+  authorName: {
+    flex: 1,
+    fontSize: 14,
+    fontWeight: '500',
+    color: colors.text,
   },
   signalSummary: {
     flexDirection: 'row',
