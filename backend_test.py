@@ -470,6 +470,7 @@ class PathGroTester:
             if response.status_code == 200:
                 data = response.json()
                 feedback_token = data.get("access_token")
+                feedback_user_id = data.get("user", {}).get("id")
                 self.log_test("Feedback User Registration", True, "Feedback user registered successfully")
             elif response.status_code == 400 and "already registered" in response.text:
                 # Try to login instead
@@ -481,6 +482,7 @@ class PathGroTester:
                 if login_response.status_code == 200:
                     data = login_response.json()
                     feedback_token = data.get("access_token")
+                    feedback_user_id = data.get("user", {}).get("id")
                     self.log_test("Feedback User Registration", True, "Feedback user logged in successfully")
                 else:
                     self.log_test("Feedback User Registration", False, f"Login failed: {login_response.status_code}", login_response.text)
@@ -502,9 +504,10 @@ class PathGroTester:
                 if admin_data.get("user", {}).get("role") == "admin":
                     self.log_test("Admin Credentials Test", True, "Admin credentials work correctly")
                     
-                    # Update tokens for feedback test
+                    # Update tokens for feedback test and store feedback user ID
                     self.user_token = feedback_token
                     self.admin_token = admin_feedback_token
+                    self.feedback_user_id = feedback_user_id  # Store for profile tests
                     return True
                 else:
                     self.log_test("Admin Credentials Test", False, f"Admin role incorrect: {admin_data.get('user', {}).get('role')}")
