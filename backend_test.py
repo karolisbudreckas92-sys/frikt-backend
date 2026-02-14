@@ -348,6 +348,175 @@ class PathGroTester:
             self.log_test("Security Check", False, f"Exception occurred: {str(e)}")
             return False
     
+    def test_feedback_system(self):
+        """Test 8: Complete Feedback System Flow"""
+        if not self.user_token or not self.admin_token:
+            self.log_test("Feedback System", False, "Missing required tokens")
+            return False
+        
+        feedback_id = None
+        
+        try:
+            # Step 1: Submit feedback as regular user
+            headers = {"Authorization": f"Bearer {self.user_token}"}
+            feedback_data = {
+                "message": "This is test feedback for the app",
+                "appVersion": "1.0.0"
+            }
+            
+            submit_response = requests.post(f"{BACKEND_URL}/feedback", json=feedback_data, headers=headers)
+            
+            if submit_response.status_code == 200:
+                submit_data = submit_response.json()
+                if submit_data.get("success") and submit_data.get("id"):
+                    feedback_id = submit_data["id"]
+                    self.log_test("Feedback - Submit", True, "Feedback submitted successfully")
+                else:
+                    self.log_test("Feedback - Submit", False, "Response missing success or id fields", submit_data)
+                    return False
+            else:
+                self.log_test("Feedback - Submit", False, f"Submit failed: {submit_response.status_code}", submit_response.text)
+                return False
+            
+            # Step 2: Get feedback list as admin
+            admin_headers = {"Authorization": f"Bearer {self.admin_token}"}
+            list_response = requests.get(f"{BACKEND_URL}/admin/feedback", headers=admin_headers)
+            
+            if list_response.status_code == 200:
+                list_data = list_response.json()
+                if "feedbacks" in list_data and "total" in list_data:
+                    # Check if our feedback appears and is unread
+                    our_feedback = None
+                    for fb in list_data["feedbacks"]:
+                        if fb["id"] == feedback_id:
+                            our_feedback = fb
+                            break
+                    
+                    if our_feedback:
+                        if our_feedback["is_read"] == False:
+                            self.log_test("Feedback - Admin List", True, "Feedback appears in admin list with is_read: false")
+                        else:
+                            self.log_test("Feedback - Admin List", False, f"Feedback is_read should be false, got: {our_feedback['is_read']}")
+                            return False
+                    else:
+                        self.log_test("Feedback - Admin List", False, "Submitted feedback not found in admin list")
+                        return False
+                else:
+                    self.log_test("Feedback - Admin List", False, "Response missing required fields", list_data)
+                    return False
+            else:
+                self.log_test("Feedback - Admin List", False, f"List failed: {list_response.status_code}", list_response.text)
+                return False
+            
+            # Step 3: Mark feedback as read
+            read_response = requests.post(f"{BACKEND_URL}/admin/feedback/{feedback_id}/read", headers=admin_headers)
+            
+            if read_response.status_code == 200:
+                read_data = read_response.json()
+                if read_data.get("success"):
+                    self.log_test("Feedback - Mark Read", True, "Feedback marked as read successfully")
+                else:
+                    self.log_test("Feedback - Mark Read", False, "Response missing success field", read_data)
+                    return False
+            else:
+                self.log_test("Feedback - Mark Read", False, f"Mark read failed: {read_response.status_code}", read_response.text)
+                return False
+            
+            # Step 4: Mark feedback as unread
+            unread_response = requests.post(f"{BACKEND_URL}/admin/feedback/{feedback_id}/unread", headers=admin_headers)
+            
+            if unread_response.status_code == 200:
+                unread_data = unread_response.json()
+                if unread_data.get("success"):
+                    self.log_test("Feedback - Mark Unread", True, "Feedback marked as unread successfully")
+                else:
+                    self.log_test("Feedback - Mark Unread", False, "Response missing success field", unread_data)
+                    return False
+            else:
+                self.log_test("Feedback - Mark Unread", False, f"Mark unread failed: {unread_response.status_code}", unread_response.text)
+                return False
+            
+            # Step 5: Delete feedback
+            delete_response = requests.delete(f"{BACKEND_URL}/admin/feedback/{feedback_id}", headers=admin_headers)
+            
+            if delete_response.status_code == 200:
+                delete_data = delete_response.json()
+                if delete_data.get("success"):
+                    self.log_test("Feedback - Delete", True, "Feedback deleted successfully")
+                    return True
+                else:
+                    self.log_test("Feedback - Delete", False, "Response missing success field", delete_data)
+                    return False
+            else:
+                self.log_test("Feedback - Delete", False, f"Delete failed: {delete_response.status_code}", delete_response.text)
+                return False
+                
+        except Exception as e:
+            self.log_test("Feedback System", False, f"Exception occurred: {str(e)}")
+            return False
+    
+    def test_feedback_user_credentials(self):
+        """Test 9: Login with specific feedback user credentials"""
+        try:
+            # First try to register the feedback user
+            user_data = {
+                "name": "Test Feedback User",
+                "email": "testfeedback@test.com",
+                "password": "Test123!"
+            }
+            
+            response = requests.post(f"{BACKEND_URL}/auth/register", json=user_data)
+            
+            if response.status_code == 200:
+                data = response.json()
+                feedback_token = data.get("access_token")
+                self.log_test("Feedback User Registration", True, "Feedback user registered successfully")
+            elif response.status_code == 400 and "already registered" in response.text:
+                # Try to login instead
+                login_data = {
+                    "email": "testfeedback@test.com",
+                    "password": "Test123!"
+                }
+                login_response = requests.post(f"{BACKEND_URL}/auth/login", json=login_data)
+                if login_response.status_code == 200:
+                    data = login_response.json()
+                    feedback_token = data.get("access_token")
+                    self.log_test("Feedback User Registration", True, "Feedback user logged in successfully")
+                else:
+                    self.log_test("Feedback User Registration", False, f"Login failed: {login_response.status_code}", login_response.text)
+                    return False
+            else:
+                self.log_test("Feedback User Registration", False, f"Registration failed: {response.status_code}", response.text)
+                return False
+            
+            # Now test admin credentials
+            admin_login_data = {
+                "email": "karolisbudreckas92@gmail.com",
+                "password": "Admin123!"
+            }
+            admin_login_response = requests.post(f"{BACKEND_URL}/auth/login", json=admin_login_data)
+            
+            if admin_login_response.status_code == 200:
+                admin_data = admin_login_response.json()
+                admin_feedback_token = admin_data.get("access_token")
+                if admin_data.get("user", {}).get("role") == "admin":
+                    self.log_test("Admin Credentials Test", True, "Admin credentials work correctly")
+                    
+                    # Update tokens for feedback test
+                    self.user_token = feedback_token
+                    self.admin_token = admin_feedback_token
+                    return True
+                else:
+                    self.log_test("Admin Credentials Test", False, f"Admin role incorrect: {admin_data.get('user', {}).get('role')}")
+                    return False
+            else:
+                self.log_test("Admin Credentials Test", False, f"Admin login failed: {admin_login_response.status_code}", admin_login_response.text)
+                return False
+                
+        except Exception as e:
+            self.log_test("Feedback User Credentials", False, f"Exception occurred: {str(e)}")
+            return False
+    
     def run_all_tests(self):
         """Run all tests in sequence"""
         print("=" * 60)
