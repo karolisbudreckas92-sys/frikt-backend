@@ -1130,6 +1130,42 @@ async def get_mission_of_day():
 
 # ===================== USER STATS =====================
 
+@api_router.get("/users/search")
+async def search_users(
+    q: str = "",
+    limit: int = 20,
+    skip: int = 0
+):
+    """Search users by display name"""
+    if not q or len(q.strip()) < 2:
+        return []
+    
+    search_term = q.strip().lower()
+    
+    # Search by normalized display name or email prefix
+    query = {
+        "$or": [
+            {"normalizedDisplayName": {"$regex": search_term, "$options": "i"}},
+            {"name": {"$regex": search_term, "$options": "i"}},
+        ],
+        "status": "active"
+    }
+    
+    users = await db.users.find(query).skip(skip).limit(limit).to_list(limit)
+    
+    results = []
+    for user in users:
+        posts_count = await db.problems.count_documents({"user_id": user["id"], "is_hidden": False})
+        results.append({
+            "id": user["id"],
+            "displayName": user.get("displayName") or user.get("name"),
+            "avatarUrl": user.get("avatarUrl"),
+            "bio": user.get("bio"),
+            "posts_count": posts_count,
+        })
+    
+    return results
+
 @api_router.get("/users/{user_id}/profile")
 async def get_user_profile(user_id: str):
     """Get public user profile"""
