@@ -63,6 +63,7 @@ export default function Login() {
               style={styles.logoImage}
               resizeMode="contain"
             />
+            <Text style={styles.logoText}>frikt</Text>
             <Text style={styles.tagline}>Share frictions. Find patterns.</Text>
           </View>
 
