@@ -73,31 +73,6 @@ export default function NotificationSettings() {
     }
   };
 
-  const handleTestNotification = async () => {
-    try {
-      await api.registerPushToken(await registerForPushNotificationsAsync() || '');
-      
-      // Call the test endpoint
-      const response = await fetch(`${process.env.EXPO_PUBLIC_BACKEND_URL}/api/push/test`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${await getToken()}`,
-        },
-      });
-      
-      if (response.ok) {
-        Alert.alert('Test Sent', 'Check your notifications!');
-      }
-    } catch (error) {
-      Alert.alert('Info', 'Push notifications work best on physical devices via Expo Go');
-    }
-  };
-
-  const getToken = async () => {
-    const AsyncStorage = require('@react-native-async-storage/async-storage').default;
-    return await AsyncStorage.getItem('auth_token');
-  };
-
   if (isLoading) {
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
