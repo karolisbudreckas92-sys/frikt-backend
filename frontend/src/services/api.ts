@@ -446,6 +446,29 @@ class ApiService {
     const response = await this.client.get('/admin/audit-log', { params });
     return response.data;
   }
+
+  // Admin: Feedback
+  async getAdminFeedback(isRead?: string) {
+    const params: any = {};
+    if (isRead !== undefined) params.is_read = isRead;
+    const response = await this.client.get('/admin/feedback', { params });
+    return response.data;
+  }
+
+  async markFeedbackRead(feedbackId: string) {
+    const response = await this.client.post(`/admin/feedback/${feedbackId}/read`);
+    return response.data;
+  }
+
+  async markFeedbackUnread(feedbackId: string) {
+    const response = await this.client.post(`/admin/feedback/${feedbackId}/unread`);
+    return response.data;
+  }
+
+  async deleteFeedback(feedbackId: string) {
+    const response = await this.client.delete(`/admin/feedback/${feedbackId}`);
+    return response.data;
+  }
 }
 
 export const api = new ApiService();
