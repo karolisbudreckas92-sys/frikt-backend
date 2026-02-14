@@ -544,6 +544,7 @@ export default function AdminPanel() {
       <View style={styles.tabs}>
         {[
           { key: 'overview', label: 'Overview', icon: 'stats-chart' },
+          { key: 'feedback', label: 'Feedback', icon: 'chatbox-ellipses' },
           { key: 'reports', label: 'Reports', icon: 'flag' },
           { key: 'users', label: 'Users', icon: 'people' },
           { key: 'audit', label: 'Audit', icon: 'list' },
@@ -553,11 +554,20 @@ export default function AdminPanel() {
             style={[styles.tab, activeTab === tab.key && styles.tabActive]}
             onPress={() => setActiveTab(tab.key as Tab)}
           >
-            <Ionicons 
-              name={tab.icon as any} 
-              size={18} 
-              color={activeTab === tab.key ? colors.primary : colors.textMuted} 
-            />
+            <View style={styles.tabInner}>
+              <Ionicons 
+                name={tab.icon as any} 
+                size={18} 
+                color={activeTab === tab.key ? colors.primary : colors.textMuted} 
+              />
+              {tab.key === 'feedback' && unreadFeedbackCount > 0 && (
+                <View style={styles.tabBadge}>
+                  <Text style={styles.tabBadgeText}>
+                    {unreadFeedbackCount > 9 ? '9+' : unreadFeedbackCount}
+                  </Text>
+                </View>
+              )}
+            </View>
             <Text style={[styles.tabText, activeTab === tab.key && styles.tabTextActive]}>
               {tab.label}
             </Text>
@@ -572,6 +582,7 @@ export default function AdminPanel() {
       ) : (
         <View style={styles.content}>
           {activeTab === 'overview' && renderOverview()}
+          {activeTab === 'feedback' && renderFeedback()}
           {activeTab === 'reports' && renderReports()}
           {activeTab === 'users' && renderUsers()}
           {activeTab === 'audit' && renderAudit()}
