@@ -17,46 +17,48 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '@/src/context/AuthContext';
 import { colors } from '@/src/theme/colors';
 
-// Custom Logo Mark Component - just the lines and dot
+// Custom Logo Mark Component - matches the app icon exactly
 const LogoMark = ({ size = 48 }: { size?: number }) => {
-  const lineHeight = size * 0.14;
-  const lineGap = size * 0.08;
-  const dotSize = size * 0.22;
+  const barHeight = size * 0.16;
+  const barGap = size * 0.12;
+  const dotSize = size * 0.24;
   
   return (
     <View style={{ width: size, height: size, justifyContent: 'center' }}>
-      {/* Three horizontal lines */}
+      {/* Top bar - longest */}
       <View style={{ 
-        width: size * 0.75, 
-        height: lineHeight, 
+        width: size * 0.85, 
+        height: barHeight, 
         backgroundColor: '#2D3748', 
-        borderRadius: lineHeight / 2,
-        marginBottom: lineGap 
+        borderRadius: barHeight / 2,
+        marginBottom: barGap 
       }} />
+      {/* Middle bar with dot - medium length */}
       <View style={{ 
         flexDirection: 'row', 
         alignItems: 'center',
-        marginBottom: lineGap 
+        marginBottom: barGap 
       }}>
         <View style={{ 
-          width: size * 0.5, 
-          height: lineHeight, 
+          width: size * 0.6, 
+          height: barHeight, 
           backgroundColor: '#2D3748', 
-          borderRadius: lineHeight / 2,
-          marginRight: size * 0.08
+          borderRadius: barHeight / 2,
         }} />
         <View style={{ 
           width: dotSize, 
           height: dotSize, 
           backgroundColor: '#E85D3D', 
-          borderRadius: dotSize / 2 
+          borderRadius: dotSize / 2,
+          marginLeft: size * 0.06
         }} />
       </View>
+      {/* Bottom bar - shortest */}
       <View style={{ 
-        width: size * 0.6, 
-        height: lineHeight, 
+        width: size * 0.45, 
+        height: barHeight, 
         backgroundColor: '#2D3748', 
-        borderRadius: lineHeight / 2 
+        borderRadius: barHeight / 2 
       }} />
     </View>
   );
