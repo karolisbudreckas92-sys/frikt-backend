@@ -103,11 +103,7 @@ export default function Login() {
         >
           <View style={styles.header}>
             <View style={styles.logoContainer}>
-              <Image 
-                source={require('../../assets/images/icon.png')} 
-                style={styles.logoImage}
-                resizeMode="contain"
-              />
+              <LogoMark size={52} />
               <Text style={styles.logoText}>frikt</Text>
             </View>
             <Text style={styles.tagline}>Share frictions. Find patterns.</Text>
