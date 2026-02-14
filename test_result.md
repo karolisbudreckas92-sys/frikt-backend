@@ -354,6 +354,21 @@ backend:
         agent: "testing"
         comment: "✅ COMPREHENSIVE TEST PASSED - All feedback endpoints working correctly. User can submit feedback via POST /api/feedback. Admin can list feedbacks via GET /api/admin/feedback with proper is_read status. Admin can mark feedback as read/unread and delete feedback. ObjectId serialization issue was fixed during testing."
 
+  - task: "User Profile Endpoints (Get Profile, Get User Posts)"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "New user profile endpoints: GET /api/users/{user_id}/profile (returns id, displayName, avatarUrl, bio, posts_count, comments_count, relates_count), GET /api/users/{user_id}/posts (supports sort=newest|top, returns posts with id, title, category_name, relates_count, comments_count, created_at)"
+      - working: true
+        agent: "testing"
+        comment: "✅ COMPREHENSIVE TEST PASSED - Both user profile endpoints working correctly. GET /api/users/{user_id}/profile returns all required fields (id, displayName, avatarUrl, bio, posts_count, comments_count, relates_count). GET /api/users/{user_id}/posts supports both 'newest' and 'top' sorting, returning proper post data structure with category names, counts, and timestamps. Tested with user testfeedback@test.com credentials as requested."
+
 frontend:
   - task: "Login/Register Flow"
     implemented: true
