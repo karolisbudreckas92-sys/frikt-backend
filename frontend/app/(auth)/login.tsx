@@ -207,15 +207,15 @@ const styles = StyleSheet.create({
   logoContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    height: 30, // Total logo block height: 30px
+    height: 60, // Doubled from 30px
     marginBottom: 12,
   },
   logoText: {
-    fontSize: 28,
-    fontWeight: '500', // Medium weight
+    fontSize: 56, // Doubled from 28
+    fontWeight: '700', // Bold
     color: '#2B2F36', // Wordmark color
-    letterSpacing: -0.28, // -1% tracking
-    marginLeft: 8, // 8px space between icon and text
+    letterSpacing: -0.56, // -1% tracking
+    marginLeft: 16, // Doubled from 8px
   },
   tagline: {
     fontSize: 16,
