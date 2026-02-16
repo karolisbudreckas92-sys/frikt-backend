@@ -190,7 +190,7 @@ export default function Login() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: '#F6F3EE', // App background color
   },
   keyboardView: {
     flex: 1,
@@ -202,19 +202,20 @@ const styles = StyleSheet.create({
   },
   header: {
     alignItems: 'center',
-    marginBottom: 40,
+    marginBottom: 28, // 28px space below logo before "Welcome back"
   },
   logoContainer: {
     flexDirection: 'row',
     alignItems: 'center',
+    height: 30, // Total logo block height: 30px
     marginBottom: 12,
   },
   logoText: {
-    fontSize: 48,
-    fontWeight: '700',
-    color: colors.text,
-    letterSpacing: -1,
-    marginLeft: 8,
+    fontSize: 28,
+    fontWeight: '500', // Medium weight
+    color: '#2B2F36', // Wordmark color
+    letterSpacing: -0.28, // -1% tracking
+    marginLeft: 8, // 8px space between icon and text
   },
   tagline: {
     fontSize: 16,
@@ -227,7 +228,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 28,
     fontWeight: '700',
-    color: colors.text,
+    color: '#2B2F36',
     marginBottom: 8,
   },
   subtitle: {
@@ -252,7 +253,7 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     paddingHorizontal: 12,
     fontSize: 16,
-    color: colors.text,
+    color: '#2B2F36',
   },
   eyeButton: {
     padding: 16,
