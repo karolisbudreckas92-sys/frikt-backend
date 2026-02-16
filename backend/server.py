@@ -1166,6 +1166,45 @@ async def search_users(
     
     return results
 
+# --- User "me" routes (must be before {user_id} routes to avoid conflict) ---
+
+@api_router.get("/users/me/saved")
+async def get_saved_problems(user: dict = Depends(require_auth)):
+    saved_ids = user.get("saved_problems", [])
+    if not saved_ids:
+        return []
+    
+    problems = await db.problems.find({"id": {"$in": saved_ids}}).to_list(100)
+    
+    results = []
+    for p in problems:
+        category = next((c for c in CATEGORIES if c["id"] == p["category_id"]), None)
+        results.append(ProblemResponse(
+            **p,
+            category_name=category["name"] if category else "",
+            category_color=category["color"] if category else "#666",
+            user_has_saved=True
+        ))
+    
+    return results
+
+@api_router.get("/users/me/posts")
+async def get_my_posts(user: dict = Depends(require_auth)):
+    problems = await db.problems.find({"user_id": user["id"]}).sort("created_at", -1).to_list(100)
+    
+    results = []
+    for p in problems:
+        category = next((c for c in CATEGORIES if c["id"] == p["category_id"]), None)
+        results.append(ProblemResponse(
+            **p,
+            category_name=category["name"] if category else "",
+            category_color=category["color"] if category else "#666"
+        ))
+    
+    return results
+
+# --- User public profile routes ---
+
 @api_router.get("/users/{user_id}/profile")
 async def get_user_profile(user_id: str):
     """Get public user profile"""
