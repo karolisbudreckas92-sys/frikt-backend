@@ -18,46 +18,49 @@ import { useAuth } from '@/src/context/AuthContext';
 import { colors } from '@/src/theme/colors';
 
 // Custom Logo Mark Component - matches the app icon exactly
+// Dark charcoal bars (#3D4852) with coral red dot (#EF5350)
 const LogoMark = ({ size = 48 }: { size?: number }) => {
-  const barHeight = size * 0.16;
-  const barGap = size * 0.12;
-  const dotSize = size * 0.24;
+  const barHeight = size * 0.15;
+  const barGap = size * 0.10;
+  const dotSize = size * 0.22;
+  const barColor = '#3D4852'; // Dark charcoal matching app icon
+  const dotColor = '#EF5350'; // Coral red matching app icon
   
   return (
-    <View style={{ width: size, height: size, justifyContent: 'center' }}>
+    <View style={{ width: size, height: size * 0.7, justifyContent: 'center' }}>
       {/* Top bar - longest */}
       <View style={{ 
-        width: size * 0.85, 
+        width: size * 0.95, 
         height: barHeight, 
-        backgroundColor: '#2D3748', 
+        backgroundColor: barColor, 
         borderRadius: barHeight / 2,
         marginBottom: barGap 
       }} />
-      {/* Middle bar with dot - medium length */}
+      {/* Middle bar with dot */}
       <View style={{ 
         flexDirection: 'row', 
         alignItems: 'center',
         marginBottom: barGap 
       }}>
         <View style={{ 
-          width: size * 0.6, 
+          width: size * 0.65, 
           height: barHeight, 
-          backgroundColor: '#2D3748', 
+          backgroundColor: barColor, 
           borderRadius: barHeight / 2,
         }} />
         <View style={{ 
           width: dotSize, 
           height: dotSize, 
-          backgroundColor: '#E85D3D', 
+          backgroundColor: dotColor, 
           borderRadius: dotSize / 2,
-          marginLeft: size * 0.06
+          marginLeft: size * 0.08
         }} />
       </View>
       {/* Bottom bar - shortest */}
       <View style={{ 
         width: size * 0.45, 
         height: barHeight, 
-        backgroundColor: '#2D3748', 
+        backgroundColor: barColor, 
         borderRadius: barHeight / 2 
       }} />
     </View>
