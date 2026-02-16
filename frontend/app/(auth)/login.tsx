@@ -21,14 +21,14 @@ import { colors } from '@/src/theme/colors';
 // Icon height: 30px, matches wordmark height
 const LogoMark = () => {
   const iconHeight = 30;
-  const barThickness = 5; // Calculated to fit 3 bars + 2 gaps (7px each) in 30px
-  const barGap = 7;
-  const barRadius = 2.5;
+  const barThickness = 7; // Thicker bars
+  const barGap = 4.5; // Tighter gap
+  const barRadius = 3.5; // More rounded
   const barColor = '#2B2F36';
   const dotColor = '#E4572E';
-  const dotSize = barThickness * 1.3;
-  const iconWidth = 28; // Width of bars area
-  const dotSpacing = 8; // Space between bars and dot
+  const dotSize = 10; // Larger dot
+  const iconWidth = 32; // Width of bars area
+  const dotSpacing = 6; // Space between bars and dot
   
   return (
     <View style={{ 
@@ -49,22 +49,22 @@ const LogoMark = () => {
           backgroundColor: barColor, 
           borderRadius: barRadius,
         }} />
-        {/* Middle bar - 85% */}
+        {/* Middle bar - 80% */}
         <View style={{ 
-          width: iconWidth * 0.85, 
+          width: iconWidth * 0.80, 
           height: barThickness, 
           backgroundColor: barColor, 
           borderRadius: barRadius,
         }} />
-        {/* Bottom bar - 60% */}
+        {/* Bottom bar - 55% */}
         <View style={{ 
-          width: iconWidth * 0.60, 
+          width: iconWidth * 0.55, 
           height: barThickness, 
           backgroundColor: barColor, 
           borderRadius: barRadius,
         }} />
       </View>
-      {/* Red dot - vertically centered to middle bar, 8px from bars */}
+      {/* Red dot - vertically centered, spaced from bars */}
       <View style={{ 
         width: dotSize, 
         height: dotSize, 
