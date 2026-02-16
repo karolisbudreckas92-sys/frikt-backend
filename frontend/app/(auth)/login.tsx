@@ -17,49 +17,60 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '@/src/context/AuthContext';
 import { colors } from '@/src/theme/colors';
 
-// Custom Logo Mark Component - matches the app icon exactly
-// Dark charcoal bars (#3D4852) with coral red dot (#EF5350)
-const LogoMark = ({ size = 48 }: { size?: number }) => {
-  const barHeight = size * 0.18;
-  const barGap = size * 0.08;
-  const dotSize = size * 0.20;
-  const barColor = '#3D4852'; // Dark charcoal matching app icon
-  const dotColor = '#EF5350'; // Coral red matching app icon
+// Custom Logo Mark Component - exact brand specs
+// Icon height: 30px, matches wordmark height
+const LogoMark = () => {
+  const iconHeight = 30;
+  const barThickness = 5; // Calculated to fit 3 bars + 2 gaps (7px each) in 30px
+  const barGap = 7;
+  const barRadius = 2.5;
+  const barColor = '#2B2F36';
+  const dotColor = '#E4572E';
+  const dotSize = barThickness * 1.3;
+  const iconWidth = 28; // Width of bars area
+  const dotSpacing = 8; // Space between bars and dot
   
   return (
-    <View style={{ width: size, height: size * 0.75, position: 'relative' }}>
-      {/* Top bar - longest */}
+    <View style={{ 
+      height: iconHeight, 
+      flexDirection: 'row',
+      alignItems: 'center',
+    }}>
+      {/* Bars container */}
       <View style={{ 
-        width: size * 0.95, 
-        height: barHeight, 
-        backgroundColor: barColor, 
-        borderRadius: barHeight / 3,
-        marginBottom: barGap 
-      }} />
-      {/* Middle bar */}
+        width: iconWidth, 
+        height: iconHeight,
+        justifyContent: 'space-between',
+      }}>
+        {/* Top bar - 100% */}
+        <View style={{ 
+          width: iconWidth, 
+          height: barThickness, 
+          backgroundColor: barColor, 
+          borderRadius: barRadius,
+        }} />
+        {/* Middle bar - 85% */}
+        <View style={{ 
+          width: iconWidth * 0.85, 
+          height: barThickness, 
+          backgroundColor: barColor, 
+          borderRadius: barRadius,
+        }} />
+        {/* Bottom bar - 60% */}
+        <View style={{ 
+          width: iconWidth * 0.60, 
+          height: barThickness, 
+          backgroundColor: barColor, 
+          borderRadius: barRadius,
+        }} />
+      </View>
+      {/* Red dot - vertically centered to middle bar, 8px from bars */}
       <View style={{ 
-        width: size * 0.68, 
-        height: barHeight, 
-        backgroundColor: barColor, 
-        borderRadius: barHeight / 3,
-        marginBottom: barGap 
-      }} />
-      {/* Bottom bar - shortest */}
-      <View style={{ 
-        width: size * 0.45, 
-        height: barHeight, 
-        backgroundColor: barColor, 
-        borderRadius: barHeight / 3 
-      }} />
-      {/* Red dot - positioned at top right of middle bar area */}
-      <View style={{ 
-        position: 'absolute',
-        top: barHeight + barGap - (dotSize * 0.3),
-        right: size * 0.05,
         width: dotSize, 
         height: dotSize, 
         backgroundColor: dotColor, 
         borderRadius: dotSize / 2,
+        marginLeft: dotSpacing,
       }} />
     </View>
   );
