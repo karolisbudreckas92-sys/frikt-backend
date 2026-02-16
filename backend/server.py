@@ -1283,41 +1283,6 @@ async def get_user_stats(user_id: str):
         "rocket10_completed": user.get("rocket10_completed", False)
     }
 
-@api_router.get("/users/me/saved")
-async def get_saved_problems(user: dict = Depends(require_auth)):
-    saved_ids = user.get("saved_problems", [])
-    if not saved_ids:
-        return []
-    
-    problems = await db.problems.find({"id": {"$in": saved_ids}}).to_list(100)
-    
-    results = []
-    for p in problems:
-        category = next((c for c in CATEGORIES if c["id"] == p["category_id"]), None)
-        results.append(ProblemResponse(
-            **p,
-            category_name=category["name"] if category else "",
-            category_color=category["color"] if category else "#666",
-            user_has_saved=True
-        ))
-    
-    return results
-
-@api_router.get("/users/me/posts")
-async def get_my_posts(user: dict = Depends(require_auth)):
-    problems = await db.problems.find({"user_id": user["id"]}).sort("created_at", -1).to_list(100)
-    
-    results = []
-    for p in problems:
-        category = next((c for c in CATEGORIES if c["id"] == p["category_id"]), None)
-        results.append(ProblemResponse(
-            **p,
-            category_name=category["name"] if category else "",
-            category_color=category["color"] if category else "#666"
-        ))
-    
-    return results
-
 @api_router.put("/users/me/profile")
 async def update_profile(profile: ProfileUpdate, user: dict = Depends(require_auth)):
     """Update user profile"""
