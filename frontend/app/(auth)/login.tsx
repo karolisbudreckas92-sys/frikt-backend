@@ -18,17 +18,17 @@ import { useAuth } from '@/src/context/AuthContext';
 import { colors } from '@/src/theme/colors';
 
 // Custom Logo Mark Component - exact brand specs
-// Icon height: 30px, matches wordmark height
+// Icon height: 60px (doubled), matches wordmark height
 const LogoMark = () => {
-  const iconHeight = 30;
-  const barThickness = 7; // Thicker bars
-  const barGap = 4.5; // Tighter gap
-  const barRadius = 3.5; // More rounded
+  const iconHeight = 60; // Doubled from 30
+  const barThickness = 14; // Doubled from 7
+  const barGap = 9; // Adjusted gap
+  const barRadius = 7; // Doubled from 3.5
   const barColor = '#2B2F36';
   const dotColor = '#E4572E';
-  const dotSize = 10; // Larger dot
-  const iconWidth = 32; // Width of bars area
-  const dotSpacing = 6; // Space between bars and dot
+  const dotSize = 20; // Doubled from 10
+  const iconWidth = 64; // Doubled from 32
+  const dotSpacing = 12; // Doubled from 6
   
   return (
     <View style={{ 
