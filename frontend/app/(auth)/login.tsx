@@ -20,48 +20,46 @@ import { colors } from '@/src/theme/colors';
 // Custom Logo Mark Component - matches the app icon exactly
 // Dark charcoal bars (#3D4852) with coral red dot (#EF5350)
 const LogoMark = ({ size = 48 }: { size?: number }) => {
-  const barHeight = size * 0.15;
-  const barGap = size * 0.10;
-  const dotSize = size * 0.22;
+  const barHeight = size * 0.18;
+  const barGap = size * 0.08;
+  const dotSize = size * 0.20;
   const barColor = '#3D4852'; // Dark charcoal matching app icon
   const dotColor = '#EF5350'; // Coral red matching app icon
   
   return (
-    <View style={{ width: size, height: size * 0.7, justifyContent: 'center' }}>
+    <View style={{ width: size, height: size * 0.75, position: 'relative' }}>
       {/* Top bar - longest */}
       <View style={{ 
         width: size * 0.95, 
         height: barHeight, 
         backgroundColor: barColor, 
-        borderRadius: barHeight / 2,
+        borderRadius: barHeight / 3,
         marginBottom: barGap 
       }} />
-      {/* Middle bar with dot */}
+      {/* Middle bar */}
       <View style={{ 
-        flexDirection: 'row', 
-        alignItems: 'center',
+        width: size * 0.68, 
+        height: barHeight, 
+        backgroundColor: barColor, 
+        borderRadius: barHeight / 3,
         marginBottom: barGap 
-      }}>
-        <View style={{ 
-          width: size * 0.65, 
-          height: barHeight, 
-          backgroundColor: barColor, 
-          borderRadius: barHeight / 2,
-        }} />
-        <View style={{ 
-          width: dotSize, 
-          height: dotSize, 
-          backgroundColor: dotColor, 
-          borderRadius: dotSize / 2,
-          marginLeft: size * 0.08
-        }} />
-      </View>
+      }} />
       {/* Bottom bar - shortest */}
       <View style={{ 
         width: size * 0.45, 
         height: barHeight, 
         backgroundColor: barColor, 
-        borderRadius: barHeight / 2 
+        borderRadius: barHeight / 3 
+      }} />
+      {/* Red dot - positioned at top right of middle bar area */}
+      <View style={{ 
+        position: 'absolute',
+        top: barHeight + barGap - (dotSize * 0.3),
+        right: size * 0.05,
+        width: dotSize, 
+        height: dotSize, 
+        backgroundColor: dotColor, 
+        borderRadius: dotSize / 2,
       }} />
     </View>
   );
