@@ -221,6 +221,57 @@ export default function Profile() {
           </TouchableOpacity>
         </View>
 
+        {/* Settings Section */}
+        <View style={styles.menuSection}>
+          <Text style={styles.menuTitle}>Settings</Text>
+          
+          <TouchableOpacity style={styles.menuItem} onPress={() => router.push('/blocked-users')}>
+            <View style={styles.menuIcon}>
+              <Ionicons name="ban-outline" size={22} color={colors.error} />
+            </View>
+            <Text style={styles.menuText}>Blocked Users</Text>
+            <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.menuItem} onPress={() => router.push('/change-password')}>
+            <View style={styles.menuIcon}>
+              <Ionicons name="key-outline" size={22} color={colors.warning} />
+            </View>
+            <Text style={styles.menuText}>Change Password</Text>
+            <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.menuItem} onPress={() => router.push('/privacy-policy')}>
+            <View style={styles.menuIcon}>
+              <Ionicons name="shield-checkmark-outline" size={22} color={colors.info} />
+            </View>
+            <Text style={styles.menuText}>Privacy Policy</Text>
+            <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.menuItem} onPress={() => router.push('/terms')}>
+            <View style={styles.menuIcon}>
+              <Ionicons name="document-text-outline" size={22} color={colors.textSecondary} />
+            </View>
+            <Text style={styles.menuText}>Terms & Conditions</Text>
+            <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
+          </TouchableOpacity>
+        </View>
+
+        {/* Legal Footer */}
+        <View style={styles.legalSection}>
+          <Text style={styles.legalTitle}>Legal</Text>
+          <View style={styles.legalLinks}>
+            <TouchableOpacity onPress={() => router.push('/privacy-policy')}>
+              <Text style={styles.legalLink}>Privacy Policy</Text>
+            </TouchableOpacity>
+            <Text style={styles.legalDot}>•</Text>
+            <TouchableOpacity onPress={() => router.push('/terms')}>
+              <Text style={styles.legalLink}>Terms & Conditions</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
         {/* Logout */}
         <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
           <Ionicons name="log-out-outline" size={20} color={colors.error} />
