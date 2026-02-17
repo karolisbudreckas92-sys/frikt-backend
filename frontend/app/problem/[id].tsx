@@ -12,6 +12,7 @@ import {
   Share,
   Alert,
   Image,
+  Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -26,6 +27,14 @@ const COMMENT_CHIPS = [
   'I relate because...',
   'One thing I tried...',
   'Have you tried...?',
+];
+
+const REPORT_REASONS = [
+  { id: 'spam', label: 'Spam' },
+  { id: 'harassment', label: 'Harassment' },
+  { id: 'hate', label: 'Hate speech' },
+  { id: 'sexual', label: 'Sexual content' },
+  { id: 'other', label: 'Other' },
 ];
 
 const showToast = (message: string, isError: boolean = false) => {
