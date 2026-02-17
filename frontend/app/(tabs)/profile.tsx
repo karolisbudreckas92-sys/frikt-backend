@@ -508,4 +508,30 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: colors.error,
   },
+  legalSection: {
+    marginTop: 32,
+    paddingHorizontal: 16,
+    alignItems: 'center',
+  },
+  legalTitle: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: colors.textMuted,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: 8,
+  },
+  legalLinks: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  legalLink: {
+    fontSize: 13,
+    color: colors.textSecondary,
+  },
+  legalDot: {
+    fontSize: 13,
+    color: colors.textMuted,
+    marginHorizontal: 8,
+  },
 });
