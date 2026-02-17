@@ -176,8 +176,95 @@ export default function UserProfile() {
           <Ionicons name="arrow-back" size={24} color={colors.text} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Profile</Text>
-        <View style={{ width: 32 }} />
+        {!isOwnProfile ? (
+          <TouchableOpacity onPress={() => setShowMenu(true)} style={styles.menuButton}>
+            <Ionicons name="ellipsis-horizontal" size={24} color={colors.text} />
+          </TouchableOpacity>
+        ) : (
+          <View style={{ width: 32 }} />
+        )}
       </View>
+
+      {/* Menu Modal */}
+      <Modal
+        visible={showMenu}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowMenu(false)}
+      >
+        <TouchableOpacity 
+          style={styles.menuOverlay} 
+          activeOpacity={1} 
+          onPress={() => setShowMenu(false)}
+        >
+          <View style={styles.menuContainer}>
+            <TouchableOpacity style={styles.menuItem} onPress={handleBlockUser}>
+              <Ionicons name="ban-outline" size={22} color={colors.error} />
+              <Text style={[styles.menuItemText, { color: colors.error }]}>Block user</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.menuItem} onPress={handleReportUser}>
+              <Ionicons name="flag-outline" size={22} color={colors.warning} />
+              <Text style={styles.menuItemText}>Report user</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={[styles.menuItem, styles.menuItemCancel]} onPress={() => setShowMenu(false)}>
+              <Text style={styles.menuItemCancelText}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+
+      {/* Report Modal */}
+      <Modal
+        visible={showReportModal}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowReportModal(false)}
+      >
+        <View style={styles.reportOverlay}>
+          <View style={styles.reportContainer}>
+            <View style={styles.reportHeader}>
+              <Text style={styles.reportTitle}>Report User</Text>
+              <TouchableOpacity onPress={() => setShowReportModal(false)}>
+                <Ionicons name="close" size={24} color={colors.text} />
+              </TouchableOpacity>
+            </View>
+            <Text style={styles.reportSubtitle}>Why are you reporting this user?</Text>
+            
+            {REPORT_REASONS.map((reason) => (
+              <TouchableOpacity
+                key={reason.id}
+                style={[
+                  styles.reportReasonItem,
+                  selectedReason === reason.id && styles.reportReasonSelected
+                ]}
+                onPress={() => setSelectedReason(reason.id)}
+              >
+                <Text style={[
+                  styles.reportReasonText,
+                  selectedReason === reason.id && styles.reportReasonTextSelected
+                ]}>
+                  {reason.label}
+                </Text>
+                {selectedReason === reason.id && (
+                  <Ionicons name="checkmark" size={20} color={colors.primary} />
+                )}
+              </TouchableOpacity>
+            ))}
+
+            <TouchableOpacity
+              style={[styles.reportSubmitButton, !selectedReason && styles.reportSubmitDisabled]}
+              onPress={submitReport}
+              disabled={!selectedReason || isSubmitting}
+            >
+              {isSubmitting ? (
+                <ActivityIndicator color={colors.white} />
+              ) : (
+                <Text style={styles.reportSubmitText}>Submit</Text>
+              )}
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
 
       <ScrollView
         style={styles.content}
