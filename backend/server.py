@@ -280,6 +280,17 @@ class ReportCreate(BaseModel):
     reason: str
     details: Optional[str] = None
 
+# Blocked User Model
+class BlockedUser(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    blocker_user_id: str
+    blocked_user_id: str
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+class ChangePasswordRequest(BaseModel):
+    current_password: str
+    new_password: str
+
 # Admin Audit Log Model
 class AdminAuditLog(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
