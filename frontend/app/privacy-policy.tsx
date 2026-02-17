@@ -5,7 +5,7 @@ import { Stack } from 'expo-router';
 import { WebView } from 'react-native-webview';
 import { colors } from '@/src/theme/colors';
 
-const PRIVACY_POLICY_URL = 'https://www.pathgro.com/privacy-policy';
+const PRIVACY_POLICY_URL = 'https://frikt.com/privacy';
 
 export default function PrivacyPolicy() {
   return (

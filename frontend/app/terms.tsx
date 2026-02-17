@@ -5,7 +5,7 @@ import { Stack } from 'expo-router';
 import { WebView } from 'react-native-webview';
 import { colors } from '@/src/theme/colors';
 
-const TERMS_URL = 'https://www.pathgro.com/terms';
+const TERMS_URL = 'https://frikt.com/terms';
 
 export default function Terms() {
   return (
