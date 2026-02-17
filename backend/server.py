@@ -1664,6 +1664,41 @@ async def create_comment_report(comment_id: str, report_data: ReportRequest, use
     
     return {"reported": True, "is_hidden": is_hidden, "report_count": new_count}
 
+@api_router.post("/report/user/{user_id}")
+async def create_user_report(user_id: str, report_data: ReportRequest, user: dict = Depends(require_auth)):
+    """Report a user"""
+    target_user = await db.users.find_one({"id": user_id})
+    if not target_user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    if user_id == user["id"]:
+        raise HTTPException(status_code=400, detail="Cannot report yourself")
+    
+    if report_data.reason not in REPORT_REASONS:
+        raise HTTPException(status_code=400, detail="Invalid report reason")
+    
+    # Check if user already reported this user
+    existing = await db.reports.find_one({
+        "reporter_id": user["id"],
+        "target_type": "user",
+        "target_id": user_id
+    })
+    if existing:
+        raise HTTPException(status_code=400, detail="You already reported this user")
+    
+    # Create report
+    report = Report(
+        reporter_id=user["id"],
+        reporter_name=user["name"],
+        target_type="user",
+        target_id=user_id,
+        reason=report_data.reason,
+        details=report_data.details
+    )
+    await db.reports.insert_one(report.dict())
+    
+    return {"reported": True, "message": "Report submitted"}
+
 # ===================== ADMIN ROUTES =====================
 
 # --- Admin: Moderation ---
