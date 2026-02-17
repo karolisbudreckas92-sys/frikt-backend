@@ -1159,7 +1159,8 @@ async def get_mission_of_day():
 async def search_users(
     q: str = "",
     limit: int = 20,
-    skip: int = 0
+    skip: int = 0,
+    user: dict = Depends(get_current_user)
 ):
     """Search users by display name"""
     if not q or len(q.strip()) < 2:
@@ -1176,16 +1177,22 @@ async def search_users(
         "status": "active"
     }
     
+    # Filter out blocked users
+    if user:
+        blocked_ids = await get_blocked_user_ids(user["id"])
+        if blocked_ids:
+            query["id"] = {"$nin": blocked_ids}
+    
     users = await db.users.find(query).skip(skip).limit(limit).to_list(limit)
     
     results = []
-    for user in users:
-        posts_count = await db.problems.count_documents({"user_id": user["id"], "is_hidden": False})
+    for u in users:
+        posts_count = await db.problems.count_documents({"user_id": u["id"], "is_hidden": False})
         results.append({
-            "id": user["id"],
-            "displayName": user.get("displayName") or user.get("name"),
-            "avatarUrl": user.get("avatarUrl"),
-            "bio": user.get("bio"),
+            "id": u["id"],
+            "displayName": u.get("displayName") or u.get("name"),
+            "avatarUrl": u.get("avatarUrl"),
+            "bio": u.get("bio"),
             "posts_count": posts_count,
         })
     
