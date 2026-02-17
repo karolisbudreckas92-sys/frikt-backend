@@ -1447,6 +1447,117 @@ async def upload_avatar_base64(data: AvatarBase64Upload, user: dict = Depends(re
     
     return {"url": avatar_url, "message": "Avatar uploaded successfully"}
 
+# ===================== CHANGE PASSWORD =====================
+
+@api_router.post("/users/me/change-password")
+async def change_password(request: ChangePasswordRequest, user: dict = Depends(require_auth)):
+    """Change user password"""
+    # Verify current password
+    db_user = await db.users.find_one({"id": user["id"]})
+    if not db_user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    if not verify_password(request.current_password, db_user["password_hash"]):
+        raise HTTPException(status_code=400, detail="Current password is incorrect")
+    
+    # Validate new password
+    if len(request.new_password) < 6:
+        raise HTTPException(status_code=400, detail="New password must be at least 6 characters")
+    
+    # Hash and save new password
+    new_hash = hash_password(request.new_password)
+    await db.users.update_one(
+        {"id": user["id"]},
+        {"$set": {"password_hash": new_hash}}
+    )
+    
+    return {"success": True, "message": "Password changed successfully"}
+
+# ===================== BLOCKED USERS =====================
+
+@api_router.get("/users/me/blocked")
+async def get_blocked_users(user: dict = Depends(require_auth)):
+    """Get list of users blocked by current user"""
+    blocked = await db.blocked_users.find(
+        {"blocker_user_id": user["id"]}
+    ).sort("created_at", -1).to_list(100)
+    
+    # Enrich with user info
+    results = []
+    for b in blocked:
+        blocked_user = await db.users.find_one({"id": b["blocked_user_id"]})
+        results.append({
+            "id": b["id"],
+            "blocked_user_id": b["blocked_user_id"],
+            "blocked_user_name": blocked_user.get("displayName") or blocked_user.get("name") if blocked_user else "Unknown",
+            "blocked_user_avatar": blocked_user.get("avatarUrl") if blocked_user else None,
+            "created_at": b["created_at"].isoformat() if isinstance(b["created_at"], datetime) else b["created_at"],
+        })
+    
+    return results
+
+@api_router.post("/users/{user_id}/block")
+async def block_user(user_id: str, user: dict = Depends(require_auth)):
+    """Block another user"""
+    if user_id == user["id"]:
+        raise HTTPException(status_code=400, detail="Cannot block yourself")
+    
+    # Check if target user exists
+    target_user = await db.users.find_one({"id": user_id})
+    if not target_user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # Check if already blocked
+    existing = await db.blocked_users.find_one({
+        "blocker_user_id": user["id"],
+        "blocked_user_id": user_id
+    })
+    if existing:
+        return {"success": True, "message": "User already blocked"}
+    
+    # Create block record
+    block_record = BlockedUser(
+        blocker_user_id=user["id"],
+        blocked_user_id=user_id
+    )
+    await db.blocked_users.insert_one(block_record.dict())
+    
+    return {"success": True, "message": "User blocked"}
+
+@api_router.delete("/users/{user_id}/block")
+async def unblock_user(user_id: str, user: dict = Depends(require_auth)):
+    """Unblock a user"""
+    result = await db.blocked_users.delete_one({
+        "blocker_user_id": user["id"],
+        "blocked_user_id": user_id
+    })
+    
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Block not found")
+    
+    return {"success": True, "message": "User unblocked"}
+
+# Helper function to get blocked user IDs for filtering
+async def get_blocked_user_ids(user_id: str) -> List[str]:
+    """Get list of user IDs that the given user has blocked or is blocked by"""
+    # Users I blocked
+    blocked_by_me = await db.blocked_users.find(
+        {"blocker_user_id": user_id}
+    ).to_list(1000)
+    
+    # Users who blocked me (mutual invisibility)
+    blocked_me = await db.blocked_users.find(
+        {"blocked_user_id": user_id}
+    ).to_list(1000)
+    
+    blocked_ids = set()
+    for b in blocked_by_me:
+        blocked_ids.add(b["blocked_user_id"])
+    for b in blocked_me:
+        blocked_ids.add(b["blocker_user_id"])
+    
+    return list(blocked_ids)
+
 # ===================== REPORT =====================
 
 @api_router.post("/problems/{problem_id}/report")
