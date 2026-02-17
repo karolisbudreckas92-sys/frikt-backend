@@ -595,6 +595,61 @@ export default function ProblemDetail() {
           )}
         </ScrollView>
       </KeyboardAvoidingView>
+
+      {/* Report Modal */}
+      <Modal
+        visible={showReportModal}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowReportModal(false)}
+      >
+        <View style={styles.reportOverlay}>
+          <View style={styles.reportContainer}>
+            <View style={styles.reportHeader}>
+              <Text style={styles.reportTitle}>Report</Text>
+              <TouchableOpacity onPress={() => setShowReportModal(false)}>
+                <Ionicons name="close" size={24} color={colors.text} />
+              </TouchableOpacity>
+            </View>
+            <Text style={styles.reportSubtitle}>
+              Why are you reporting this {reportTarget?.type === 'frikt' ? 'post' : 'comment'}?
+            </Text>
+            
+            {REPORT_REASONS.map((reason) => (
+              <TouchableOpacity
+                key={reason.id}
+                style={[
+                  styles.reportReasonItem,
+                  selectedReason === reason.id && styles.reportReasonSelected
+                ]}
+                onPress={() => setSelectedReason(reason.id)}
+              >
+                <Text style={[
+                  styles.reportReasonText,
+                  selectedReason === reason.id && styles.reportReasonTextSelected
+                ]}>
+                  {reason.label}
+                </Text>
+                {selectedReason === reason.id && (
+                  <Ionicons name="checkmark" size={20} color={colors.primary} />
+                )}
+              </TouchableOpacity>
+            ))}
+
+            <TouchableOpacity
+              style={[styles.reportSubmitButton, !selectedReason && styles.reportSubmitDisabled]}
+              onPress={submitReport}
+              disabled={!selectedReason || isReporting}
+            >
+              {isReporting ? (
+                <ActivityIndicator color={colors.white} />
+              ) : (
+                <Text style={styles.reportSubmitText}>Submit</Text>
+              )}
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
