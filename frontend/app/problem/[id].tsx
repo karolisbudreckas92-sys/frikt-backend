@@ -187,28 +187,39 @@ export default function ProblemDetail() {
     }
   };
 
-  const handleReport = async () => {
+  const handleReportFrikt = () => {
     if (!problem) return;
+    setReportTarget({ type: 'frikt', id: problem.id });
+    setSelectedReason('');
+    setShowReportModal(true);
+  };
+
+  const handleReportComment = (commentId: string) => {
+    setReportTarget({ type: 'comment', id: commentId });
+    setSelectedReason('');
+    setShowReportModal(true);
+  };
+
+  const submitReport = async () => {
+    if (!reportTarget || !selectedReason) return;
     
-    Alert.alert(
-      'Report Frikt',
-      'Are you sure you want to report this?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Report',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await api.reportProblem(problem.id);
-              showToast('Reported. Thanks!');
-            } catch (error) {
-              showToast('Failed to report', true);
-            }
-          },
-        },
-      ]
-    );
+    setIsReporting(true);
+    try {
+      if (reportTarget.type === 'frikt') {
+        await api.reportProblemWithReason(reportTarget.id, selectedReason);
+      } else {
+        await api.reportCommentWithReason(reportTarget.id, selectedReason);
+      }
+      setShowReportModal(false);
+      setReportTarget(null);
+      setSelectedReason('');
+      showToast('Report sent. Thanks!');
+    } catch (error: any) {
+      const message = error.response?.data?.detail || 'Failed to report';
+      showToast(message, true);
+    } finally {
+      setIsReporting(false);
+    }
   };
 
   const handleEdit = () => {
