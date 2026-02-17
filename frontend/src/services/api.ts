@@ -324,6 +324,40 @@ class ApiService {
     return response.data;
   }
 
+  // ===================== CHANGE PASSWORD =====================
+
+  async changePassword(currentPassword: string, newPassword: string) {
+    const response = await this.client.post('/users/me/change-password', {
+      current_password: currentPassword,
+      new_password: newPassword
+    });
+    return response.data;
+  }
+
+  // ===================== BLOCKED USERS =====================
+
+  async getBlockedUsers() {
+    const response = await this.client.get('/users/me/blocked');
+    return response.data;
+  }
+
+  async blockUser(userId: string) {
+    const response = await this.client.post(`/users/${userId}/block`);
+    return response.data;
+  }
+
+  async unblockUser(userId: string) {
+    const response = await this.client.delete(`/users/${userId}/block`);
+    return response.data;
+  }
+
+  // ===================== REPORT USER =====================
+
+  async reportUser(userId: string, reason: string, details?: string) {
+    const response = await this.client.post(`/report/user/${userId}`, { reason, details });
+    return response.data;
+  }
+
   // ===================== FEEDBACK =====================
 
   async submitFeedback(data: { message: string; appVersion?: string }) {
