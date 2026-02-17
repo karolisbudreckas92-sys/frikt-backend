@@ -645,6 +645,12 @@ async def get_problems(
 ):
     query = {"is_hidden": False, "status": "active"}
     
+    # Filter out blocked users' content
+    if user:
+        blocked_ids = await get_blocked_user_ids(user["id"])
+        if blocked_ids:
+            query["user_id"] = {"$nin": blocked_ids}
+    
     if category_id:
         query["category_id"] = category_id
     
