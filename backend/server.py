@@ -1064,7 +1064,15 @@ async def create_comment(comment_data: CommentCreate, user: dict = Depends(requi
 
 @api_router.get("/problems/{problem_id}/comments", response_model=List[CommentResponse])
 async def get_comments(problem_id: str, user: dict = Depends(get_current_user)):
-    comments = await db.comments.find({"problem_id": problem_id}).sort("helpful_count", -1).to_list(100)
+    query = {"problem_id": problem_id}
+    
+    # Filter out blocked users' comments
+    if user:
+        blocked_ids = await get_blocked_user_ids(user["id"])
+        if blocked_ids:
+            query["user_id"] = {"$nin": blocked_ids}
+    
+    comments = await db.comments.find(query).sort("helpful_count", -1).to_list(100)
     
     # Get user's helpful marks
     user_helpfuls = set()
