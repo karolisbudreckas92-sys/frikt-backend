@@ -66,6 +66,10 @@ export default function ProblemDetail() {
   const [isLoading, setIsLoading] = useState(true);
   const [commentText, setCommentText] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showReportModal, setShowReportModal] = useState(false);
+  const [reportTarget, setReportTarget] = useState<{type: 'frikt' | 'comment', id: string} | null>(null);
+  const [selectedReason, setSelectedReason] = useState('');
+  const [isReporting, setIsReporting] = useState(false);
 
   const loadData = async () => {
     if (!id) return;
