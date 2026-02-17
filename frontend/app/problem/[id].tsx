@@ -1022,4 +1022,70 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: colors.textSecondary,
   },
+  reportOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  reportContainer: {
+    backgroundColor: colors.surface,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    padding: 20,
+    paddingBottom: 40,
+  },
+  reportHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  reportTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: colors.text,
+  },
+  reportSubtitle: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    marginBottom: 20,
+  },
+  reportReasonItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    backgroundColor: colors.background,
+    borderRadius: radius.md,
+    marginBottom: 8,
+  },
+  reportReasonSelected: {
+    backgroundColor: colors.primary + '15',
+    borderWidth: 1,
+    borderColor: colors.primary,
+  },
+  reportReasonText: {
+    fontSize: 16,
+    color: colors.text,
+  },
+  reportReasonTextSelected: {
+    fontWeight: '600',
+    color: colors.primary,
+  },
+  reportSubmitButton: {
+    backgroundColor: colors.primary,
+    borderRadius: radius.md,
+    paddingVertical: 16,
+    alignItems: 'center',
+    marginTop: 16,
+  },
+  reportSubmitDisabled: {
+    opacity: 0.6,
+  },
+  reportSubmitText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.white,
+  },
 });
