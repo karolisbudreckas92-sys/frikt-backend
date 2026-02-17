@@ -8,6 +8,9 @@ import {
   ActivityIndicator,
   Image,
   RefreshControl,
+  Alert,
+  Platform,
+  Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -16,18 +19,34 @@ import { formatDistanceToNow } from 'date-fns';
 import { colors, radius } from '@/src/theme/colors';
 import { api } from '@/src/services/api';
 import { getCategoryStyle } from '@/src/theme/categoryStyles';
+import { useAuth } from '@/src/context/AuthContext';
 
 type SortOption = 'newest' | 'top';
+
+const REPORT_REASONS = [
+  { id: 'spam', label: 'Spam' },
+  { id: 'harassment', label: 'Harassment' },
+  { id: 'hate', label: 'Hate speech' },
+  { id: 'sexual', label: 'Sexual content' },
+  { id: 'other', label: 'Other' },
+];
 
 export default function UserProfile() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
+  const { user: currentUser } = useAuth();
   
   const [profile, setProfile] = useState<any>(null);
   const [posts, setPosts] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [sortBy, setSortBy] = useState<SortOption>('newest');
+  const [showMenu, setShowMenu] = useState(false);
+  const [showReportModal, setShowReportModal] = useState(false);
+  const [selectedReason, setSelectedReason] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const isOwnProfile = currentUser?.id === id;
 
   const loadData = async (refresh = false) => {
     if (!id) return;
@@ -59,6 +78,68 @@ export default function UserProfile() {
       api.getUserPosts(id!, sortBy).then(setPosts).catch(console.error);
     }
   }, [sortBy]);
+
+  const handleBlockUser = async () => {
+    setShowMenu(false);
+    const userName = profile?.displayName || 'this user';
+    
+    const confirmBlock = async () => {
+      try {
+        await api.blockUser(id!);
+        if (Platform.OS === 'web') {
+          window.alert('User blocked');
+        } else {
+          Alert.alert('User blocked', "You won't see their posts or comments anymore.");
+        }
+        router.back();
+      } catch (error) {
+        console.error('Error blocking user:', error);
+        Alert.alert('Error', 'Failed to block user');
+      }
+    };
+
+    if (Platform.OS === 'web') {
+      if (window.confirm(`Block @${userName}?\n\nYou won't see their posts or comments. They won't be able to interact with you.`)) {
+        confirmBlock();
+      }
+    } else {
+      Alert.alert(
+        `Block @${userName}?`,
+        "You won't see their posts or comments. They won't be able to interact with you.",
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Block', style: 'destructive', onPress: confirmBlock },
+        ]
+      );
+    }
+  };
+
+  const handleReportUser = () => {
+    setShowMenu(false);
+    setShowReportModal(true);
+  };
+
+  const submitReport = async () => {
+    if (!selectedReason) return;
+    
+    setIsSubmitting(true);
+    try {
+      await api.reportUser(id!, selectedReason);
+      setShowReportModal(false);
+      setSelectedReason('');
+      
+      if (Platform.OS === 'web') {
+        window.alert('Report sent');
+      } else {
+        Alert.alert('Report sent', 'Thank you for helping keep our community safe.');
+      }
+    } catch (error: any) {
+      const message = error.response?.data?.detail || 'Failed to submit report';
+      Alert.alert('Error', message);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   if (isLoading) {
     return (
