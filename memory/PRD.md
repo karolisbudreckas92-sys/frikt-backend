@@ -7,75 +7,93 @@
 **Database:** MongoDB Atlas  
 **Hosting:** Railway (Backend)
 
-## UX Principles (Non-Negotiable)
-1. Zero-friction input: Post or comment in <10 seconds
-2. No forced choices: All post metadata is optional
-3. Clear states: Every action has loading/success/error states
-4. No dead ends: Always a clear next step
-5. Fast loops: Reduce taps, screens, and typing
-
 ## Brand Colors
 - Background: #F6F3EE
 - Dark bars: #2B2F36
 - Red dot/Primary: #E4572E
 
-## Deployment Architecture
-- **Backend:** Railway (auto-deploys from `main` branch on GitHub)
+## Deployment
+- **Backend:** Railway (auto-deploys from `main` branch)
 - **Database:** MongoDB Atlas
-- **Mobile Build/Deploy:** EAS CLI → TestFlight
-- **Production Backend URL:** https://frikt-backend-production.up.railway.app
+- **Mobile:** EAS CLI → TestFlight
+- **Production URL:** https://frikt-backend-production.up.railway.app
 
 ## Implementation Status
 
-### Completed Features
-- [x] Core posting flow (create Frikts)
+### Core Features ✅
 - [x] User authentication (login/register)
-- [x] Home feed with tabs (For You, Trending, New)
-- [x] Frikt detail page with author info
-- [x] Comments system with suggestion chips
+- [x] Home feed (For You, Trending, New)
+- [x] Create/edit Frikts
+- [x] Comments with suggestion chips
 - [x] User profiles
-- [x] User search functionality
+- [x] User search
 - [x] Admin panel with Feedback tab
-- [x] Notification settings
+- [x] Notifications settings
 
-### UGC Compliance Features (Feb 17, 2026)
-- [x] Settings section in Profile tab (4 rows)
-- [x] Blocked Users screen
-- [x] Change Password screen
-- [x] Privacy Policy (in-app WebView)
-- [x] Terms & Conditions (in-app WebView)
-- [x] Block user functionality (from user profile)
-- [x] Report user functionality (from user profile)
-- [x] Legal footer in Profile tab
+### UGC Compliance Features ✅ (Feb 17, 2026)
+- [x] **Profile Settings Section**
+  - Blocked Users row
+  - Change Password row
+  - Privacy Policy row
+  - Terms & Conditions row
+  - Legal footer
+- [x] **Block Users**
+  - Block from user profile menu
+  - Confirmation modal
+  - Mutual invisibility (both users hidden from each other)
+- [x] **Blocked Users Screen**
+  - List of blocked users
+  - Unblock with confirmation
+- [x] **Change Password**
+  - Current password validation
+  - New password (min 6 chars)
+- [x] **Privacy Policy & Terms**
+  - In-app WebView
+  - URLs: pathgro.com/privacy-policy, pathgro.com/terms
+- [x] **Report Users**
+  - From user profile menu
+  - Reason selection (Spam, Harassment, Hate, Sexual, Other)
+- [x] **Report Frikts**
+  - Flag icon in header
+  - Reason selection modal
+- [x] **Feed Filtering**
+  - Blocked users hidden from feeds
+  - Blocked users hidden from comments
+  - Blocked users hidden from search
 
 ### Bug Fixes
+- [x] Fixed /users/me/posts "User not found" error (route ordering)
 - [x] Removed "Test Notifications (Expo Go only)" button
-- [x] Fixed /users/me/posts route conflict (was returning "User not found")
-- [x] Updated login screen logo to exact brand specs
+- [x] Updated login logo to exact brand specs
 
-## Key Files
-- `/app/frontend/app/(tabs)/profile.tsx` - Profile with settings
-- `/app/frontend/app/blocked-users.tsx` - Blocked users list
-- `/app/frontend/app/change-password.tsx` - Change password
-- `/app/frontend/app/privacy-policy.tsx` - Privacy policy WebView
-- `/app/frontend/app/terms.tsx` - Terms WebView
-- `/app/frontend/app/user/[id].tsx` - User profile with block/report
-- `/app/backend/server.py` - Backend API
+## API Endpoints
 
-## API Endpoints (New)
+### Authentication
+- `POST /api/auth/login`
+- `POST /api/auth/register`
+- `GET /api/auth/me`
+
+### User Management
+- `GET /api/users/me/posts` - Get current user's posts
+- `GET /api/users/me/blocked` - Get blocked users list
 - `POST /api/users/me/change-password` - Change password
-- `GET /api/users/me/blocked` - Get blocked users
-- `POST /api/users/{user_id}/block` - Block a user
-- `DELETE /api/users/{user_id}/block` - Unblock a user
-- `POST /api/report/user/{user_id}` - Report a user
+- `POST /api/users/{user_id}/block` - Block user
+- `DELETE /api/users/{user_id}/block` - Unblock user
+
+### Reporting
+- `POST /api/report/user/{user_id}` - Report user
+- `POST /api/report/problem/{problem_id}` - Report frikt
+- `POST /api/report/comment/{comment_id}` - Report comment
+
+## Test Results
+- Backend: 23/23 tests PASS (100%)
+- See: /app/test_reports/iteration_2.json
 
 ## Test Accounts
-- **Admin:** karolisbudreckas92@gmail.com / Admin123!
-- **Test User:** testuser.frikt@example.com / TestUser123!
+- Admin: karolisbudreckas92@gmail.com / Admin123!
+- Test: testuser.frikt@example.com / TestUser123!
 
-## Pending/Backlog
-- [ ] Filter blocked users from all feeds (home, search, comments)
-- [ ] Add report option to Frikt detail page
-- [ ] Add report option to comments
-- [ ] Refactor `server.py` into separate routers
-- [ ] Replace hardcoded URL in `api.ts` with environment variables
+## Backlog
+- [ ] Add report option on comment long-press
+- [ ] Refactor server.py into separate routers
+- [ ] Environment variable system for api.ts
