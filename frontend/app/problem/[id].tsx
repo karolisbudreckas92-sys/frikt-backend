@@ -441,7 +441,7 @@ export default function ProblemDetail() {
               <Text style={styles.actionText}>Follow</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.actionButton} onPress={handleReport}>
+            <TouchableOpacity style={styles.actionButton} onPress={handleReportFrikt}>
               <Ionicons name="flag-outline" size={20} color={colors.text} />
               <Text style={styles.actionText}>Report</Text>
             </TouchableOpacity>
