@@ -15,7 +15,7 @@ import { useRouter, Link } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '@/src/context/AuthContext';
-import { colors } from '@/src/theme/colors';
+import { colors, radius } from '@/src/theme/colors';
 
 export default function Register() {
   const router = useRouter();
@@ -26,6 +26,7 @@ export default function Register() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
 
   const handleRegister = async () => {
     if (!name.trim() || !email.trim() || !password.trim()) {
@@ -43,6 +44,11 @@ export default function Register() {
       return;
     }
 
+    if (!acceptedTerms) {
+      Alert.alert('Error', 'Please accept the Terms & Conditions to continue');
+      return;
+    }
+
     setIsLoading(true);
     try {
       await register(name.trim(), email.trim(), password);
@@ -53,6 +59,8 @@ export default function Register() {
       setIsLoading(false);
     }
   };
+
+  const isFormValid = name.trim() && email.trim() && password.trim() && confirmPassword && password === confirmPassword && acceptedTerms;
 
   return (
     <SafeAreaView style={styles.container}>
