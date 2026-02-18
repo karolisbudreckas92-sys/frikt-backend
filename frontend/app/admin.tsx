@@ -559,6 +559,11 @@ export default function AdminPanel() {
 
   const renderUsers = () => (
     <View style={styles.tabContent}>
+      <View style={styles.totalCountBanner}>
+        <Ionicons name="people" size={20} color={colors.primary} />
+        <Text style={styles.totalCountText}>Total Users: {users.length}</Text>
+      </View>
+      
       <View style={styles.filterRow}>
         {['all', 'active', 'banned', 'shadowbanned'].map((filter) => (
           <TouchableOpacity
