@@ -261,7 +261,7 @@ class NotificationSettingsUpdate(BaseModel):
     trending: Optional[bool] = None
 
 # Report Model (for posts and comments)
-REPORT_REASONS = ["spam", "abuse", "off-topic", "duplicate"]
+REPORT_REASONS = ["spam", "harassment", "hate", "sexual", "other", "abuse", "off-topic", "duplicate"]
 
 class Report(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
