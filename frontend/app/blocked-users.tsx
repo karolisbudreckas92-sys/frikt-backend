@@ -11,7 +11,7 @@ import {
   Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Stack } from 'expo-router';
+import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, radius } from '@/src/theme/colors';
 import { api } from '@/src/services/api';
@@ -25,6 +25,7 @@ interface BlockedUser {
 }
 
 export default function BlockedUsers() {
+  const router = useRouter();
   const [blockedUsers, setBlockedUsers] = useState<BlockedUser[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [unblockingId, setUnblockingId] = useState<string | null>(null);
