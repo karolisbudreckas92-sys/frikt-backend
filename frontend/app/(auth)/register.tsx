@@ -138,10 +138,32 @@ export default function Register() {
               />
             </View>
 
+            {/* Terms & Conditions Checkbox */}
+            <TouchableOpacity 
+              style={styles.termsContainer} 
+              onPress={() => setAcceptedTerms(!acceptedTerms)}
+              activeOpacity={0.7}
+            >
+              <View style={[styles.checkbox, acceptedTerms && styles.checkboxChecked]}>
+                {acceptedTerms && (
+                  <Ionicons name="checkmark" size={14} color={colors.white} />
+                )}
+              </View>
+              <Text style={styles.termsText}>
+                I accept the{' '}
+                <Text 
+                  style={styles.termsLink}
+                  onPress={() => router.push('/terms')}
+                >
+                  Terms & Conditions
+                </Text>
+              </Text>
+            </TouchableOpacity>
+
             <TouchableOpacity
-              style={[styles.button, isLoading && styles.buttonDisabled]}
+              style={[styles.button, (!isFormValid || isLoading) && styles.buttonDisabled]}
               onPress={handleRegister}
-              disabled={isLoading}
+              disabled={!isFormValid || isLoading}
             >
               {isLoading ? (
                 <ActivityIndicator color={colors.white} />
