@@ -413,7 +413,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   input: {
-    backgroundColor: colors.surface,
+    backgroundColor: '#FFFFFF',
     borderRadius: radius.md,
     paddingHorizontal: 16,
     paddingVertical: 14,
