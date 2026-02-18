@@ -1739,18 +1739,19 @@ async def get_reports(
     if target_type:
         query["target_type"] = target_type
     
-    reports = await db.reports.find(query).sort("created_at", -1).skip(skip).limit(limit).to_list(limit)
+    reports = await db.reports.find(query, {"_id": 0}).sort("created_at", -1).skip(skip).limit(limit).to_list(limit)
     total = await db.reports.count_documents(query)
     
     # Batch fetch target data to avoid N+1 queries
     problem_ids = [r["target_id"] for r in reports if r["target_type"] == "problem"]
     comment_ids = [r["target_id"] for r in reports if r["target_type"] == "comment"]
+    user_ids = [r["target_id"] for r in reports if r["target_type"] == "user"]
     
     problems_map = {}
     if problem_ids:
         problems = await db.problems.find(
             {"id": {"$in": problem_ids}}, 
-            {"id": 1, "title": 1, "status": 1, "user_name": 1}
+            {"_id": 0, "id": 1, "title": 1, "status": 1, "user_name": 1}
         ).to_list(len(problem_ids))
         problems_map = {p["id"]: p for p in problems}
     
@@ -1758,9 +1759,17 @@ async def get_reports(
     if comment_ids:
         comments = await db.comments.find(
             {"id": {"$in": comment_ids}}, 
-            {"id": 1, "content": 1, "status": 1, "user_name": 1}
+            {"_id": 0, "id": 1, "content": 1, "status": 1, "user_name": 1}
         ).to_list(len(comment_ids))
         comments_map = {c["id"]: c for c in comments}
+    
+    users_map = {}
+    if user_ids:
+        users = await db.users.find(
+            {"id": {"$in": user_ids}},
+            {"_id": 0, "id": 1, "displayName": 1, "name": 1, "email": 1}
+        ).to_list(len(user_ids))
+        users_map = {u["id"]: u for u in users}
     
     # Enrich reports with target data
     for report in reports:
@@ -1768,6 +1777,12 @@ async def get_reports(
             report["target_data"] = problems_map.get(report["target_id"])
         elif report["target_type"] == "comment":
             report["target_data"] = comments_map.get(report["target_id"])
+        elif report["target_type"] == "user":
+            report["target_data"] = users_map.get(report["target_id"])
+        
+        # Convert datetime to ISO string for JSON serialization
+        if "created_at" in report and hasattr(report["created_at"], "isoformat"):
+            report["created_at"] = report["created_at"].isoformat()
     
     return {"reports": reports, "total": total}
 
