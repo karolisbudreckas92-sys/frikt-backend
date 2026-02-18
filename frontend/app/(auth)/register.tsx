@@ -251,6 +251,37 @@ const styles = StyleSheet.create({
   eyeButton: {
     padding: 16,
   },
+  termsContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  checkbox: {
+    width: 22,
+    height: 22,
+    borderRadius: 6,
+    borderWidth: 2,
+    borderColor: colors.border,
+    backgroundColor: '#FFFFFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 10,
+  },
+  checkboxChecked: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+  },
+  termsText: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    flex: 1,
+  },
+  termsLink: {
+    color: colors.primary,
+    fontWeight: '600',
+    textDecorationLine: 'underline',
+  },
   button: {
     backgroundColor: colors.primary,
     borderRadius: 12,
