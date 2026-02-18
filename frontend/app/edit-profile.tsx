@@ -237,6 +237,9 @@ export default function EditProfile() {
                 placeholderTextColor={colors.textMuted}
                 maxLength={20}
                 autoCapitalize="words"
+                autoComplete="off"
+                autoCorrect={false}
+                textContentType="none"
               />
               {nameError && (
                 <Text style={styles.errorText}>{nameError}</Text>
@@ -261,6 +264,9 @@ export default function EditProfile() {
                 placeholderTextColor={colors.textMuted}
                 maxLength={80}
                 multiline={false}
+                autoComplete="off"
+                autoCorrect={false}
+                textContentType="none"
               />
               <Text style={styles.charCount}>{bio.length}/80</Text>
             </View>
@@ -275,6 +281,9 @@ export default function EditProfile() {
                 placeholder="Your city"
                 placeholderTextColor={colors.textMuted}
                 maxLength={50}
+                autoComplete="off"
+                autoCorrect={false}
+                textContentType="none"
               />
             </View>
 
