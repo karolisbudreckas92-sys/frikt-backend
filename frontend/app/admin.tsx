@@ -975,6 +975,22 @@ const styles = StyleSheet.create({
     gap: 8,
     marginBottom: 16,
   },
+  totalCountBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.surface,
+    padding: 12,
+    borderRadius: radius.md,
+    marginBottom: 16,
+    gap: 8,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  totalCountText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: colors.text,
+  },
   filterChip: {
     paddingHorizontal: 12,
     paddingVertical: 6,
