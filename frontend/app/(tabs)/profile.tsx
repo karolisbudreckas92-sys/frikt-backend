@@ -599,4 +599,22 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
     marginHorizontal: 8,
   },
+  deleteAccountItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.softRed,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    marginBottom: 8,
+    marginTop: 16,
+    borderWidth: 1,
+    borderColor: colors.error + '30',
+  },
+  deleteAccountText: {
+    flex: 1,
+    fontSize: 16,
+    color: colors.error,
+    fontWeight: '500',
+  },
 });
