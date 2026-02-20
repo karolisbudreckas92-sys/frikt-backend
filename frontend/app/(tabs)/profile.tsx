@@ -72,6 +72,63 @@ export default function Profile() {
     }
   };
 
+  const handleDeleteAccount = async () => {
+    if (Platform.OS === 'web') {
+      const confirmed = window.confirm(
+        'Are you sure you want to delete your account? This action is permanent and cannot be undone. All your Frikts, comments, and data will be permanently deleted.'
+      );
+      if (confirmed) {
+        const doubleConfirm = window.confirm(
+          'This is your final warning. Your account and all data will be permanently deleted. Are you absolutely sure?'
+        );
+        if (doubleConfirm) {
+          try {
+            await api.deleteAccount();
+            await logout();
+            router.replace('/(auth)/login');
+          } catch (error) {
+            alert('Failed to delete account. Please try again.');
+          }
+        }
+      }
+    } else {
+      Alert.alert(
+        'Delete Account',
+        'Are you sure you want to delete your account? This action is permanent and cannot be undone.\n\nAll your Frikts, comments, and data will be permanently deleted.',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Delete Account',
+            style: 'destructive',
+            onPress: () => {
+              // Second confirmation for safety
+              Alert.alert(
+                'Final Confirmation',
+                'This is your final warning. Your account and all data will be permanently deleted. Are you absolutely sure?',
+                [
+                  { text: 'Cancel', style: 'cancel' },
+                  {
+                    text: 'Yes, Delete Forever',
+                    style: 'destructive',
+                    onPress: async () => {
+                      try {
+                        await api.deleteAccount();
+                        await logout();
+                        router.replace('/(auth)/login');
+                      } catch (error) {
+                        Alert.alert('Error', 'Failed to delete account. Please try again.');
+                      }
+                    },
+                  },
+                ]
+              );
+            },
+          },
+        ]
+      );
+    }
+  };
+
   const getDisplayName = () => {
     return user?.displayName || user?.name || 'User';
   };
