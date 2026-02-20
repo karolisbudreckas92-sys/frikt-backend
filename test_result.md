@@ -758,7 +758,7 @@ agent_communication:
       TEST CREDENTIALS USED:
       ✅ Test user: testfeedback@test.com / Test123! 
       ✅ User profile ID: f8b052fa-fe40-4737-b7ac-1599dff08ad9
-      ✅ Backend URL: https://frikt-app-store.preview.emergentagent.com/api (as configured in environment)
+      ✅ Backend URL: https://account-deletion-26.preview.emergentagent.com/api (as configured in environment)
       
       KEY FINDINGS:
       • Both endpoints working without authentication (public access)
