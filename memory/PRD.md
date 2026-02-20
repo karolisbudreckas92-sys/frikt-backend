@@ -61,6 +61,24 @@
   - Blocked users hidden from comments
   - Blocked users hidden from search
 
+### App Store Compliance Features ✅ (Feb 20, 2026)
+- [x] **Delete Account** (Apple Guideline 5.1.1(v))
+  - DELETE /api/users/me endpoint
+  - Permanently deletes all user data:
+    - User record
+    - Problems/posts
+    - Comments
+    - Relates
+    - Notifications
+    - Blocked user records
+    - Reports
+    - Push tokens
+    - Notification settings
+    - Feedback
+  - Double confirmation dialog (native Alert.alert + web window.confirm)
+  - Token invalidation after deletion
+  - Located in Profile Settings section
+
 ### Bug Fixes
 - [x] Fixed /users/me/posts "User not found" error (route ordering)
 - [x] Removed "Test Notifications (Expo Go only)" button
@@ -77,6 +95,7 @@
 - `GET /api/users/me/posts` - Get current user's posts
 - `GET /api/users/me/blocked` - Get blocked users list
 - `POST /api/users/me/change-password` - Change password
+- `DELETE /api/users/me` - **Delete account permanently** ✅ NEW
 - `POST /api/users/{user_id}/block` - Block user
 - `DELETE /api/users/{user_id}/block` - Unblock user
 
@@ -86,14 +105,18 @@
 - `POST /api/report/comment/{comment_id}` - Report comment
 
 ## Test Results
-- Backend: 23/23 tests PASS (100%)
-- See: /app/test_reports/iteration_2.json
+- Backend: 10/10 delete account tests PASS (100%)
+- See: /app/test_reports/iteration_3.json
 
 ## Test Accounts
 - Admin: karolisbudreckas92@gmail.com / Admin123!
 - Test: testuser.frikt@example.com / TestUser123!
 
+## App Store Status
+- **Rejection Reason 5.1.1(v):** FIXED ✅ - Delete Account feature implemented
+- **Rejection Reason 2.3.3:** iPad Screenshots - User guidance provided (requires user action)
+
 ## Backlog
 - [ ] Add report option on comment long-press
 - [ ] Refactor server.py into separate routers
-- [ ] Environment variable system for api.ts
+- [ ] Environment variable system for api.ts (replace hardcoded production URL)
