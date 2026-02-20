@@ -256,6 +256,14 @@ export default function Profile() {
             <Text style={styles.menuText}>Terms & Conditions</Text>
             <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
           </TouchableOpacity>
+
+          <TouchableOpacity style={styles.deleteAccountItem} onPress={handleDeleteAccount}>
+            <View style={[styles.menuIcon, { backgroundColor: colors.softRed }]}>
+              <Ionicons name="trash-outline" size={22} color={colors.error} />
+            </View>
+            <Text style={styles.deleteAccountText}>Delete Account</Text>
+            <Ionicons name="chevron-forward" size={20} color={colors.error} />
+          </TouchableOpacity>
         </View>
 
         {/* Legal Footer */}
