@@ -1046,7 +1046,7 @@ async def create_comment(comment_data: CommentCreate, user: dict = Depends(requi
                 user_id=follower_id,
                 type="new_comment",
                 problem_id=comment_data.problem_id,
-                message=f"New comment on a problem you follow"
+                message="New comment on a problem you follow"
             )
             await db.notifications.insert_one(notification.dict())
             
