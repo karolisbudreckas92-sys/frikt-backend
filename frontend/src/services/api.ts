@@ -334,6 +334,13 @@ class ApiService {
     return response.data;
   }
 
+  // ===================== DELETE ACCOUNT =====================
+
+  async deleteAccount() {
+    const response = await this.client.delete('/users/me');
+    return response.data;
+  }
+
   // ===================== BLOCKED USERS =====================
 
   async getBlockedUsers() {
