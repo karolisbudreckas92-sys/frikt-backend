@@ -1468,6 +1468,56 @@ async def upload_avatar_base64(data: AvatarBase64Upload, user: dict = Depends(re
     
     return {"url": avatar_url, "message": "Avatar uploaded successfully"}
 
+# ===================== DELETE ACCOUNT =====================
+
+@api_router.delete("/users/me")
+async def delete_account(user: dict = Depends(require_auth)):
+    """Permanently delete user account and all associated data"""
+    user_id = user["id"]
+    
+    logger.info(f"Deleting account for user: {user_id}")
+    
+    # Delete all user's problems (posts)
+    await db.problems.delete_many({"user_id": user_id})
+    
+    # Delete all user's comments
+    await db.comments.delete_many({"user_id": user_id})
+    
+    # Delete all user's relates
+    await db.relates.delete_many({"user_id": user_id})
+    
+    # Delete all user's helpfuls (on comments)
+    await db.helpfuls.delete_many({"user_id": user_id})
+    
+    # Delete all user's notifications
+    await db.notifications.delete_many({"user_id": user_id})
+    
+    # Delete blocked user records (both as blocker and blocked)
+    await db.blocked_users.delete_many({"blocker_user_id": user_id})
+    await db.blocked_users.delete_many({"blocked_user_id": user_id})
+    
+    # Delete user's reports
+    await db.reports.delete_many({"reporter_id": user_id})
+    
+    # Delete push tokens
+    await db.push_tokens.delete_many({"user_id": user_id})
+    
+    # Delete notification settings
+    await db.notification_settings.delete_many({"user_id": user_id})
+    
+    # Delete feedback from this user
+    await db.feedback.delete_many({"user_id": user_id})
+    
+    # Finally, delete the user record
+    result = await db.users.delete_one({"id": user_id})
+    
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    logger.info(f"Successfully deleted account for user: {user_id}")
+    
+    return {"success": True, "message": "Account deleted successfully"}
+
 # ===================== CHANGE PASSWORD =====================
 
 @api_router.post("/users/me/change-password")
