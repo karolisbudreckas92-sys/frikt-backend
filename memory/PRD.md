@@ -116,6 +116,23 @@
 - **Rejection Reason 5.1.1(v):** FIXED ✅ - Delete Account feature implemented
 - **Rejection Reason 2.3.3:** iPad Screenshots - User guidance provided (requires user action)
 
+## TestFlight Deployment Steps (from Mac)
+
+```bash
+# Step 1: Navigate to project
+cd ~/frikt-app/frontend
+
+# Step 2: Pull latest code from GitHub
+git pull origin main
+
+# Step 3: Build for iOS (wait 10-15 minutes)
+eas build --platform ios
+
+# Step 4: Submit to TestFlight
+eas submit --platform ios --latest
+```
+*When asked questions, press Enter to accept defaults.*
+
 ## Backlog
 - [ ] Add report option on comment long-press
 - [ ] Refactor server.py into separate routers
