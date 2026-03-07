@@ -79,6 +79,34 @@
   - Token invalidation after deletion
   - Located in Profile Settings section
 
+### Gamification System ✅ (Mar 7, 2026)
+- [x] **45 Total Badges (27 core + 18 category)**
+  - Visit Streaks (5): Just Browsing, Hooked, Regular Visitor, Mayor of Frikt, I Love Problems
+  - Explorer (3): Curious Human, Nosey, Rabbit Hole
+  - Relater (5): Not Alone, Empathy Expert, Honorary Therapist, Community Pillar, Frikt Saint
+  - Creator (5): First Vent, Professional Hater, Certified Complainer, Drama Influencer*, Universal Problem*
+  - Commenter (3): Helpful Stranger, Conversation Starter, Internet Philosopher
+  - Social Impact (3): You're Not Crazy, Relatable Pain, Everyone Feels This
+  - Special (3): Nosey Neighbor, OG Member, Early Frikter
+  - Category Specialists (18): Apprentice & Master for each of 9 categories
+  - *Hidden badges revealed only when earned
+- [x] **Profile Badges Section**
+  - Horizontal scrollable badge grid
+  - Unlocked badges with golden border
+  - Locked badges with progress indicators
+  - Tap for badge details modal
+- [x] **Celebration Modal**
+  - Confetti animation (native only)
+  - Badge name and description
+  - Queue system for multiple badges
+- [x] **Gamification Tracking**
+  - Visit streak with grace window (5 of 7 days)
+  - Posts, relates, comments counters
+  - Category-specific post tracking
+  - User follows tracking
+- [x] **Self-relate Prevention**
+  - Users cannot relate to their own posts
+
 ### Bug Fixes
 - [x] Fixed /users/me/posts "User not found" error (route ordering)
 - [x] Removed "Test Notifications (Expo Go only)" button
@@ -104,9 +132,20 @@
 - `POST /api/report/problem/{problem_id}` - Report frikt
 - `POST /api/report/comment/{comment_id}` - Report comment
 
+### Gamification
+- `GET /api/badges/definitions` - Get all 45 badge definitions
+- `GET /api/users/me/badges` - Get user's badge status (unlocked/locked)
+- `GET /api/users/{user_id}/badges` - Get another user's badges (public)
+- `GET /api/users/me/gamification-stats` - Get detailed gamification stats
+- `POST /api/users/me/visit` - Track app visit for streak
+- `POST /api/users/{user_id}/follow` - Follow a user
+- `DELETE /api/users/{user_id}/follow` - Unfollow a user
+- `GET /api/users/{user_id}/is-following` - Check if following user
+
 ## Test Results
+- Backend: 21/21 gamification tests PASS (100%)
 - Backend: 10/10 delete account tests PASS (100%)
-- See: /app/test_reports/iteration_3.json
+- See: /app/test_reports/iteration_4.json
 
 ## Test Accounts
 - Admin: karolisbudreckas92@gmail.com / Admin123!
