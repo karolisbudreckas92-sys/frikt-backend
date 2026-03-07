@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { View, Text, Modal, StyleSheet, TouchableOpacity, Animated, Dimensions, Platform } from 'react-native';
 
-const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
+const { width: screenWidth } = Dimensions.get('window');
 
 // Conditional import for confetti (native only)
 let ConfettiCannon: any = null;

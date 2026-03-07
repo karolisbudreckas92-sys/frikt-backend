@@ -1,9 +1,8 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, Modal, StyleSheet, ScrollView, Dimensions } from 'react-native';
+import React, { useState, useEffect, useCallback } from 'react';
+import { View, Text, TouchableOpacity, Modal, StyleSheet, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useFocusEffect } from 'expo-router';
 import { api } from '../services/api';
-
-const { width: screenWidth } = Dimensions.get('window');
 
 const colors = {
   background: '#F6F3EE',
@@ -45,45 +44,28 @@ export function BadgeSection() {
   const [loading, setLoading] = useState(true);
   const [selectedBadge, setSelectedBadge] = useState<Badge | null>(null);
 
-  useEffect(() => {
-    loadBadges();
-  }, []);
-
-  const loadBadges = async () => {
+  const loadBadges = useCallback(async () => {
     try {
       const data = await api.getMyBadges();
       setBadgeData(data);
     } catch (error) {
-      console.error('Failed to load badges:', error);
+      // Silent fail - badges are non-critical
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const getCategoryLabel = (category: string) => {
-    const labels: Record<string, string> = {
-      streak: '🔥 Streaks',
-      explorer: '🧭 Explorer',
-      relater: '🫂 Relater',
-      creator: '💣 Creator',
-      commenter: '💬 Commenter',
-      impact: '🔥 Impact',
-      special: '⭐ Special',
-      category_specialist: '🏆 Category Expert',
-      viral: '🌟 Viral',
-    };
-    return labels[category] || category;
-  };
+  // Load on mount
+  useEffect(() => {
+    loadBadges();
+  }, [loadBadges]);
 
-  const groupBadgesByCategory = (badges: Badge[]) => {
-    const groups: Record<string, Badge[]> = {};
-    badges.forEach(badge => {
-      const cat = badge.category;
-      if (!groups[cat]) groups[cat] = [];
-      groups[cat].push(badge);
-    });
-    return groups;
-  };
+  // Refresh when screen is focused (user returns to profile)
+  useFocusEffect(
+    useCallback(() => {
+      loadBadges();
+    }, [loadBadges])
+  );
 
   if (loading) {
     return (
@@ -107,7 +89,7 @@ export function BadgeSection() {
         <Text style={styles.title}>Badges</Text>
         <View style={styles.countBadge}>
           <Text style={styles.countText}>
-            {badgeData.total_unlocked} / {badgeData.total_possible}
+            {badgeData.total_unlocked} / {badgeData.unlocked.length + badgeData.locked.length}
           </Text>
         </View>
       </View>

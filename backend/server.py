@@ -1403,8 +1403,7 @@ async def relate_to_problem(problem_id: str, user: dict = Depends(require_auth))
     )
     
     # GAMIFICATION: Update stats for the relater (user giving the relate)
-    await increment_user_stat(user["id"], "total_relates_given")
-    relater_stats = await get_or_create_user_stats(user["id"])
+    relater_stats = await increment_user_stat(user["id"], "total_relates_given")
     relater_badges = await check_and_award_badges(user["id"], user, relater_stats, "relate")
     
     # GAMIFICATION: Update stats for the post author (receiving the relate)
@@ -1574,8 +1573,7 @@ async def create_comment(comment_data: CommentCreate, user: dict = Depends(requi
     )
     
     # GAMIFICATION: Update stats and check badges
-    await increment_user_stat(user["id"], "total_comments")
-    stats = await get_or_create_user_stats(user["id"])
+    stats = await increment_user_stat(user["id"], "total_comments")
     newly_awarded = await check_and_award_badges(user["id"], user, stats, "comment")
     
     # Create notification for problem owner and followers
@@ -1953,8 +1951,7 @@ async def follow_user(user_id: str, user: dict = Depends(require_auth)):
     })
     
     # GAMIFICATION: Update stats and check badges
-    await increment_user_stat(user["id"], "users_followed")
-    stats = await get_or_create_user_stats(user["id"])
+    stats = await increment_user_stat(user["id"], "users_followed")
     newly_awarded = await check_and_award_badges(user["id"], user, stats, "follow")
     
     return {"following": True, "newly_awarded_badges": newly_awarded}
