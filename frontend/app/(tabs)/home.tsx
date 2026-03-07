@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -16,6 +16,7 @@ import { api } from '@/src/services/api';
 import ProblemCard from '@/src/components/ProblemCard';
 import MissionBanner from '@/src/components/MissionBanner';
 import Toast from 'react-native-root-toast';
+import { useBadges } from '@/src/contexts/BadgeContext';
 
 type FeedType = 'foryou' | 'trending' | 'new';
 
@@ -46,6 +47,16 @@ export default function Home() {
   const [unreadCount, setUnreadCount] = useState(0);
   const [showMission, setShowMission] = useState(true);
   const [hasError, setHasError] = useState(false);
+  const hasTrackedVisit = useRef(false);
+  
+  // Badge context for tracking visits
+  let trackVisit: (() => Promise<any[]>) | undefined;
+  try {
+    const badgeContext = useBadges();
+    trackVisit = badgeContext.trackVisit;
+  } catch (e) {
+    // Badge context not available
+  }
 
   const loadProblems = useCallback(async (refresh = false) => {
     if (refresh) setIsRefreshing(true);
@@ -76,6 +87,12 @@ export default function Home() {
   useEffect(() => {
     loadProblems();
     loadNotifications();
+    
+    // Track visit for gamification (once per session)
+    if (!hasTrackedVisit.current && trackVisit) {
+      hasTrackedVisit.current = true;
+      trackVisit();
+    }
   }, [feed]);
 
   // Optimistic UI for relate

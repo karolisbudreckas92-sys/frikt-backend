@@ -7,6 +7,7 @@ import { usePushNotifications } from '@/src/services/notifications';
 import * as Notifications from 'expo-notifications';
 import { RootSiblingParent } from 'react-native-root-siblings';
 import { Alert } from 'react-native';
+import { BadgeProvider } from '@/src/contexts/BadgeContext';
 
 // Debug: Show backend URL on first launch
 const BACKEND_URL = 'https://frikt-backend-production.up.railway.app';
@@ -64,7 +65,9 @@ export default function RootLayout() {
     <RootSiblingParent>
       <SafeAreaProvider>
         <AuthProvider>
-          <RootLayoutNav />
+          <BadgeProvider>
+            <RootLayoutNav />
+          </BadgeProvider>
         </AuthProvider>
       </SafeAreaProvider>
     </RootSiblingParent>

@@ -72,6 +72,128 @@ FREQUENCY_OPTIONS = ["daily", "weekly", "monthly", "rare"]
 PAIN_LEVELS = [1, 2, 3, 4, 5]
 WILLING_TO_PAY = ["$0", "$1-10", "$10-50", "$50+"]
 
+# ===================== GAMIFICATION SYSTEM =====================
+
+# Test accounts to exclude from OG/Early badges
+TEST_ACCOUNTS = ["velvetcrumb", "noxloop", "graydrizzle", "toastedblip", "cuatropatas", "eleclerk", "driftmoss"]
+
+# Badge definitions - 45 total (27 core + 18 category)
+BADGES = {
+    # A. Visit Streaks (5 badges)
+    "streak_2": {"name": "Just Browsing", "icon": "👀", "threshold": 2, "category": "streak",
+                 "description": "You're starting to like the drama, aren't you?"},
+    "streak_7": {"name": "Hooked", "icon": "🍿", "threshold": 7, "category": "streak",
+                 "description": "One week of pure friction. Welcome home."},
+    "streak_14": {"name": "Regular Visitor", "icon": "☕", "threshold": 14, "category": "streak",
+                  "description": "You check Frikt more than your bank account."},
+    "streak_30": {"name": "Mayor of Frikt", "icon": "🏛️", "threshold": 30, "category": "streak",
+                  "description": "You basically live here now. Want a key?"},
+    "streak_100": {"name": "I Love Problems", "icon": "🤯", "threshold": 100, "category": "streak",
+                   "description": "100 days of complaining. Seek help. (Just kidding, keep going)."},
+    
+    # B. Explorer (3 badges)
+    "explorer_3": {"name": "Curious Human", "icon": "🧭", "threshold": 3, "category": "explorer",
+                   "description": "Just a quick peek at other people's misery."},
+    "explorer_25": {"name": "Nosey", "icon": "🕵️", "threshold": 25, "category": "explorer",
+                    "description": "Admit it, you love a good gossip session."},
+    "explorer_100": {"name": "Rabbit Hole", "icon": "🕳️", "threshold": 100, "category": "explorer",
+                     "description": "You've officially scrolled to the bottom of human frustration."},
+    
+    # C. The Relater (5 badges)
+    "relater_1": {"name": "Not Alone", "icon": "🫂", "threshold": 1, "category": "relater",
+                  "description": "First time feeling someone else's pain. It bonds us."},
+    "relater_10": {"name": "Empathy Expert", "icon": "🤝", "threshold": 10, "category": "relater",
+                   "description": "You're the friend everyone needs but nobody deserves."},
+    "relater_50": {"name": "Honorary Therapist", "icon": "🛋️", "threshold": 50, "category": "relater",
+                   "description": "You've listened to more problems than a professional."},
+    "relater_200": {"name": "Community Pillar", "icon": "🧱", "threshold": 200, "category": "relater",
+                    "description": "The glue holding this frustrated community together."},
+    "relater_500": {"name": "Frikt Saint", "icon": "😇", "threshold": 500, "category": "relater",
+                    "description": "You have the patience of a god. Or you're just very bored."},
+    
+    # D. Friction Creator (5 badges)
+    "creator_1": {"name": "First Vent", "icon": "💣", "threshold": 1, "category": "creator",
+                  "description": "It feels good to let it out, doesn't it?"},
+    "creator_5": {"name": "Professional Hater", "icon": "🎤", "threshold": 5, "category": "creator",
+                  "description": "You clearly have a lot to complain about. We love it."},
+    "creator_10": {"name": "Certified Complainer", "icon": "📢", "threshold": 10, "category": "creator",
+                   "description": "Official Karen status achieved. Management is terrified."},
+    "drama_influencer": {"name": "Drama Influencer", "icon": "🤳", "threshold": 20, "category": "viral", "hidden": True,
+                         "description": "Your misfortune is officially our entertainment."},
+    "universal_problem": {"name": "Universal Problem", "icon": "🌍", "threshold": 50, "category": "viral", "hidden": True,
+                          "description": "You've united the world through a shared annoyance."},
+    
+    # E. The Commenter (3 badges)
+    "commenter_1": {"name": "Helpful Stranger", "icon": "💬", "threshold": 1, "category": "commenter",
+                    "description": "Giving advice to a stranger. How noble."},
+    "commenter_10": {"name": "Conversation Starter", "icon": "🗣️", "threshold": 10, "category": "commenter",
+                     "description": "You always have something to say, don't you?"},
+    "commenter_25": {"name": "Internet Philosopher", "icon": "🧠", "threshold": 25, "category": "commenter",
+                     "description": "Deep thoughts about shallow problems."},
+    
+    # F. Social Impact (3 badges)
+    "impact_5": {"name": "You're Not Crazy", "icon": "😅", "threshold": 5, "category": "impact",
+                 "description": "5 people agree: that thing is definitely annoying."},
+    "impact_25": {"name": "Relatable Pain", "icon": "🔥", "threshold": 25, "category": "impact",
+                  "description": "You've touched a nerve. 25 nerves, to be exact."},
+    "impact_100": {"name": "Everyone Feels This", "icon": "🌎", "threshold": 100, "category": "impact",
+                   "description": "Congratulations, you've found a glitch in the Matrix."},
+    
+    # G. Special Milestones (3 badges)
+    "follow_5": {"name": "Nosey Neighbor", "icon": "🕵️‍♂️", "threshold": 5, "category": "special",
+                 "description": "You want to know what everyone's complaining about, don't you?"},
+    "og_member": {"name": "OG Member", "icon": "🛡️", "threshold": None, "category": "special",
+                  "description": "You were here before it was cool. A true Frikt-ster.",
+                  "date_before": "2026-03-15"},
+    "early_frikter": {"name": "Early Frikter", "icon": "🚀", "threshold": None, "category": "special",
+                      "description": "You saw the potential in complaining early on.",
+                      "date_before": "2026-06-01"},
+}
+
+# Category badges - generated dynamically for each category
+CATEGORY_IDS = ["money", "work", "health", "home", "tech", "school", "relationships", "travel", "services"]
+CATEGORY_NAMES = {
+    "money": "Money", "work": "Work", "health": "Health", "home": "Home",
+    "tech": "Tech", "school": "School", "relationships": "Relationships",
+    "travel": "Travel", "services": "Services"
+}
+
+# Add category badges to BADGES dict
+for cat_id in CATEGORY_IDS:
+    cat_name = CATEGORY_NAMES[cat_id]
+    BADGES[f"category_{cat_id}_apprentice"] = {
+        "name": f"{cat_name} Apprentice", "icon": "🎓", "threshold": 1,
+        "category": "category_specialist", "category_id": cat_id,
+        "description": f"New to the {cat_name} drama."
+    }
+    BADGES[f"category_{cat_id}_master"] = {
+        "name": f"{cat_name} Master", "icon": "👑", "threshold": 5,
+        "category": "category_specialist", "category_id": cat_id,
+        "description": f"You are the final boss of {cat_name} problems."
+    }
+
+# User Stats Model
+class UserStats(BaseModel):
+    user_id: str
+    total_posts: int = 0
+    total_relates_given: int = 0
+    total_relates_received: int = 0
+    total_comments: int = 0
+    total_frikts_opened: int = 0
+    users_followed: int = 0
+    current_visit_streak: int = 0
+    last_visit_date: Optional[str] = None
+    streak_miss_count: int = 0
+    posts_per_category: dict = {}
+    max_relates_on_single_post: int = 0
+
+# User Achievement Model
+class UserAchievement(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    user_id: str
+    badge_id: str
+    unlocked_at: datetime = Field(default_factory=datetime.utcnow)
+
 # User Models
 class UserBase(BaseModel):
     email: EmailStr
@@ -364,6 +486,391 @@ async def log_admin_action(admin: dict, action: str, target_type: str, target_id
     await db.admin_audit_logs.insert_one(log_entry.dict())
     logger.info(f"Admin action: {admin['email']} performed {action} on {target_type}/{target_id}")
 
+# ===================== GAMIFICATION HELPERS =====================
+
+async def get_or_create_user_stats(user_id: str) -> dict:
+    """Get user stats, creating default if not exists"""
+    stats = await db.user_stats.find_one({"user_id": user_id}, {"_id": 0})
+    if not stats:
+        stats = UserStats(user_id=user_id).dict()
+        await db.user_stats.insert_one(stats)
+        # Re-fetch without _id to ensure clean dict
+        stats = await db.user_stats.find_one({"user_id": user_id}, {"_id": 0})
+    return stats
+
+async def update_user_stats(user_id: str, updates: dict) -> dict:
+    """Update user stats and return the updated document"""
+    await db.user_stats.update_one(
+        {"user_id": user_id},
+        {"$set": updates},
+        upsert=True
+    )
+    return await db.user_stats.find_one({"user_id": user_id}, {"_id": 0})
+
+async def increment_user_stat(user_id: str, field: str, amount: int = 1) -> dict:
+    """Increment a numeric stat field"""
+    await get_or_create_user_stats(user_id)  # Ensure stats exist
+    await db.user_stats.update_one(
+        {"user_id": user_id},
+        {"$inc": {field: amount}}
+    )
+    return await db.user_stats.find_one({"user_id": user_id}, {"_id": 0})
+
+async def increment_category_posts(user_id: str, category_id: str) -> dict:
+    """Increment posts count for a specific category"""
+    await get_or_create_user_stats(user_id)
+    await db.user_stats.update_one(
+        {"user_id": user_id},
+        {"$inc": {f"posts_per_category.{category_id}": 1}}
+    )
+    return await db.user_stats.find_one({"user_id": user_id}, {"_id": 0})
+
+async def has_badge(user_id: str, badge_id: str) -> bool:
+    """Check if user already has a badge"""
+    existing = await db.user_achievements.find_one({"user_id": user_id, "badge_id": badge_id})
+    return existing is not None
+
+async def award_badge(user_id: str, badge_id: str) -> Optional[dict]:
+    """Award a badge to user if not already earned. Returns badge info if newly awarded."""
+    if await has_badge(user_id, badge_id):
+        return None
+    
+    badge_info = BADGES.get(badge_id)
+    if not badge_info:
+        return None
+    
+    achievement = UserAchievement(user_id=user_id, badge_id=badge_id)
+    await db.user_achievements.insert_one(achievement.dict())
+    
+    logger.info(f"Badge awarded: {badge_id} to user {user_id}")
+    return {
+        "badge_id": badge_id,
+        "name": badge_info["name"],
+        "icon": badge_info["icon"],
+        "description": badge_info["description"],
+        "unlocked_at": achievement.unlocked_at.isoformat()
+    }
+
+async def check_and_award_badges(user_id: str, user: dict, stats: dict, trigger: str) -> List[dict]:
+    """
+    Check and award badges based on trigger event.
+    Returns list of newly awarded badges.
+    """
+    newly_awarded = []
+    
+    # Streak badges
+    if trigger in ["visit", "all"]:
+        streak = stats.get("current_visit_streak", 0)
+        streak_thresholds = [
+            ("streak_2", 2), ("streak_7", 7), ("streak_14", 14),
+            ("streak_30", 30), ("streak_100", 100)
+        ]
+        for badge_id, threshold in streak_thresholds:
+            if streak >= threshold:
+                badge = await award_badge(user_id, badge_id)
+                if badge:
+                    newly_awarded.append(badge)
+    
+    # Explorer badges
+    if trigger in ["explore", "all"]:
+        opened = stats.get("total_frikts_opened", 0)
+        explorer_thresholds = [("explorer_3", 3), ("explorer_25", 25), ("explorer_100", 100)]
+        for badge_id, threshold in explorer_thresholds:
+            if opened >= threshold:
+                badge = await award_badge(user_id, badge_id)
+                if badge:
+                    newly_awarded.append(badge)
+    
+    # Relater badges (giving relates)
+    if trigger in ["relate", "all"]:
+        relates_given = stats.get("total_relates_given", 0)
+        relater_thresholds = [
+            ("relater_1", 1), ("relater_10", 10), ("relater_50", 50),
+            ("relater_200", 200), ("relater_500", 500)
+        ]
+        for badge_id, threshold in relater_thresholds:
+            if relates_given >= threshold:
+                badge = await award_badge(user_id, badge_id)
+                if badge:
+                    newly_awarded.append(badge)
+    
+    # Creator badges
+    if trigger in ["create", "all"]:
+        total_posts = stats.get("total_posts", 0)
+        creator_thresholds = [("creator_1", 1), ("creator_5", 5), ("creator_10", 10)]
+        for badge_id, threshold in creator_thresholds:
+            if total_posts >= threshold:
+                badge = await award_badge(user_id, badge_id)
+                if badge:
+                    newly_awarded.append(badge)
+    
+    # Commenter badges
+    if trigger in ["comment", "all"]:
+        total_comments = stats.get("total_comments", 0)
+        commenter_thresholds = [("commenter_1", 1), ("commenter_10", 10), ("commenter_25", 25)]
+        for badge_id, threshold in commenter_thresholds:
+            if total_comments >= threshold:
+                badge = await award_badge(user_id, badge_id)
+                if badge:
+                    newly_awarded.append(badge)
+    
+    # Social Impact badges (relates received)
+    if trigger in ["impact", "all"]:
+        relates_received = stats.get("total_relates_received", 0)
+        impact_thresholds = [("impact_5", 5), ("impact_25", 25), ("impact_100", 100)]
+        for badge_id, threshold in impact_thresholds:
+            if relates_received >= threshold:
+                badge = await award_badge(user_id, badge_id)
+                if badge:
+                    newly_awarded.append(badge)
+    
+    # Viral badges (Drama Influencer, Universal Problem)
+    if trigger in ["viral", "all"]:
+        max_relates = stats.get("max_relates_on_single_post", 0)
+        if max_relates >= 20:
+            badge = await award_badge(user_id, "drama_influencer")
+            if badge:
+                newly_awarded.append(badge)
+        if max_relates >= 50:
+            badge = await award_badge(user_id, "universal_problem")
+            if badge:
+                newly_awarded.append(badge)
+    
+    # Follow badge
+    if trigger in ["follow", "all"]:
+        users_followed = stats.get("users_followed", 0)
+        if users_followed >= 5:
+            badge = await award_badge(user_id, "follow_5")
+            if badge:
+                newly_awarded.append(badge)
+    
+    # Category badges
+    if trigger in ["create", "category", "all"]:
+        posts_per_cat = stats.get("posts_per_category", {})
+        for cat_id in CATEGORY_IDS:
+            cat_posts = posts_per_cat.get(cat_id, 0)
+            if cat_posts >= 1:
+                badge = await award_badge(user_id, f"category_{cat_id}_apprentice")
+                if badge:
+                    newly_awarded.append(badge)
+            if cat_posts >= 5:
+                badge = await award_badge(user_id, f"category_{cat_id}_master")
+                if badge:
+                    newly_awarded.append(badge)
+    
+    # Special date-based badges (check user creation date)
+    if trigger in ["special", "all"]:
+        # Check if user is a test account
+        username = user.get("name", "").lower()
+        if username not in TEST_ACCOUNTS:
+            created_at = user.get("created_at")
+            if created_at:
+                if isinstance(created_at, str):
+                    created_at = datetime.fromisoformat(created_at.replace("Z", "+00:00"))
+                
+                # OG Member - before March 15, 2026
+                og_date = datetime(2026, 3, 15)
+                if created_at < og_date:
+                    badge = await award_badge(user_id, "og_member")
+                    if badge:
+                        newly_awarded.append(badge)
+                
+                # Early Frikter - before June 1, 2026
+                early_date = datetime(2026, 6, 1)
+                if created_at < early_date:
+                    badge = await award_badge(user_id, "early_frikter")
+                    if badge:
+                        newly_awarded.append(badge)
+    
+    return newly_awarded
+
+async def update_visit_streak(user_id: str) -> tuple[dict, bool]:
+    """
+    Update visit streak logic with grace window.
+    Returns (updated_stats, is_qualifying_visit)
+    """
+    stats = await get_or_create_user_stats(user_id)
+    today = datetime.utcnow().strftime("%Y-%m-%d")
+    last_visit = stats.get("last_visit_date")
+    current_streak = stats.get("current_visit_streak", 0)
+    streak_miss_count = stats.get("streak_miss_count", 0)
+    
+    # If already visited today, no change
+    if last_visit == today:
+        return stats, False
+    
+    is_qualifying = True
+    
+    if last_visit:
+        last_date = datetime.strptime(last_visit, "%Y-%m-%d")
+        today_date = datetime.strptime(today, "%Y-%m-%d")
+        days_diff = (today_date - last_date).days
+        
+        if days_diff == 1:
+            # Consecutive day - reset miss count, increment streak
+            current_streak += 1
+            streak_miss_count = 0
+        elif days_diff <= 2:
+            # 1 day missed - grace window, increment miss count
+            streak_miss_count += 1
+            if streak_miss_count <= 2:
+                current_streak += 1
+            else:
+                # Too many misses, reset streak
+                current_streak = 1
+                streak_miss_count = 0
+        else:
+            # More than 2 days missed - reset streak
+            current_streak = 1
+            streak_miss_count = 0
+    else:
+        # First ever visit
+        current_streak = 1
+        streak_miss_count = 0
+    
+    # Update stats
+    updated_stats = await update_user_stats(user_id, {
+        "last_visit_date": today,
+        "current_visit_streak": current_streak,
+        "streak_miss_count": streak_miss_count
+    })
+    
+    return updated_stats, is_qualifying
+
+async def get_user_badges_status(user_id: str, user: dict) -> dict:
+    """Get complete badge status for a user"""
+    stats = await get_or_create_user_stats(user_id)
+    achievements = await db.user_achievements.find(
+        {"user_id": user_id}, {"_id": 0}
+    ).to_list(100)
+    
+    unlocked_badge_ids = {a["badge_id"] for a in achievements}
+    unlocked_badges = []
+    locked_badges = []
+    hidden_badges = []  # For viral badges not yet unlocked
+    
+    posts_per_cat = stats.get("posts_per_category", {})
+    
+    for badge_id, badge_info in BADGES.items():
+        badge_data = {
+            "badge_id": badge_id,
+            "name": badge_info["name"],
+            "icon": badge_info["icon"],
+            "category": badge_info["category"],
+            "threshold": badge_info.get("threshold"),
+        }
+        
+        if badge_id in unlocked_badge_ids:
+            # Find unlock date
+            achievement = next((a for a in achievements if a["badge_id"] == badge_id), None)
+            badge_data["description"] = badge_info["description"]
+            badge_data["unlocked"] = True
+            badge_data["unlocked_at"] = achievement["unlocked_at"].isoformat() if achievement and isinstance(achievement.get("unlocked_at"), datetime) else achievement.get("unlocked_at") if achievement else None
+            unlocked_badges.append(badge_data)
+        else:
+            # Check visibility rules
+            is_hidden = badge_info.get("hidden", False)
+            is_category_badge = badge_info.get("category") == "category_specialist"
+            
+            if is_hidden:
+                # Drama Influencer, Universal Problem - don't show until unlocked
+                hidden_badges.append(badge_data)
+            elif is_category_badge:
+                # Only show category badge if user has posted in that category
+                cat_id = badge_info.get("category_id")
+                if cat_id and posts_per_cat.get(cat_id, 0) > 0:
+                    badge_data["unlocked"] = False
+                    badge_data["progress"] = get_badge_progress(badge_id, stats)
+                    badge_data["requirement"] = get_badge_requirement(badge_id)
+                    locked_badges.append(badge_data)
+            else:
+                badge_data["unlocked"] = False
+                badge_data["progress"] = get_badge_progress(badge_id, stats)
+                badge_data["requirement"] = get_badge_requirement(badge_id)
+                locked_badges.append(badge_data)
+    
+    return {
+        "unlocked": unlocked_badges,
+        "locked": locked_badges,
+        "total_unlocked": len(unlocked_badges),
+        "total_possible": len(BADGES),
+        "stats": stats
+    }
+
+def get_badge_progress(badge_id: str, stats: dict) -> Optional[dict]:
+    """Get progress towards a badge. Returns None for badges user can't control."""
+    badge_info = BADGES.get(badge_id)
+    if not badge_info:
+        return None
+    
+    category = badge_info.get("category")
+    threshold = badge_info.get("threshold")
+    
+    if not threshold:
+        return None  # Date-based badges
+    
+    # Badges that depend on others' actions - no progress shown
+    if badge_id in ["drama_influencer", "universal_problem"]:
+        return None
+    if category == "impact":
+        return None  # Social impact depends on others relating
+    
+    current = 0
+    if category == "streak":
+        current = stats.get("current_visit_streak", 0)
+    elif category == "explorer":
+        current = stats.get("total_frikts_opened", 0)
+    elif category == "relater":
+        current = stats.get("total_relates_given", 0)
+    elif category == "creator":
+        current = stats.get("total_posts", 0)
+    elif category == "commenter":
+        current = stats.get("total_comments", 0)
+    elif category == "special" and badge_id == "follow_5":
+        current = stats.get("users_followed", 0)
+    elif category == "category_specialist":
+        cat_id = badge_info.get("category_id")
+        current = stats.get("posts_per_category", {}).get(cat_id, 0)
+    
+    return {"current": current, "target": threshold}
+
+def get_badge_requirement(badge_id: str) -> str:
+    """Get human-readable requirement text for a badge"""
+    badge_info = BADGES.get(badge_id)
+    if not badge_info:
+        return ""
+    
+    category = badge_info.get("category")
+    threshold = badge_info.get("threshold")
+    
+    if category == "streak":
+        return f"Maintain a {threshold}-day visit streak"
+    elif category == "explorer":
+        return f"Open {threshold} Frikts"
+    elif category == "relater":
+        return f"Relate to {threshold} Frikts"
+    elif category == "creator":
+        return f"Post {threshold} Frikts"
+    elif category == "commenter":
+        return f"Leave {threshold} comments"
+    elif category == "impact":
+        return f"Receive {threshold} total relates on your posts"
+    elif category == "viral":
+        return f"Get {threshold}+ relates on a single post"
+    elif category == "special":
+        if badge_id == "follow_5":
+            return f"Follow {threshold} users"
+        elif "og_member" in badge_id:
+            return "Be an early adopter (before March 15, 2026)"
+        elif "early_frikter" in badge_id:
+            return "Join before June 1, 2026"
+    elif category == "category_specialist":
+        cat_id = badge_info.get("category_id", "")
+        cat_name = CATEGORY_NAMES.get(cat_id, cat_id.title())
+        return f"Post {threshold} Frikts in {cat_name}"
+    
+    return ""
+
 # ===================== SIGNAL SCORE =====================
 
 # Signal Score Weights (transparent and configurable)
@@ -516,7 +1023,7 @@ async def get_categories():
 
 # ===================== PROBLEMS ROUTES =====================
 
-@api_router.post("/problems", response_model=ProblemResponse)
+@api_router.post("/problems")
 async def create_problem(problem_data: ProblemCreate, user: dict = Depends(require_auth)):
     # Check rate limit (max 10 posts/day - generous for MVP)
     today = datetime.utcnow().strftime("%Y-%m-%d")
@@ -557,11 +1064,22 @@ async def create_problem(problem_data: ProblemCreate, user: dict = Depends(requi
     else:
         await db.users.update_one({"id": user["id"]}, {"$set": {"posts_today": 1, "last_post_date": today}})
     
-    return ProblemResponse(
+    # GAMIFICATION: Update stats and check badges
+    stats = await increment_user_stat(user["id"], "total_posts")
+    stats = await increment_category_posts(user["id"], category_id)
+    newly_awarded = await check_and_award_badges(user["id"], user, stats, "create")
+    
+    response = ProblemResponse(
         **problem_dict,
         category_name=category["name"],
         category_color=category["color"]
     )
+    
+    # Return with newly awarded badges
+    return {
+        **response.dict(),
+        "newly_awarded_badges": newly_awarded
+    }
 
 class ProblemUpdate(BaseModel):
     title: Optional[str] = Field(None, min_length=10)
@@ -791,7 +1309,7 @@ async def get_similar_problems(title: str, limit: int = 3):
     
     return results
 
-@api_router.get("/problems/{problem_id}", response_model=ProblemResponse)
+@api_router.get("/problems/{problem_id}")
 async def get_problem(problem_id: str, user: dict = Depends(get_current_user)):
     problem = await db.problems.find_one({"id": problem_id})
     if not problem:
@@ -802,13 +1320,22 @@ async def get_problem(problem_id: str, user: dict = Depends(get_current_user)):
     user_has_related = False
     user_has_saved = False
     user_is_following = False
+    newly_awarded = []
+    
     if user:
         relate = await db.relates.find_one({"problem_id": problem_id, "user_id": user["id"]})
         user_has_related = relate is not None
         user_has_saved = problem_id in user.get("saved_problems", [])
         user_is_following = problem_id in user.get("followed_problems", [])
+        
+        # GAMIFICATION: Track frikt opened (for explorer badges)
+        # Only count if viewing someone else's post
+        if problem["user_id"] != user["id"]:
+            await increment_user_stat(user["id"], "total_frikts_opened")
+            stats = await get_or_create_user_stats(user["id"])
+            newly_awarded = await check_and_award_badges(user["id"], user, stats, "explore")
     
-    return ProblemResponse(
+    response = ProblemResponse(
         **problem,
         category_name=category["name"] if category else "",
         category_color=category["color"] if category else "#666",
@@ -816,6 +1343,8 @@ async def get_problem(problem_id: str, user: dict = Depends(get_current_user)):
         user_has_saved=user_has_saved,
         user_is_following=user_is_following
     )
+    
+    return {**response.dict(), "newly_awarded_badges": newly_awarded}
 
 @api_router.get("/problems/{problem_id}/related")
 async def get_related_problems(problem_id: str, limit: int = 5):
@@ -850,6 +1379,10 @@ async def relate_to_problem(problem_id: str, user: dict = Depends(require_auth))
     if not problem:
         raise HTTPException(status_code=404, detail="Problem not found")
     
+    # Prevent self-relates
+    if problem["user_id"] == user["id"]:
+        raise HTTPException(status_code=400, detail="Cannot relate to your own post")
+    
     # Check if already related
     existing = await db.relates.find_one({"problem_id": problem_id, "user_id": user["id"]})
     if existing:
@@ -868,6 +1401,38 @@ async def relate_to_problem(problem_id: str, user: dict = Depends(require_auth))
         {"id": problem_id},
         {"$set": {"relates_count": new_count, "signal_score": new_score}}
     )
+    
+    # GAMIFICATION: Update stats for the relater (user giving the relate)
+    await increment_user_stat(user["id"], "total_relates_given")
+    relater_stats = await get_or_create_user_stats(user["id"])
+    relater_badges = await check_and_award_badges(user["id"], user, relater_stats, "relate")
+    
+    # GAMIFICATION: Update stats for the post author (receiving the relate)
+    post_author_id = problem["user_id"]
+    await increment_user_stat(post_author_id, "total_relates_received")
+    
+    # Check if this post now has the most relates for the author
+    author_stats = await get_or_create_user_stats(post_author_id)
+    current_max = author_stats.get("max_relates_on_single_post", 0)
+    if new_count > current_max:
+        await update_user_stats(post_author_id, {"max_relates_on_single_post": new_count})
+        author_stats["max_relates_on_single_post"] = new_count
+    
+    # Check badges for the post author (impact + viral badges)
+    post_author = await db.users.find_one({"id": post_author_id})
+    if post_author:
+        author_badges = await check_and_award_badges(post_author_id, post_author, author_stats, "impact")
+        author_viral_badges = await check_and_award_badges(post_author_id, post_author, author_stats, "viral")
+        
+        # Store pending badges for author to see on next app open
+        all_author_badges = author_badges + author_viral_badges
+        if all_author_badges:
+            for badge in all_author_badges:
+                await db.pending_badge_notifications.insert_one({
+                    "user_id": post_author_id,
+                    "badge": badge,
+                    "created_at": datetime.utcnow()
+                })
     
     # Create notification for problem owner (if not self)
     if problem["user_id"] != user["id"]:
@@ -889,7 +1454,11 @@ async def relate_to_problem(problem_id: str, user: dict = Depends(require_auth))
                 {"type": "new_relate", "problemId": problem_id}
             )
     
-    return {"relates_count": new_count, "signal_score": new_score}
+    return {
+        "relates_count": new_count,
+        "signal_score": new_score,
+        "newly_awarded_badges": relater_badges
+    }
 
 @api_router.delete("/problems/{problem_id}/relate")
 async def unrelate_to_problem(problem_id: str, user: dict = Depends(require_auth)):
@@ -963,7 +1532,7 @@ async def unfollow_category(category_id: str, user: dict = Depends(require_auth)
 
 # ===================== COMMENTS ROUTES =====================
 
-@api_router.post("/comments", response_model=CommentResponse)
+@api_router.post("/comments")
 async def create_comment(comment_data: CommentCreate, user: dict = Depends(require_auth)):
     problem = await db.problems.find_one({"id": comment_data.problem_id})
     if not problem:
@@ -1003,6 +1572,11 @@ async def create_comment(comment_data: CommentCreate, user: dict = Depends(requi
             "signal_score": new_score
         }}
     )
+    
+    # GAMIFICATION: Update stats and check badges
+    await increment_user_stat(user["id"], "total_comments")
+    stats = await get_or_create_user_stats(user["id"])
+    newly_awarded = await check_and_award_badges(user["id"], user, stats, "comment")
     
     # Create notification for problem owner and followers
     if problem["user_id"] != user["id"]:
@@ -1060,7 +1634,8 @@ async def create_comment(comment_data: CommentCreate, user: dict = Depends(requi
                     {"type": "new_comment", "problemId": comment_data.problem_id}
                 )
     
-    return CommentResponse(**comment.dict())
+    response = CommentResponse(**comment.dict())
+    return {**response.dict(), "newly_awarded_badges": newly_awarded}
 
 @api_router.get("/problems/{problem_id}/comments", response_model=List[CommentResponse])
 async def get_comments(problem_id: str, user: dict = Depends(get_current_user)):
@@ -1296,6 +1871,131 @@ async def get_user_posts(
         })
     
     return results
+
+# ===================== GAMIFICATION ROUTES =====================
+
+@api_router.get("/users/me/badges")
+async def get_my_badges(user: dict = Depends(require_auth)):
+    """Get current user's badge status"""
+    return await get_user_badges_status(user["id"], user)
+
+@api_router.get("/users/{user_id}/badges")
+async def get_user_badges(user_id: str):
+    """Get another user's badge status (public view)"""
+    user = await db.users.find_one({"id": user_id})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    return await get_user_badges_status(user_id, user)
+
+@api_router.get("/users/me/gamification-stats")
+async def get_my_gamification_stats(user: dict = Depends(require_auth)):
+    """Get detailed gamification stats for current user"""
+    stats = await get_or_create_user_stats(user["id"])
+    return stats
+
+@api_router.post("/users/me/visit")
+async def track_visit(user: dict = Depends(require_auth)):
+    """Track app visit for streak calculation"""
+    updated_stats, is_qualifying = await update_visit_streak(user["id"])
+    newly_awarded = []
+    
+    if is_qualifying:
+        newly_awarded = await check_and_award_badges(user["id"], user, updated_stats, "visit")
+    
+    # Also check for pending badge notifications from other users' actions
+    pending_badges = await db.pending_badge_notifications.find(
+        {"user_id": user["id"]},
+        {"_id": 0}
+    ).to_list(50)
+    
+    # Delete pending notifications after retrieval
+    if pending_badges:
+        await db.pending_badge_notifications.delete_many({"user_id": user["id"]})
+        for pb in pending_badges:
+            if pb.get("badge"):
+                newly_awarded.append(pb["badge"])
+    
+    # Check special badges (OG Member, Early Frikter) on visit
+    special_badges = await check_and_award_badges(user["id"], user, updated_stats, "special")
+    newly_awarded.extend(special_badges)
+    
+    return {
+        "stats": updated_stats,
+        "is_qualifying_visit": is_qualifying,
+        "newly_awarded_badges": newly_awarded
+    }
+
+@api_router.post("/users/{user_id}/follow")
+async def follow_user(user_id: str, user: dict = Depends(require_auth)):
+    """Follow another user"""
+    if user_id == user["id"]:
+        raise HTTPException(status_code=400, detail="Cannot follow yourself")
+    
+    target_user = await db.users.find_one({"id": user_id})
+    if not target_user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # Check if already following (using a user_follows collection)
+    existing = await db.user_follows.find_one({
+        "follower_id": user["id"],
+        "following_id": user_id
+    })
+    
+    if existing:
+        raise HTTPException(status_code=400, detail="Already following this user")
+    
+    # Create follow relationship
+    await db.user_follows.insert_one({
+        "id": str(uuid.uuid4()),
+        "follower_id": user["id"],
+        "following_id": user_id,
+        "created_at": datetime.utcnow()
+    })
+    
+    # GAMIFICATION: Update stats and check badges
+    await increment_user_stat(user["id"], "users_followed")
+    stats = await get_or_create_user_stats(user["id"])
+    newly_awarded = await check_and_award_badges(user["id"], user, stats, "follow")
+    
+    return {"following": True, "newly_awarded_badges": newly_awarded}
+
+@api_router.delete("/users/{user_id}/follow")
+async def unfollow_user(user_id: str, user: dict = Depends(require_auth)):
+    """Unfollow a user"""
+    result = await db.user_follows.delete_one({
+        "follower_id": user["id"],
+        "following_id": user_id
+    })
+    
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Not following this user")
+    
+    return {"following": False}
+
+@api_router.get("/users/{user_id}/is-following")
+async def check_if_following(user_id: str, user: dict = Depends(require_auth)):
+    """Check if current user is following another user"""
+    existing = await db.user_follows.find_one({
+        "follower_id": user["id"],
+        "following_id": user_id
+    })
+    return {"is_following": existing is not None}
+
+@api_router.get("/badges/definitions")
+async def get_badge_definitions():
+    """Get all badge definitions for frontend"""
+    definitions = []
+    for badge_id, badge_info in BADGES.items():
+        definitions.append({
+            "badge_id": badge_id,
+            "name": badge_info["name"],
+            "icon": badge_info["icon"],
+            "category": badge_info["category"],
+            "threshold": badge_info.get("threshold"),
+            "hidden": badge_info.get("hidden", False),
+            "requirement": get_badge_requirement(badge_id)
+        })
+    return {"badges": definitions}
 
 @api_router.get("/users/{user_id}/stats")
 async def get_user_stats(user_id: str):

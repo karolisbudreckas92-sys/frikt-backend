@@ -16,6 +16,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { colors, radius } from '@/src/theme/colors';
 import { api } from '@/src/services/api';
 import { useAuth } from '@/src/context/AuthContext';
+import { BadgeSection } from '@/src/components/BadgeSection';
+import { useBadges } from '@/src/contexts/BadgeContext';
 
 export default function Profile() {
   const router = useRouter();
@@ -222,6 +224,9 @@ export default function Profile() {
             </View>
           </View>
         )}
+
+        {/* Badges Section */}
+        <BadgeSection />
 
         {/* Admin Section */}
         {isAdmin && (

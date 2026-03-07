@@ -525,6 +525,48 @@ class ApiService {
     const response = await this.client.delete(`/admin/feedback/${feedbackId}`);
     return response.data;
   }
+
+  // ===================== GAMIFICATION =====================
+
+  async getMyBadges() {
+    const response = await this.client.get('/users/me/badges');
+    return response.data;
+  }
+
+  async getUserBadges(userId: string) {
+    const response = await this.client.get(`/users/${userId}/badges`);
+    return response.data;
+  }
+
+  async getGamificationStats() {
+    const response = await this.client.get('/users/me/gamification-stats');
+    return response.data;
+  }
+
+  async trackVisit() {
+    const response = await this.client.post('/users/me/visit');
+    return response.data;
+  }
+
+  async getBadgeDefinitions() {
+    const response = await this.client.get('/badges/definitions');
+    return response.data;
+  }
+
+  async followUser(userId: string) {
+    const response = await this.client.post(`/users/${userId}/follow`);
+    return response.data;
+  }
+
+  async unfollowUser(userId: string) {
+    const response = await this.client.delete(`/users/${userId}/follow`);
+    return response.data;
+  }
+
+  async isFollowingUser(userId: string) {
+    const response = await this.client.get(`/users/${userId}/is-following`);
+    return response.data;
+  }
 }
 
 export const api = new ApiService();
