@@ -111,6 +111,9 @@
 - [x] Fixed /users/me/posts "User not found" error (route ordering)
 - [x] Removed "Test Notifications (Expo Go only)" button
 - [x] Updated login logo to exact brand specs
+- [x] **Timestamp Display** (Mar 7, 2026) - Created formatTimeAgo utility for consistent "about X ago" format using UTC timestamps
+- [x] **Username Updates** (Mar 7, 2026) - Backend now fetches fresh usernames from user records instead of denormalized fields
+- [x] **Comment Edit/Delete** (Mar 7, 2026) - Added PUT/DELETE /api/comments/{id} endpoints with owner-only restrictions
 
 ## API Endpoints
 
@@ -144,8 +147,9 @@
 
 ## Test Results
 - Backend: 21/21 gamification tests PASS (100%)
+- Backend: 11/11 bug fix tests PASS (100%)
 - Backend: 10/10 delete account tests PASS (100%)
-- See: /app/test_reports/iteration_4.json
+- See: /app/test_reports/iteration_5.json
 
 ## Test Accounts
 - Admin: karolisbudreckas92@gmail.com / Admin123!
