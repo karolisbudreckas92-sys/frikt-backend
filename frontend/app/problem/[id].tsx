@@ -17,7 +17,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { formatDistanceToNow } from 'date-fns';
+import { formatTimeAgo } from '@/src/utils/formatTimeAgo';
 import { colors, radius } from '@/src/theme/colors';
 import { api } from '@/src/services/api';
 import { useAuth } from '@/src/context/AuthContext';
@@ -70,6 +70,11 @@ export default function ProblemDetail() {
   const [reportTarget, setReportTarget] = useState<{type: 'frikt' | 'comment', id: string} | null>(null);
   const [selectedReason, setSelectedReason] = useState('');
   const [isReporting, setIsReporting] = useState(false);
+  
+  // Comment edit/delete state
+  const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
+  const [editedContent, setEditedContent] = useState('');
+  const [commentMenuId, setCommentMenuId] = useState<string | null>(null);
 
   const loadData = async () => {
     if (!id) return;
@@ -272,6 +277,68 @@ export default function ProblemDetail() {
     setCommentText(commentText + chip + ' ');
   };
 
+  // Comment edit/delete handlers
+  const handleEditComment = (comment: any) => {
+    setEditingCommentId(comment.id);
+    setEditedContent(comment.content);
+    setCommentMenuId(null);
+  };
+
+  const handleSaveEdit = async (commentId: string) => {
+    if (!editedContent.trim()) return;
+    
+    try {
+      await api.editComment(commentId, editedContent.trim());
+      setComments(comments.map(c => 
+        c.id === commentId 
+          ? { ...c, content: editedContent.trim(), edited_at: new Date().toISOString() }
+          : c
+      ));
+      setEditingCommentId(null);
+      setEditedContent('');
+      Toast.show('Comment updated', { duration: Toast.durations.SHORT });
+    } catch (error) {
+      Alert.alert('Error', 'Failed to update comment');
+    }
+  };
+
+  const handleDeleteComment = (commentId: string) => {
+    setCommentMenuId(null);
+    
+    if (Platform.OS === 'web') {
+      const confirmed = window.confirm('Delete this comment?');
+      if (confirmed) {
+        performDeleteComment(commentId);
+      }
+    } else {
+      Alert.alert(
+        'Delete Comment',
+        'Are you sure you want to delete this comment?',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Delete',
+            style: 'destructive',
+            onPress: () => performDeleteComment(commentId),
+          },
+        ]
+      );
+    }
+  };
+
+  const performDeleteComment = async (commentId: string) => {
+    try {
+      await api.deleteComment(commentId);
+      setComments(comments.filter(c => c.id !== commentId));
+      if (problem) {
+        setProblem({ ...problem, comments_count: Math.max(0, problem.comments_count - 1) });
+      }
+      Toast.show('Comment deleted', { duration: Toast.durations.SHORT });
+    } catch (error) {
+      Alert.alert('Error', 'Failed to delete comment');
+    }
+  };
+
   if (isLoading) {
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
@@ -307,7 +374,7 @@ export default function ProblemDetail() {
     );
   }
 
-  const timeAgo = formatDistanceToNow(new Date(problem.created_at), { addSuffix: true });
+  const timeAgo = formatTimeAgo(problem.created_at);
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -548,11 +615,78 @@ export default function ProblemDetail() {
                     <View style={styles.commentMeta}>
                       <Text style={styles.commentAuthor}>{comment.user_name}</Text>
                       <Text style={styles.commentTime}>
-                        {formatDistanceToNow(new Date(comment.created_at), { addSuffix: true })}
+                        {formatTimeAgo(comment.created_at)}
+                        {comment.edited_at && ' (edited)'}
                       </Text>
                     </View>
+                    
+                    {/* Edit/Delete menu - only for comment author */}
+                    {user && comment.user_id === user.id && (
+                      <View style={styles.commentMenuContainer}>
+                        <TouchableOpacity
+                          style={styles.commentMenuButton}
+                          onPress={() => setCommentMenuId(commentMenuId === comment.id ? null : comment.id)}
+                          data-testid={`comment-menu-${comment.id}`}
+                        >
+                          <Ionicons name="ellipsis-horizontal" size={18} color={colors.textMuted} />
+                        </TouchableOpacity>
+                        
+                        {commentMenuId === comment.id && (
+                          <View style={styles.commentMenuDropdown}>
+                            <TouchableOpacity
+                              style={styles.commentMenuItem}
+                              onPress={() => handleEditComment(comment)}
+                              data-testid={`edit-comment-${comment.id}`}
+                            >
+                              <Ionicons name="pencil-outline" size={16} color={colors.textSecondary} />
+                              <Text style={styles.commentMenuText}>Edit</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                              style={[styles.commentMenuItem, styles.commentMenuItemDanger]}
+                              onPress={() => handleDeleteComment(comment.id)}
+                              data-testid={`delete-comment-${comment.id}`}
+                            >
+                              <Ionicons name="trash-outline" size={16} color={colors.error} />
+                              <Text style={[styles.commentMenuText, styles.commentMenuTextDanger]}>Delete</Text>
+                            </TouchableOpacity>
+                          </View>
+                        )}
+                      </View>
+                    )}
                   </View>
-                  <Text style={styles.commentContent}>{comment.content}</Text>
+                  
+                  {/* Edit mode or display content */}
+                  {editingCommentId === comment.id ? (
+                    <View style={styles.editCommentContainer}>
+                      <TextInput
+                        style={styles.editCommentInput}
+                        value={editedContent}
+                        onChangeText={setEditedContent}
+                        multiline
+                        autoFocus
+                      />
+                      <View style={styles.editCommentActions}>
+                        <TouchableOpacity
+                          style={styles.editCancelButton}
+                          onPress={() => {
+                            setEditingCommentId(null);
+                            setEditedContent('');
+                          }}
+                        >
+                          <Text style={styles.editCancelText}>Cancel</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          style={styles.editSaveButton}
+                          onPress={() => handleSaveEdit(comment.id)}
+                        >
+                          <Text style={styles.editSaveText}>Save</Text>
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                  ) : (
+                    <Text style={styles.commentContent}>{comment.content}</Text>
+                  )}
+                  
                   <TouchableOpacity 
                     style={styles.helpfulButton}
                     onPress={() => handleHelpful(comment.id, comment.user_marked_helpful)}
@@ -1085,6 +1219,88 @@ const styles = StyleSheet.create({
   },
   reportSubmitText: {
     fontSize: 16,
+    fontWeight: '600',
+    color: colors.white,
+  },
+  // Comment edit/delete styles
+  commentMenuContainer: {
+    position: 'relative',
+    marginLeft: 'auto',
+  },
+  commentMenuButton: {
+    padding: 8,
+  },
+  commentMenuDropdown: {
+    position: 'absolute',
+    top: 32,
+    right: 0,
+    backgroundColor: colors.surface,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+    minWidth: 120,
+    zIndex: 100,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  commentMenuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  commentMenuItemDanger: {
+    borderBottomWidth: 0,
+  },
+  commentMenuText: {
+    fontSize: 14,
+    color: colors.textSecondary,
+  },
+  commentMenuTextDanger: {
+    color: colors.error,
+  },
+  editCommentContainer: {
+    marginTop: 8,
+  },
+  editCommentInput: {
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radius.sm,
+    padding: 12,
+    fontSize: 14,
+    color: colors.text,
+    backgroundColor: colors.background,
+    minHeight: 60,
+    textAlignVertical: 'top',
+  },
+  editCommentActions: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: 12,
+    marginTop: 8,
+  },
+  editCancelButton: {
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+  },
+  editCancelText: {
+    fontSize: 14,
+    color: colors.textMuted,
+  },
+  editSaveButton: {
+    backgroundColor: colors.primary,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: radius.sm,
+  },
+  editSaveText: {
+    fontSize: 14,
     fontWeight: '600',
     color: colors.white,
   },

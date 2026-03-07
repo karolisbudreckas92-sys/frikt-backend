@@ -567,6 +567,18 @@ class ApiService {
     const response = await this.client.get(`/users/${userId}/is-following`);
     return response.data;
   }
+
+  // ===================== COMMENT EDIT/DELETE =====================
+
+  async editComment(commentId: string, content: string) {
+    const response = await this.client.put(`/comments/${commentId}`, { content });
+    return response.data;
+  }
+
+  async deleteComment(commentId: string) {
+    const response = await this.client.delete(`/comments/${commentId}`);
+    return response.data;
+  }
 }
 
 export const api = new ApiService();

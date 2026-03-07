@@ -311,6 +311,7 @@ class Comment(BaseModel):
     user_name: str
     content: str
     created_at: datetime = Field(default_factory=datetime.utcnow)
+    edited_at: Optional[datetime] = None
     helpful_count: int = 0
     is_pinned: bool = False
     status: str = "active"  # "active" | "hidden" | "removed"
@@ -1262,8 +1263,20 @@ async def get_problems(
         user_follows = set(user.get("followed_problems", []))
     
     results = []
+    
+    # Fetch fresh usernames from user records
+    user_ids = list(set(p["user_id"] for p in problems))
+    users = await db.users.find({"id": {"$in": user_ids}}, {"id": 1, "name": 1, "displayName": 1, "avatarUrl": 1}).to_list(len(user_ids))
+    user_map = {u["id"]: {"name": u.get("displayName") or u.get("name", "Unknown"), "avatar": u.get("avatarUrl")} for u in users}
+    
     for p in problems:
         category = next((c for c in CATEGORIES if c["id"] == p["category_id"]), None)
+        # Update with fresh username from user record
+        fresh_user = user_map.get(p["user_id"], {})
+        p["user_name"] = fresh_user.get("name", p.get("user_name", "Unknown"))
+        if fresh_user.get("avatar"):
+            p["user_avatar_url"] = fresh_user.get("avatar")
+        
         results.append(ProblemResponse(
             **p,
             category_name=category["name"] if category else "",
@@ -1635,7 +1648,7 @@ async def create_comment(comment_data: CommentCreate, user: dict = Depends(requi
     response = CommentResponse(**comment.dict())
     return {**response.dict(), "newly_awarded_badges": newly_awarded}
 
-@api_router.get("/problems/{problem_id}/comments", response_model=List[CommentResponse])
+@api_router.get("/problems/{problem_id}/comments")
 async def get_comments(problem_id: str, user: dict = Depends(get_current_user)):
     query = {"problem_id": problem_id}
     
@@ -1653,10 +1666,21 @@ async def get_comments(problem_id: str, user: dict = Depends(get_current_user)):
         helpfuls = await db.helpfuls.find({"user_id": user["id"]}, {"comment_id": 1}).to_list(1000)
         user_helpfuls = {h["comment_id"] for h in helpfuls}
     
-    return [
-        CommentResponse(**c, user_marked_helpful=c["id"] in user_helpfuls)
-        for c in comments
-    ]
+    # Fetch fresh usernames from user records
+    user_ids = list(set(c["user_id"] for c in comments))
+    users = await db.users.find({"id": {"$in": user_ids}}, {"id": 1, "name": 1, "displayName": 1}).to_list(len(user_ids))
+    user_map = {u["id"]: u.get("displayName") or u.get("name", "Unknown") for u in users}
+    
+    result = []
+    for c in comments:
+        # Use fresh username from user record
+        fresh_username = user_map.get(c["user_id"], c.get("user_name", "Unknown"))
+        comment_data = {**c, "user_name": fresh_username, "user_marked_helpful": c["id"] in user_helpfuls}
+        # Remove _id if present
+        comment_data.pop("_id", None)
+        result.append(comment_data)
+    
+    return result
 
 @api_router.post("/comments/{comment_id}/helpful")
 async def mark_helpful(comment_id: str, user: dict = Depends(require_auth)):
@@ -1689,6 +1713,72 @@ async def unmark_helpful(comment_id: str, user: dict = Depends(require_auth)):
         return {"helpful_count": new_count}
     
     return {"helpful_count": 0}
+
+# ===================== COMMENT EDIT/DELETE =====================
+
+class CommentEditRequest(BaseModel):
+    content: str
+
+@api_router.put("/comments/{comment_id}")
+async def edit_comment(comment_id: str, request: CommentEditRequest, user: dict = Depends(require_auth)):
+    """Edit a comment. Only the comment author can edit."""
+    comment = await db.comments.find_one({"id": comment_id})
+    if not comment:
+        raise HTTPException(status_code=404, detail="Comment not found")
+    
+    # Only comment author can edit
+    if comment["user_id"] != user["id"]:
+        raise HTTPException(status_code=403, detail="You can only edit your own comments")
+    
+    if len(request.content.strip()) == 0:
+        raise HTTPException(status_code=400, detail="Comment cannot be empty")
+    
+    await db.comments.update_one(
+        {"id": comment_id},
+        {"$set": {
+            "content": request.content.strip(),
+            "edited_at": datetime.utcnow()
+        }}
+    )
+    
+    updated_comment = await db.comments.find_one({"id": comment_id}, {"_id": 0})
+    return updated_comment
+
+@api_router.delete("/comments/{comment_id}")
+async def delete_comment(comment_id: str, user: dict = Depends(require_auth)):
+    """Delete a comment. Only the comment author can delete."""
+    comment = await db.comments.find_one({"id": comment_id})
+    if not comment:
+        raise HTTPException(status_code=404, detail="Comment not found")
+    
+    # Only comment author can delete
+    if comment["user_id"] != user["id"]:
+        raise HTTPException(status_code=403, detail="You can only delete your own comments")
+    
+    problem_id = comment["problem_id"]
+    
+    # Delete the comment
+    await db.comments.delete_one({"id": comment_id})
+    
+    # Update problem's comment count
+    problem = await db.problems.find_one({"id": problem_id})
+    if problem:
+        new_count = max(0, problem["comments_count"] - 1)
+        await db.problems.update_one(
+            {"id": problem_id},
+            {"$set": {"comments_count": new_count}}
+        )
+    
+    # Decrement user's comment count in gamification stats (but don't revoke badges)
+    await db.user_stats.update_one(
+        {"user_id": user["id"]},
+        {"$inc": {"total_comments": -1}}
+    )
+    
+    # Also delete any helpfuls on this comment
+    await db.helpfuls.delete_many({"comment_id": comment_id})
+    
+    return {"success": True, "message": "Comment deleted"}
 
 # ===================== NOTIFICATIONS ROUTES =====================
 

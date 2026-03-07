@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, shadows, radius } from '../theme/colors';
 import { getCategoryStyle } from '../theme/categoryStyles';
-import { formatDistanceToNow } from 'date-fns';
+import { formatTimeAgo } from '../utils/formatTimeAgo';
 
 interface Problem {
   id: string;
@@ -25,7 +25,7 @@ interface ProblemCardProps {
 }
 
 export default function ProblemCard({ problem, onPress, onRelate }: ProblemCardProps) {
-  const timeAgo = formatDistanceToNow(new Date(problem.created_at), { addSuffix: true });
+  const timeAgo = formatTimeAgo(problem.created_at);
   const snippet = problem.when_happens && problem.when_happens.length > 80 
     ? problem.when_happens.substring(0, 80) + '...' 
     : (problem.when_happens || '');

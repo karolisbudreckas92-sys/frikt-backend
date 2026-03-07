@@ -1,0 +1,101 @@
+{
+  "summary": "Bug Fixes Testing - Backend 11/11 PASS. All 3 bugs verified fixed. Frontend UI partially tested due to hardcoded production URL.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [
+      {
+        "flow": "Frontend API Configuration",
+        "issue": "Frontend api.ts line 4 has hardcoded production URL 'https://frikt-backend-production.up.railway.app' instead of using EXPO_PUBLIC_BACKEND_URL. This causes CORS errors when frontend preview tries to access production backend.",
+        "affected_selectors": [],
+        "priority": "MEDIUM - known issue from iteration_4"
+      }
+    ],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_bug_fixes.py",
+    "/app/test_reports/pytest/pytest_bug_fixes.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "BUG 1 - formatTimeAgo utility: ✓ Correctly implemented in /app/frontend/src/utils/formatTimeAgo.ts. Handles UTC timestamps consistently with 'about X minutes/hours/days/weeks/months ago' format.",
+    "BUG 1 - ProblemCard.tsx: ✓ Uses formatTimeAgo(problem.created_at) on line 28",
+    "BUG 1 - problem/[id].tsx: ✓ Uses formatTimeAgo for both problem and comment timestamps (lines 20, 377, 618)",
+    "BUG 2 - GET /api/problems: ✓ Lines 1267-1279 fetch fresh usernames from user records via user_map lookup",
+    "BUG 2 - GET /api/problems/{id}/comments: ✓ Lines 1669-1682 fetch fresh usernames from user records",
+    "BUG 3 - PUT /api/comments/{id}: ✓ Lines 1722-1745 allow owner to edit, sets edited_at, returns 403 for non-owners",
+    "BUG 3 - DELETE /api/comments/{id}: ✓ Lines 1747-1781 allow owner to delete, decrements comment count, returns 403 for non-owners",
+    "BUG 3 - Frontend edit/delete UI: ✓ Lines 624-655 show edit/delete menu only for comment author (user && comment.user_id === user.id)",
+    "BUG 3 - Frontend shows (edited) label: ✓ Line 619 shows '(edited)' when comment.edited_at is set"
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_bug_fixes.py (new file)"
+  ],
+  "success_rate": {
+    "backend": "100% (11/11 tests pass)",
+    "frontend": "UI verified - timestamps show 'about X ago', code review confirms edit/delete UI"
+  },
+  "test_credentials": {
+    "preview_api_url": "https://account-deletion-26.preview.emergentagent.com",
+    "test_user_email": "testuser.frikt@example.com",
+    "test_user_password": "TestUser123!"
+  },
+  "seed_data_creation": "Test users created: test_bug_*, another test users for permission tests",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "3 bug fixes verified: 1) formatTimeAgo utility handles UTC timestamps and displays 'about X ago' format. 2) Backend GET endpoints fetch fresh usernames from user records. 3) PUT/DELETE /api/comments/{id} endpoints work with proper owner-only restrictions, frontend shows edit/delete menu only for comment author.",
+  "bugs_verified": {
+    "BUG_1_timestamp_format": {
+      "status": "FIXED",
+      "evidence": [
+        "formatTimeAgo.ts utility correctly parses UTC timestamps",
+        "Frontend UI shows 'about 2 hours ago', 'about 19 hours ago', '4 days ago' etc.",
+        "Backend tests verify created_at is valid ISO datetime"
+      ]
+    },
+    "BUG_2_username_updates": {
+      "status": "FIXED",
+      "evidence": [
+        "test_problems_returns_fresh_username PASSED - updates displayName, GET /api/problems returns new name",
+        "test_comments_returns_fresh_username PASSED - updates displayName, GET /api/problems/{id}/comments returns new name",
+        "Backend uses user_map lookup from db.users to get current displayName"
+      ]
+    },
+    "BUG_3_comment_edit_delete": {
+      "status": "FIXED",
+      "evidence": [
+        "test_edit_own_comment_success PASSED - PUT /api/comments/{id} sets edited_at",
+        "test_delete_own_comment_success PASSED - DELETE removes comment and decrements count",
+        "test_cannot_edit_others_comment PASSED - returns 403 Forbidden",
+        "test_cannot_delete_others_comment PASSED - returns 403 Forbidden",
+        "test_complete_comment_lifecycle PASSED - full create->edit->delete flow works",
+        "Frontend code shows edit/delete menu only when user.id === comment.user_id"
+      ]
+    }
+  },
+  "backend_test_results": {
+    "TestTimestampFormat": {
+      "test_problem_created_at_is_utc": "PASSED",
+      "test_comment_created_at_is_utc": "PASSED"
+    },
+    "TestUsernameUpdates": {
+      "test_problems_returns_fresh_username": "PASSED",
+      "test_comments_returns_fresh_username": "PASSED"
+    },
+    "TestCommentEditDelete": {
+      "test_edit_own_comment_success": "PASSED",
+      "test_delete_own_comment_success": "PASSED",
+      "test_cannot_edit_others_comment": "PASSED",
+      "test_cannot_delete_others_comment": "PASSED",
+      "test_edit_nonexistent_comment": "PASSED",
+      "test_delete_nonexistent_comment": "PASSED"
+    },
+    "TestEndToEndCommentFlow": {
+      "test_complete_comment_lifecycle": "PASSED"
+    }
+  }
+}
