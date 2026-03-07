@@ -8,6 +8,8 @@ import {
   RefreshControl,
   ActivityIndicator,
   Alert,
+  TextInput,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -16,8 +18,9 @@ import { colors, radius } from '@/src/theme/colors';
 import { api } from '@/src/services/api';
 import { useAuth } from '@/src/context/AuthContext';
 import { formatDistanceToNow } from 'date-fns';
+import Toast from 'react-native-root-toast';
 
-type Tab = 'overview' | 'feedback' | 'reports' | 'users' | 'audit';
+type Tab = 'overview' | 'feedback' | 'reports' | 'broadcast' | 'users' | 'audit';
 
 export default function AdminPanel() {
   const router = useRouter();
@@ -44,6 +47,14 @@ export default function AdminPanel() {
   
   // Audit data
   const [auditLogs, setAuditLogs] = useState<any[]>([]);
+  
+  // Broadcast data
+  const [broadcastTitle, setBroadcastTitle] = useState('');
+  const [broadcastBody, setBroadcastBody] = useState('');
+  const [broadcastHistory, setBroadcastHistory] = useState<any[]>([]);
+  const [broadcastStats, setBroadcastStats] = useState<any>(null);
+  const [isSendingBroadcast, setIsSendingBroadcast] = useState(false);
+  const [totalUsers, setTotalUsers] = useState(0);
 
   useEffect(() => {
     if (!isAdmin) {
@@ -67,6 +78,11 @@ export default function AdminPanel() {
             const feedbackData = await api.getAdminFeedback('false');
             setUnreadFeedbackCount(feedbackData.unread_count || 0);
           } catch (e) {}
+          // Load total users for broadcast
+          try {
+            const usersCount = await api.getAdminUsersCount();
+            setTotalUsers(usersCount.total_users || 0);
+          } catch (e) {}
           break;
         case 'feedback':
           const isReadParam = feedbackFilter === 'all' ? undefined : feedbackFilter === 'unread' ? 'false' : 'true';
@@ -77,6 +93,16 @@ export default function AdminPanel() {
         case 'reports':
           const reportsData = await api.getAdminReports(reportFilter);
           setReports(reportsData.reports || []);
+          break;
+        case 'broadcast':
+          const [historyData, statsData, usersCountData] = await Promise.all([
+            api.getBroadcastHistory(),
+            api.getBroadcastStats(),
+            api.getAdminUsersCount()
+          ]);
+          setBroadcastHistory(historyData.broadcasts || []);
+          setBroadcastStats(statsData);
+          setTotalUsers(usersCountData.total_users || 0);
           break;
         case 'users':
           const status = userFilter === 'all' ? undefined : userFilter;
@@ -89,7 +115,7 @@ export default function AdminPanel() {
           break;
       }
     } catch (error) {
-      console.error('Error loading admin data:', error);
+      // Silent fail
     } finally {
       setIsLoading(false);
       setIsRefreshing(false);
@@ -642,6 +668,184 @@ export default function AdminPanel() {
     </View>
   );
 
+  // Broadcast notification handlers
+  const handleSendBroadcast = () => {
+    if (!broadcastTitle.trim() || !broadcastBody.trim()) {
+      Alert.alert('Error', 'Please enter both title and body');
+      return;
+    }
+    
+    if (Platform.OS === 'web') {
+      const confirmed = window.confirm(`Send this notification to all ${totalUsers} users?`);
+      if (confirmed) {
+        performSendBroadcast();
+      }
+    } else {
+      Alert.alert(
+        'Send Notification',
+        `Send this notification to all ${totalUsers} users?`,
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Send', onPress: performSendBroadcast },
+        ]
+      );
+    }
+  };
+
+  const performSendBroadcast = async () => {
+    setIsSendingBroadcast(true);
+    try {
+      const result = await api.broadcastNotification(broadcastTitle.trim(), broadcastBody.trim());
+      Toast.show(`Notification sent to ${result.recipient_count} users`, {
+        duration: Toast.durations.LONG,
+        position: Toast.positions.TOP,
+      });
+      setBroadcastTitle('');
+      setBroadcastBody('');
+      loadData(); // Refresh history
+    } catch (error: any) {
+      Alert.alert('Error', error.response?.data?.detail || 'Failed to send notification');
+    } finally {
+      setIsSendingBroadcast(false);
+    }
+  };
+
+  const renderBroadcast = () => (
+    <ScrollView 
+      style={styles.tabContent}
+      refreshControl={
+        <RefreshControl refreshing={isRefreshing} onRefresh={() => loadData(true)} />
+      }
+    >
+      {/* Rate limit info */}
+      {broadcastStats && (
+        <View style={styles.broadcastStatsCard}>
+          <View style={styles.broadcastStatItem}>
+            <Text style={styles.broadcastStatValue}>{broadcastStats.remaining_broadcasts}</Text>
+            <Text style={styles.broadcastStatLabel}>Remaining today</Text>
+          </View>
+          <View style={styles.broadcastStatItem}>
+            <Text style={styles.broadcastStatValue}>{broadcastStats.total_push_tokens}</Text>
+            <Text style={styles.broadcastStatLabel}>Active tokens</Text>
+          </View>
+        </View>
+      )}
+
+      {/* Compose Form */}
+      <View style={styles.broadcastCard}>
+        <Text style={styles.broadcastSectionTitle}>Compose Notification</Text>
+        
+        <View style={styles.inputGroup}>
+          <View style={styles.inputHeader}>
+            <Text style={styles.inputLabel}>Title</Text>
+            <Text style={[
+              styles.charCount,
+              broadcastTitle.length > 50 && styles.charCountOver
+            ]}>
+              {broadcastTitle.length}/50
+            </Text>
+          </View>
+          <TextInput
+            style={styles.broadcastInput}
+            value={broadcastTitle}
+            onChangeText={(text) => setBroadcastTitle(text.slice(0, 50))}
+            placeholder="Notification title"
+            placeholderTextColor={colors.textMuted}
+            maxLength={50}
+            data-testid="broadcast-title-input"
+          />
+        </View>
+
+        <View style={styles.inputGroup}>
+          <View style={styles.inputHeader}>
+            <Text style={styles.inputLabel}>Body</Text>
+            <Text style={[
+              styles.charCount,
+              broadcastBody.length > 150 && styles.charCountOver
+            ]}>
+              {broadcastBody.length}/150
+            </Text>
+          </View>
+          <TextInput
+            style={[styles.broadcastInput, styles.broadcastInputMultiline]}
+            value={broadcastBody}
+            onChangeText={(text) => setBroadcastBody(text.slice(0, 150))}
+            placeholder="Notification message"
+            placeholderTextColor={colors.textMuted}
+            maxLength={150}
+            multiline
+            numberOfLines={3}
+            data-testid="broadcast-body-input"
+          />
+        </View>
+
+        {/* Preview */}
+        <View style={styles.previewCard}>
+          <Text style={styles.previewTitle}>Preview</Text>
+          <View style={styles.previewNotification}>
+            <View style={styles.previewIcon}>
+              <Ionicons name="notifications" size={20} color={colors.white} />
+            </View>
+            <View style={styles.previewContent}>
+              <Text style={styles.previewAppName}>FRIKT</Text>
+              <Text style={styles.previewNotifTitle} numberOfLines={1}>
+                {broadcastTitle || 'Notification Title'}
+              </Text>
+              <Text style={styles.previewNotifBody} numberOfLines={2}>
+                {broadcastBody || 'Notification message will appear here...'}
+              </Text>
+            </View>
+          </View>
+        </View>
+
+        {/* Send Button */}
+        <TouchableOpacity
+          style={[
+            styles.sendButton,
+            (!broadcastTitle.trim() || !broadcastBody.trim() || isSendingBroadcast) && styles.sendButtonDisabled
+          ]}
+          onPress={handleSendBroadcast}
+          disabled={!broadcastTitle.trim() || !broadcastBody.trim() || isSendingBroadcast}
+          data-testid="broadcast-send-button"
+        >
+          {isSendingBroadcast ? (
+            <ActivityIndicator color={colors.white} size="small" />
+          ) : (
+            <>
+              <Ionicons name="send" size={18} color={colors.white} />
+              <Text style={styles.sendButtonText}>Send to all {totalUsers} users</Text>
+            </>
+          )}
+        </TouchableOpacity>
+      </View>
+
+      {/* History */}
+      <View style={styles.broadcastCard}>
+        <Text style={styles.broadcastSectionTitle}>Recent Broadcasts</Text>
+        
+        {broadcastHistory.length === 0 ? (
+          <View style={styles.emptyState}>
+            <Ionicons name="megaphone-outline" size={32} color={colors.textMuted} />
+            <Text style={styles.emptyTitle}>No broadcasts yet</Text>
+          </View>
+        ) : (
+          broadcastHistory.map((broadcast) => (
+            <View key={broadcast.id} style={styles.historyItem}>
+              <View style={styles.historyHeader}>
+                <Text style={styles.historyTitle} numberOfLines={1}>{broadcast.title}</Text>
+                <Text style={styles.historyRecipients}>{broadcast.recipient_count} users</Text>
+              </View>
+              <Text style={styles.historyBody} numberOfLines={2}>{broadcast.body}</Text>
+              <Text style={styles.historyTime}>
+                {formatDistanceToNow(new Date(broadcast.sent_at), { addSuffix: true })}
+              </Text>
+            </View>
+          ))
+        )}
+      </View>
+    </ScrollView>
+  );
+
   const renderAudit = () => (
     <ScrollView style={styles.tabContent}>
       {auditLogs.length === 0 ? (
@@ -706,6 +910,7 @@ export default function AdminPanel() {
           { key: 'overview', label: 'Overview', icon: 'stats-chart' },
           { key: 'feedback', label: 'Feedback', icon: 'chatbox-ellipses' },
           { key: 'reports', label: 'Reports', icon: 'flag' },
+          { key: 'broadcast', label: 'Broadcast', icon: 'megaphone' },
           { key: 'users', label: 'Users', icon: 'people' },
           { key: 'audit', label: 'Audit', icon: 'list' },
         ].map((tab) => (
@@ -744,6 +949,7 @@ export default function AdminPanel() {
           {activeTab === 'overview' && renderOverview()}
           {activeTab === 'feedback' && renderFeedback()}
           {activeTab === 'reports' && renderReports()}
+          {activeTab === 'broadcast' && renderBroadcast()}
           {activeTab === 'users' && renderUsers()}
           {activeTab === 'audit' && renderAudit()}
         </View>
@@ -1402,5 +1608,179 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: colors.textMuted,
     marginTop: 4,
+  },
+  // Broadcast styles
+  broadcastStatsCard: {
+    flexDirection: 'row',
+    backgroundColor: colors.surface,
+    borderRadius: radius.md,
+    padding: 16,
+    marginBottom: 16,
+    gap: 16,
+  },
+  broadcastStatItem: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  broadcastStatValue: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: colors.primary,
+  },
+  broadcastStatLabel: {
+    fontSize: 12,
+    color: colors.textMuted,
+    marginTop: 4,
+  },
+  broadcastCard: {
+    backgroundColor: colors.surface,
+    borderRadius: radius.md,
+    padding: 16,
+    marginBottom: 16,
+  },
+  broadcastSectionTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.text,
+    marginBottom: 16,
+  },
+  inputGroup: {
+    marginBottom: 16,
+  },
+  inputHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  inputLabel: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: colors.text,
+  },
+  charCount: {
+    fontSize: 12,
+    color: colors.textMuted,
+  },
+  charCountOver: {
+    color: colors.error,
+  },
+  broadcastInput: {
+    backgroundColor: colors.background,
+    borderRadius: radius.sm,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    fontSize: 15,
+    color: colors.text,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  broadcastInputMultiline: {
+    minHeight: 80,
+    textAlignVertical: 'top',
+  },
+  previewCard: {
+    backgroundColor: colors.background,
+    borderRadius: radius.md,
+    padding: 12,
+    marginBottom: 16,
+  },
+  previewTitle: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: colors.textMuted,
+    marginBottom: 10,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+  },
+  previewNotification: {
+    flexDirection: 'row',
+    backgroundColor: colors.surface,
+    borderRadius: radius.md,
+    padding: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  previewIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 10,
+    backgroundColor: colors.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  previewContent: {
+    flex: 1,
+  },
+  previewAppName: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: colors.textMuted,
+    marginBottom: 2,
+  },
+  previewNotifTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.text,
+    marginBottom: 2,
+  },
+  previewNotifBody: {
+    fontSize: 13,
+    color: colors.textSecondary,
+    lineHeight: 18,
+  },
+  sendButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.primary,
+    borderRadius: radius.md,
+    paddingVertical: 14,
+    gap: 8,
+  },
+  sendButtonDisabled: {
+    opacity: 0.5,
+  },
+  sendButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.white,
+  },
+  historyItem: {
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  historyHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  historyTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.text,
+    flex: 1,
+  },
+  historyRecipients: {
+    fontSize: 12,
+    color: colors.accent,
+    fontWeight: '500',
+    marginLeft: 8,
+  },
+  historyBody: {
+    fontSize: 13,
+    color: colors.textSecondary,
+    lineHeight: 18,
+    marginBottom: 4,
+  },
+  historyTime: {
+    fontSize: 11,
+    color: colors.textMuted,
   },
 });

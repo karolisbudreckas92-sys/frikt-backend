@@ -145,6 +145,11 @@
 - `DELETE /api/users/{user_id}/follow` - Unfollow a user
 - `GET /api/users/{user_id}/is-following` - Check if following user
 
+### Admin Features
+- `POST /api/admin/broadcast-notification` - Send push notification to all users
+- `GET /api/admin/broadcast-history` - Get last 10 broadcasts
+- `GET /api/admin/broadcast-stats` - Get rate limit info and token counts
+
 ## Test Results
 - Backend: 21/21 gamification tests PASS (100%)
 - Backend: 11/11 bug fix tests PASS (100%)

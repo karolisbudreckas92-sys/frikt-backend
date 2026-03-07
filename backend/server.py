@@ -2766,6 +2766,132 @@ async def clear_needs_context(problem_id: str, admin: dict = Depends(require_adm
     await log_admin_action(admin, "clear_needs_context", "problem", problem_id)
     return {"success": True, "needs_context": False}
 
+# ===================== BROADCAST NOTIFICATIONS =====================
+
+class BroadcastNotificationRequest(BaseModel):
+    title: str
+    body: str
+
+@api_router.post("/admin/broadcast-notification")
+async def broadcast_notification(request: BroadcastNotificationRequest, admin: dict = Depends(require_admin)):
+    """Send a push notification to all users with notifications enabled"""
+    
+    # Validate input
+    if len(request.title) > 50:
+        raise HTTPException(status_code=400, detail="Title must be 50 characters or less")
+    if len(request.body) > 150:
+        raise HTTPException(status_code=400, detail="Body must be 150 characters or less")
+    if not request.title.strip() or not request.body.strip():
+        raise HTTPException(status_code=400, detail="Title and body are required")
+    
+    # Rate limit: max 3 broadcasts per day
+    today = datetime.utcnow().strftime("%Y-%m-%d")
+    today_start = datetime.strptime(today, "%Y-%m-%d")
+    today_end = today_start + timedelta(days=1)
+    
+    broadcasts_today = await db.broadcast_logs.count_documents({
+        "sent_at": {"$gte": today_start, "$lt": today_end}
+    })
+    
+    if broadcasts_today >= 3:
+        raise HTTPException(
+            status_code=429, 
+            detail=f"Rate limit exceeded. Max 3 broadcasts per day. You have sent {broadcasts_today} today."
+        )
+    
+    # Get all users with notifications enabled
+    # First get users who have NOT disabled notifications (default is enabled)
+    users_with_disabled = await db.notification_settings.find(
+        {"push_notifications": False},
+        {"user_id": 1}
+    ).to_list(10000)
+    disabled_user_ids = {u["user_id"] for u in users_with_disabled}
+    
+    # Get all active push tokens for users who haven't disabled notifications
+    all_tokens = await db.push_tokens.find(
+        {"is_active": True},
+        {"token": 1, "user_id": 1}
+    ).to_list(50000)
+    
+    # Filter out tokens for users who disabled notifications
+    active_tokens = [t for t in all_tokens if t["user_id"] not in disabled_user_ids]
+    
+    if not active_tokens:
+        raise HTTPException(status_code=400, detail="No users with push notifications enabled")
+    
+    # Send notifications in batches
+    tokens_list = [t["token"] for t in active_tokens]
+    recipient_count = len(set(t["user_id"] for t in active_tokens))  # Unique users
+    
+    # Send the push notification
+    await send_push_notification(
+        tokens=tokens_list,
+        title=request.title.strip(),
+        body=request.body.strip(),
+        data={"type": "broadcast"}
+    )
+    
+    # Log the broadcast
+    broadcast_log = {
+        "id": str(uuid.uuid4()),
+        "admin_id": admin["id"],
+        "admin_email": admin["email"],
+        "title": request.title.strip(),
+        "body": request.body.strip(),
+        "sent_at": datetime.utcnow(),
+        "recipient_count": recipient_count,
+        "tokens_count": len(tokens_list)
+    }
+    await db.broadcast_logs.insert_one(broadcast_log)
+    
+    # Also log as admin action
+    await log_admin_action(admin, "broadcast_notification", "broadcast", broadcast_log["id"], {
+        "title": request.title,
+        "recipient_count": recipient_count
+    })
+    
+    return {
+        "success": True,
+        "message": f"Notification sent to {recipient_count} users",
+        "recipient_count": recipient_count
+    }
+
+@api_router.get("/admin/broadcast-history")
+async def get_broadcast_history(admin: dict = Depends(require_admin)):
+    """Get recent broadcast notification history"""
+    broadcasts = await db.broadcast_logs.find(
+        {},
+        {"_id": 0}
+    ).sort("sent_at", -1).limit(10).to_list(10)
+    
+    return {"broadcasts": broadcasts}
+
+@api_router.get("/admin/broadcast-stats")
+async def get_broadcast_stats(admin: dict = Depends(require_admin)):
+    """Get broadcast stats including rate limit info"""
+    # Get today's broadcast count
+    today = datetime.utcnow().strftime("%Y-%m-%d")
+    today_start = datetime.strptime(today, "%Y-%m-%d")
+    today_end = today_start + timedelta(days=1)
+    
+    broadcasts_today = await db.broadcast_logs.count_documents({
+        "sent_at": {"$gte": today_start, "$lt": today_end}
+    })
+    
+    # Get total users with active push tokens
+    total_tokens = await db.push_tokens.count_documents({"is_active": True})
+    
+    # Get users who disabled push notifications
+    disabled_count = await db.notification_settings.count_documents({"push_notifications": False})
+    
+    return {
+        "broadcasts_today": broadcasts_today,
+        "max_broadcasts_per_day": 3,
+        "remaining_broadcasts": max(0, 3 - broadcasts_today),
+        "total_push_tokens": total_tokens,
+        "users_with_disabled_notifications": disabled_count
+    }
+
 class MergeDuplicatesRequest(BaseModel):
     duplicate_ids: List[str]
 

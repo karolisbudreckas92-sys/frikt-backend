@@ -579,6 +579,23 @@ class ApiService {
     const response = await this.client.delete(`/comments/${commentId}`);
     return response.data;
   }
+
+  // ===================== ADMIN BROADCAST =====================
+
+  async broadcastNotification(title: string, body: string) {
+    const response = await this.client.post('/admin/broadcast-notification', { title, body });
+    return response.data;
+  }
+
+  async getBroadcastHistory() {
+    const response = await this.client.get('/admin/broadcast-history');
+    return response.data;
+  }
+
+  async getBroadcastStats() {
+    const response = await this.client.get('/admin/broadcast-stats');
+    return response.data;
+  }
 }
 
 export const api = new ApiService();
