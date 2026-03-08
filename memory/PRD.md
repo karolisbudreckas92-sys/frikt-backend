@@ -117,6 +117,7 @@
 - [x] **Case-Sensitive Email** (Mar 8, 2026) - Fixed duplicate account creation with different email casing by normalizing to lowercase
 - [x] **Whitespace Post Validation** (Mar 8, 2026) - Fixed whitespace-only posts bypassing min_length validation
 - [x] **Notifications ObjectId** (Mar 8, 2026) - Fixed 500 error on /api/notifications by excluding MongoDB _id from response
+- [x] **Password Reset Flow** (Mar 8, 2026) - Implemented complete password reset with 6-digit email codes via Resend
 
 ### Full Application Audit ✅ (Mar 8, 2026)
 - Completed comprehensive 14-section audit of all features
@@ -193,5 +194,9 @@ eas submit --platform ios --latest
 - [ ] Add report option on comment long-press
 - [ ] Refactor server.py into separate routers
 - [ ] Environment variable system for api.ts (replace hardcoded production URL)
-- [ ] Implement password reset flow (flagged in audit)
 - [ ] Add database indexes on user_stats and user_achievements collections
+
+## Email Configuration (Required for Password Reset)
+To enable password reset emails, add these environment variables to your Railway backend:
+- `RESEND_API_KEY` - Get from https://resend.com (free tier: 3000 emails/month)
+- `SENDER_EMAIL` - Your verified sending domain email (default: onboarding@resend.dev for testing)

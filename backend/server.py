@@ -7,14 +7,17 @@ from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
 import os
 import logging
+import asyncio
 from pathlib import Path
 from pydantic import BaseModel, Field, EmailStr
 from typing import List, Optional
 import uuid
+import secrets
 from datetime import datetime, timedelta
 import jwt
 from passlib.context import CryptContext
 import httpx
+import resend
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -31,6 +34,16 @@ ACCESS_TOKEN_EXPIRE_DAYS = 30
 
 # Admin Settings
 ADMIN_EMAILS = [e.strip().lower() for e in os.environ.get('ADMIN_EMAILS', '').split(',') if e.strip()]
+
+# Email Settings (Resend)
+RESEND_API_KEY = os.environ.get('RESEND_API_KEY', '')
+SENDER_EMAIL = os.environ.get('SENDER_EMAIL', 'onboarding@resend.dev')
+APP_NAME = "FRIKT"
+RESET_TOKEN_EXPIRE_HOURS = 1  # Password reset tokens expire after 1 hour
+
+# Initialize Resend if API key is present
+if RESEND_API_KEY:
+    resend.api_key = RESEND_API_KEY
 
 # Password hashing
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -413,6 +426,23 @@ class BlockedUser(BaseModel):
 class ChangePasswordRequest(BaseModel):
     current_password: str
     new_password: str
+
+# Password Reset Models
+class PasswordResetRequest(BaseModel):
+    email: EmailStr
+
+class PasswordResetConfirm(BaseModel):
+    token: str
+    new_password: str = Field(..., min_length=6)
+
+class PasswordResetToken(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    user_id: str
+    token: str
+    email: str
+    expires_at: datetime
+    used: bool = False
+    created_at: datetime = Field(default_factory=datetime.utcnow)
 
 # Admin Audit Log Model
 class AdminAuditLog(BaseModel):
@@ -1018,6 +1048,172 @@ async def login(credentials: UserLogin):
 @api_router.get("/auth/me", response_model=UserResponse)
 async def get_me(user: dict = Depends(require_auth)):
     return UserResponse(**user)
+
+# ===================== PASSWORD RESET ROUTES =====================
+
+async def send_password_reset_email(email: str, token: str, user_name: str):
+    """Send password reset email using Resend"""
+    if not RESEND_API_KEY:
+        logger.warning("RESEND_API_KEY not configured - cannot send password reset email")
+        return False
+    
+    # Generate reset link - this would be a deep link or web page in production
+    reset_link = f"frikt://reset-password?token={token}"
+    
+    html_content = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="utf-8">
+        <title>Reset Your Password</title>
+    </head>
+    <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #F6F3EE;">
+        <div style="background-color: #2B2F36; padding: 20px; text-align: center; border-radius: 8px 8px 0 0;">
+            <h1 style="color: #E4572E; margin: 0; font-size: 28px;">FRIKT</h1>
+        </div>
+        <div style="background-color: white; padding: 30px; border-radius: 0 0 8px 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+            <h2 style="color: #2B2F36; margin-top: 0;">Reset Your Password</h2>
+            <p style="color: #666; line-height: 1.6;">Hi {user_name},</p>
+            <p style="color: #666; line-height: 1.6;">We received a request to reset your password. Use the code below to reset it:</p>
+            <div style="background-color: #F6F3EE; padding: 20px; text-align: center; border-radius: 8px; margin: 20px 0;">
+                <span style="font-size: 32px; font-weight: bold; color: #E4572E; letter-spacing: 4px;">{token}</span>
+            </div>
+            <p style="color: #666; line-height: 1.6;">This code expires in <strong>1 hour</strong>.</p>
+            <p style="color: #666; line-height: 1.6;">If you didn't request this reset, you can safely ignore this email.</p>
+            <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
+            <p style="color: #999; font-size: 12px;">Share frictions. Find patterns.</p>
+        </div>
+    </body>
+    </html>
+    """
+    
+    params = {
+        "from": SENDER_EMAIL,
+        "to": [email],
+        "subject": f"Reset your {APP_NAME} password",
+        "html": html_content
+    }
+    
+    try:
+        email_result = await asyncio.to_thread(resend.Emails.send, params)
+        logger.info(f"Password reset email sent to {email}, id: {email_result.get('id')}")
+        return True
+    except Exception as e:
+        logger.error(f"Failed to send password reset email: {str(e)}")
+        return False
+
+@api_router.post("/auth/forgot-password")
+async def forgot_password(request: PasswordResetRequest, background_tasks: BackgroundTasks):
+    """Request a password reset email"""
+    email_lower = request.email.lower().strip()
+    
+    # Find user by email
+    user = await db.users.find_one({"email": email_lower})
+    
+    # Always return success even if user doesn't exist (security best practice)
+    if not user:
+        logger.info(f"Password reset requested for non-existent email: {email_lower}")
+        return {"success": True, "message": "If an account exists with this email, you will receive a reset code."}
+    
+    # Check if user is banned
+    if user.get("status") == "banned":
+        return {"success": True, "message": "If an account exists with this email, you will receive a reset code."}
+    
+    # Generate a simple 6-digit code (easier for users to type on mobile)
+    reset_code = ''.join([str(secrets.randbelow(10)) for _ in range(6)])
+    
+    # Invalidate any existing reset tokens for this user
+    await db.password_reset_tokens.update_many(
+        {"user_id": user["id"], "used": False},
+        {"$set": {"used": True}}
+    )
+    
+    # Create new reset token
+    reset_token = PasswordResetToken(
+        user_id=user["id"],
+        token=reset_code,
+        email=email_lower,
+        expires_at=datetime.utcnow() + timedelta(hours=RESET_TOKEN_EXPIRE_HOURS)
+    )
+    await db.password_reset_tokens.insert_one(reset_token.dict())
+    
+    # Send email in background
+    user_name = user.get("displayName") or user.get("name", "User")
+    background_tasks.add_task(send_password_reset_email, email_lower, reset_code, user_name)
+    
+    logger.info(f"Password reset token created for user: {user['id']}")
+    return {"success": True, "message": "If an account exists with this email, you will receive a reset code."}
+
+@api_router.post("/auth/reset-password")
+async def reset_password(request: PasswordResetConfirm):
+    """Reset password using the reset token/code"""
+    # Find the token
+    token_doc = await db.password_reset_tokens.find_one({
+        "token": request.token,
+        "used": False
+    }, {"_id": 0})
+    
+    if not token_doc:
+        raise HTTPException(status_code=400, detail="Invalid or expired reset code")
+    
+    # Check expiration
+    expires_at = token_doc.get("expires_at")
+    if isinstance(expires_at, str):
+        expires_at = datetime.fromisoformat(expires_at.replace("Z", "+00:00"))
+    
+    if datetime.utcnow() > expires_at:
+        # Mark token as used
+        await db.password_reset_tokens.update_one(
+            {"id": token_doc["id"]},
+            {"$set": {"used": True}}
+        )
+        raise HTTPException(status_code=400, detail="Reset code has expired. Please request a new one.")
+    
+    # Find the user
+    user = await db.users.find_one({"id": token_doc["user_id"]})
+    if not user:
+        raise HTTPException(status_code=400, detail="User not found")
+    
+    # Validate new password
+    if len(request.new_password) < 6:
+        raise HTTPException(status_code=400, detail="Password must be at least 6 characters")
+    
+    # Update password
+    hashed_password = hash_password(request.new_password)
+    await db.users.update_one(
+        {"id": user["id"]},
+        {"$set": {"password_hash": hashed_password}}
+    )
+    
+    # Mark token as used
+    await db.password_reset_tokens.update_one(
+        {"id": token_doc["id"]},
+        {"$set": {"used": True}}
+    )
+    
+    logger.info(f"Password reset successful for user: {user['id']}")
+    return {"success": True, "message": "Password has been reset successfully. You can now log in with your new password."}
+
+@api_router.post("/auth/verify-reset-code")
+async def verify_reset_code(token: str):
+    """Verify if a reset code is valid (without using it)"""
+    token_doc = await db.password_reset_tokens.find_one({
+        "token": token,
+        "used": False
+    }, {"_id": 0})
+    
+    if not token_doc:
+        return {"valid": False, "message": "Invalid or expired reset code"}
+    
+    # Check expiration
+    expires_at = token_doc.get("expires_at")
+    if isinstance(expires_at, str):
+        expires_at = datetime.fromisoformat(expires_at.replace("Z", "+00:00"))
+    
+    if datetime.utcnow() > expires_at:
+        return {"valid": False, "message": "Reset code has expired"}
+    
+    return {"valid": True, "email": token_doc.get("email")}
 
 # ===================== CATEGORIES ROUTES =====================
 
