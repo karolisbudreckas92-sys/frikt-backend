@@ -39,7 +39,30 @@ interface BadgeData {
   stats: any;
 }
 
-export function BadgeSection() {
+// Error boundary wrapper for BadgeSection
+class BadgeSectionErrorBoundary extends React.Component<{children: React.ReactNode}, {hasError: boolean}> {
+  constructor(props: any) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+
+  componentDidCatch(error: any, info: any) {
+    console.error('BadgeSection error:', error, info);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return null; // Silently hide badges if there's an error
+    }
+    return this.props.children;
+  }
+}
+
+function BadgeSectionContent() {
   const [badgeData, setBadgeData] = useState<BadgeData | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedBadge, setSelectedBadge] = useState<Badge | null>(null);
@@ -362,5 +385,14 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
 });
+
+// Main export - wrapped in error boundary
+export function BadgeSection() {
+  return (
+    <BadgeSectionErrorBoundary>
+      <BadgeSectionContent />
+    </BadgeSectionErrorBoundary>
+  );
+}
 
 export default BadgeSection;
