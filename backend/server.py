@@ -17,7 +17,14 @@ from datetime import datetime, timedelta
 import jwt
 from passlib.context import CryptContext
 import httpx
-import resend
+
+# Optional import for resend (email service)
+try:
+    import resend
+    RESEND_AVAILABLE = True
+except ImportError:
+    RESEND_AVAILABLE = False
+    logging.warning("resend package not installed - password reset emails will be disabled")
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -41,8 +48,8 @@ SENDER_EMAIL = os.environ.get('SENDER_EMAIL', 'onboarding@resend.dev')
 APP_NAME = "FRIKT"
 RESET_TOKEN_EXPIRE_HOURS = 1  # Password reset tokens expire after 1 hour
 
-# Initialize Resend if API key is present
-if RESEND_API_KEY:
+# Initialize Resend if API key is present and package is available
+if RESEND_API_KEY and RESEND_AVAILABLE:
     resend.api_key = RESEND_API_KEY
 
 # Password hashing
@@ -1053,6 +1060,10 @@ async def get_me(user: dict = Depends(require_auth)):
 
 async def send_password_reset_email(email: str, token: str, user_name: str):
     """Send password reset email using Resend"""
+    if not RESEND_AVAILABLE:
+        logger.warning("resend package not installed - cannot send password reset email")
+        return False
+        
     if not RESEND_API_KEY:
         logger.warning("RESEND_API_KEY not configured - cannot send password reset email")
         return False
