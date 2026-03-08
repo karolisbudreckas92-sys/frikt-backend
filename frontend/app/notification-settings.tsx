@@ -49,7 +49,9 @@ export default function NotificationSettings() {
 
   const checkPushStatus = async () => {
     const token = await registerForPushNotificationsAsync();
-    setPushEnabled(!!token && !token.startsWith('simulator-') && !token.startsWith('web-'));
+    // Token is valid if it exists and starts with "ExponentPushToken"
+    const isValid = !!token && token.startsWith('ExponentPushToken');
+    setPushEnabled(isValid);
   };
 
   const handleToggle = async (key: string, value: boolean) => {
@@ -120,7 +122,7 @@ export default function NotificationSettings() {
             <Text style={styles.statusText}>
               {pushEnabled 
                 ? 'You will receive push notifications on this device' 
-                : 'Use the Expo Go app on a physical device for full push support'}
+                : 'Enable notifications in your device settings to receive alerts'}
             </Text>
           </View>
         </View>

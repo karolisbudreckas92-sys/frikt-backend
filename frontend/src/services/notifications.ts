@@ -51,18 +51,19 @@ export async function registerForPushNotificationsAsync(): Promise<string | null
       if (projectId) {
         token = (await Notifications.getExpoPushTokenAsync({ projectId })).data;
       } else {
-        // Fallback for development
+        // Fallback - try without projectId
         token = (await Notifications.getExpoPushTokenAsync()).data;
       }
+      console.log('[Push] Got token:', token?.substring(0, 30) + '...');
     } catch (error) {
-      console.log('Error getting push token:', error);
-      // For web or simulator, use a placeholder
-      token = `web-${Date.now()}`;
+      console.log('[Push] Error getting push token:', error);
+      // Return null instead of fake token - indicates real failure
+      return null;
     }
   } else {
     console.log('Must use physical device for Push Notifications');
-    // Return a placeholder for simulator/emulator testing
-    token = `simulator-${Date.now()}`;
+    // Return null for simulator/emulator
+    return null;
   }
 
   return token;
