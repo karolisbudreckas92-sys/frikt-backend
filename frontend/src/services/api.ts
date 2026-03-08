@@ -468,6 +468,12 @@ class ApiService {
     return response.data;
   }
 
+  async getAdminUsersCount() {
+    // Get count of users with active push tokens for broadcast
+    const response = await this.client.get('/admin/broadcast-stats');
+    return { total_users: response.data.total_push_tokens || 0 };
+  }
+
   async getAdminUserDetail(userId: string) {
     const response = await this.client.get(`/admin/users/${userId}`);
     return response.data;
