@@ -4,11 +4,13 @@ import { useRouter } from 'expo-router';
 import { colors } from '@/src/theme/colors';
 import PostWizard from '@/src/components/PostWizard';
 import Toast from 'react-native-root-toast';
+import { useBadges } from '@/src/contexts/BadgeContext';
 
 export default function PostTab() {
   const router = useRouter();
+  const { showCelebration } = useBadges();
 
-  const handleComplete = (problemId?: string) => {
+  const handleComplete = (problemId?: string, newlyAwardedBadges?: any[]) => {
     // Show success toast
     Toast.show('Frikt posted ✅', {
       duration: Toast.durations.SHORT,
@@ -26,9 +28,15 @@ export default function PostTab() {
       },
     });
 
-    // Navigate to home first, then to the problem detail
-    // This ensures back button works properly
+    // Navigate to home first
     router.replace('/(tabs)/home');
+    
+    // Show celebration if badges were awarded (after navigation)
+    if (newlyAwardedBadges && newlyAwardedBadges.length > 0) {
+      setTimeout(() => {
+        showCelebration(newlyAwardedBadges);
+      }, 500);
+    }
   };
 
   const handleCancel = () => {

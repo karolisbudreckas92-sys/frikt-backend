@@ -131,8 +131,13 @@ export default function ProblemDetail() {
       if (wasRelated) {
         await api.unrelateToProblem(problem.id);
       } else {
-        await api.relateToProblem(problem.id);
+        const response = await api.relateToProblem(problem.id);
         showToast('Relates +1 ❤️');
+        
+        // Show celebration if badges were awarded
+        if (response.newly_awarded_badges && response.newly_awarded_badges.length > 0) {
+          showCelebration(response.newly_awarded_badges);
+        }
       }
     } catch (error) {
       // Rollback
@@ -246,11 +251,16 @@ export default function ProblemDetail() {
     
     setIsSubmitting(true);
     try {
-      const newComment = await api.createComment(id!, commentText.trim());
-      setComments([newComment, ...comments]);
+      const response = await api.createComment(id!, commentText.trim());
+      setComments([response, ...comments]);
       setCommentText('');
       setProblem({ ...problem, comments_count: problem.comments_count + 1 });
       showToast('Comment added ✓');
+      
+      // Show celebration if badges were awarded
+      if (response.newly_awarded_badges && response.newly_awarded_badges.length > 0) {
+        showCelebration(response.newly_awarded_badges);
+      }
     } catch (error) {
       showToast('Failed to add comment', true);
     } finally {

@@ -18,7 +18,7 @@ import { api } from '../services/api';
 import Toast from 'react-native-root-toast';
 
 interface PostWizardProps {
-  onComplete: (problemId?: string) => void;
+  onComplete: (problemId?: string, newlyAwardedBadges?: any[]) => void;
   onCancel: () => void;
 }
 
@@ -41,7 +41,7 @@ const showToast = (message: string, isError: boolean = false) => {
 };
 
 interface PostWizardProps {
-  onComplete: (problemId?: string) => void;
+  onComplete: (problemId?: string, newlyAwardedBadges?: any[]) => void;
   onCancel: () => void;
 }
 
@@ -140,7 +140,7 @@ export default function PostWizard({ onComplete, onCancel }: PostWizardProps) {
       // Show success toast
       showToast('Posted ✓');
       
-      onComplete(result.id);
+      onComplete(result.id, result.newly_awarded_badges);
     } catch (error: any) {
       console.error('Post error:', error);
       setIsSubmitting(false);
