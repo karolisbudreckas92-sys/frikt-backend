@@ -3386,6 +3386,88 @@ async def get_broadcast_stats(admin: dict = Depends(require_admin)):
         "users_with_disabled_notifications": disabled_count
     }
 
+@api_router.get("/admin/debug-push-tokens")
+async def debug_push_tokens(admin: dict = Depends(require_admin)):
+    """Debug endpoint to check push token formats"""
+    tokens = await db.push_tokens.find({"is_active": True}, {"_id": 0}).to_list(100)
+    
+    valid_expo_tokens = []
+    invalid_tokens = []
+    
+    for t in tokens:
+        token = t.get("token", "")
+        user_id = t.get("user_id", "")
+        
+        if token.startswith("ExponentPushToken[") or token.startswith("ExpoPushToken["):
+            valid_expo_tokens.append({
+                "user_id": user_id[:8] + "...",
+                "token_prefix": token[:30] + "...",
+                "platform": t.get("platform", "unknown")
+            })
+        elif token.startswith("simulator-") or token.startswith("web-"):
+            invalid_tokens.append({
+                "user_id": user_id[:8] + "...",
+                "reason": "simulator/web token",
+                "token_prefix": token[:20]
+            })
+        else:
+            invalid_tokens.append({
+                "user_id": user_id[:8] + "...",
+                "reason": "unknown format",
+                "token_prefix": token[:30] if token else "empty"
+            })
+    
+    return {
+        "total_tokens": len(tokens),
+        "valid_expo_tokens": len(valid_expo_tokens),
+        "invalid_tokens": len(invalid_tokens),
+        "valid_tokens_sample": valid_expo_tokens[:5],
+        "invalid_tokens_sample": invalid_tokens[:5]
+    }
+
+@api_router.post("/admin/test-push")
+async def test_push_notification(admin: dict = Depends(require_admin)):
+    """Send a test push notification to the admin's devices"""
+    # Get admin's push tokens
+    admin_tokens = await db.push_tokens.find(
+        {"user_id": admin["id"], "is_active": True},
+        {"token": 1}
+    ).to_list(10)
+    
+    if not admin_tokens:
+        return {
+            "success": False,
+            "error": "No push tokens registered for your account",
+            "hint": "Open the app on your physical device to register a push token"
+        }
+    
+    tokens = [t["token"] for t in admin_tokens]
+    
+    # Filter valid tokens
+    valid_tokens = [t for t in tokens if t.startswith("ExponentPushToken[") or t.startswith("ExpoPushToken[")]
+    invalid_count = len(tokens) - len(valid_tokens)
+    
+    if not valid_tokens:
+        return {
+            "success": False,
+            "error": f"All {len(tokens)} tokens are invalid format",
+            "tokens_preview": [t[:30] for t in tokens[:3]]
+        }
+    
+    # Send test notification
+    await send_push_notification(
+        tokens=valid_tokens,
+        title="Test Notification",
+        body="This is a test push notification from FRIKT admin panel.",
+        data={"type": "test", "timestamp": datetime.utcnow().isoformat()}
+    )
+    
+    return {
+        "success": True,
+        "message": f"Test notification sent to {len(valid_tokens)} valid tokens",
+        "invalid_tokens_skipped": invalid_count
+    }
+
 class MergeDuplicatesRequest(BaseModel):
     duplicate_ids: List[str]
 
@@ -3684,12 +3766,23 @@ EXPO_PUSH_URL = "https://exp.host/--/api/v2/push/send"
 async def send_push_notification(tokens: List[str], title: str, body: str, data: dict = None):
     """Send push notification via Expo's push notification service"""
     if not tokens:
+        logger.warning("send_push_notification called with empty tokens list")
         return
     
     messages = []
+    skipped_tokens = []
     for token in tokens:
         # Skip invalid tokens
-        if not token or token.startswith('simulator-') or token.startswith('web-'):
+        if not token:
+            skipped_tokens.append("empty")
+            continue
+        if token.startswith('simulator-') or token.startswith('web-'):
+            skipped_tokens.append(f"invalid:{token[:20]}")
+            continue
+        
+        # Validate Expo token format
+        if not (token.startswith('ExponentPushToken[') or token.startswith('ExpoPushToken[')):
+            skipped_tokens.append(f"wrong_format:{token[:30]}")
             continue
             
         message = {
@@ -3698,14 +3791,22 @@ async def send_push_notification(tokens: List[str], title: str, body: str, data:
             "title": title,
             "body": body,
             "data": data or {},
+            "priority": "high",  # Ensure high priority for immediate delivery
+            "channelId": "default",  # Android notification channel
         }
         messages.append(message)
     
+    if skipped_tokens:
+        logger.warning(f"Skipped {len(skipped_tokens)} invalid tokens: {skipped_tokens[:5]}")
+    
     if not messages:
+        logger.warning("No valid messages to send after filtering tokens")
         return
     
+    logger.info(f"Sending {len(messages)} push notifications with title: {title}")
+    
     try:
-        async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient(timeout=30.0) as client:
             response = await client.post(
                 EXPO_PUSH_URL,
                 json=messages,
@@ -3716,17 +3817,33 @@ async def send_push_notification(tokens: List[str], title: str, body: str, data:
                 }
             )
             result = response.json()
-            logger.info(f"Push notification sent: {result}")
+            logger.info(f"Expo Push API response status: {response.status_code}")
+            logger.info(f"Expo Push API result: {result}")
             
             # Handle failed tokens (remove them from database)
             if "data" in result:
+                success_count = 0
+                error_count = 0
                 for i, ticket in enumerate(result["data"]):
-                    if ticket.get("status") == "error":
+                    if ticket.get("status") == "ok":
+                        success_count += 1
+                    elif ticket.get("status") == "error":
+                        error_count += 1
                         error_type = ticket.get("details", {}).get("error")
+                        error_message = ticket.get("message", "")
+                        logger.error(f"Push ticket error: {error_type} - {error_message} for token: {messages[i]['to'][:30]}...")
+                        
                         if error_type in ["DeviceNotRegistered", "InvalidCredentials"]:
                             # Remove invalid token
                             await db.push_tokens.delete_one({"token": messages[i]["to"]})
-                            logger.info(f"Removed invalid push token: {messages[i]['to']}")
+                            logger.info(f"Removed invalid push token: {messages[i]['to'][:30]}...")
+                
+                logger.info(f"Push notification results: {success_count} success, {error_count} errors")
+            else:
+                logger.warning(f"Unexpected Expo response format: {result}")
+                
+    except httpx.TimeoutException:
+        logger.error("Timeout sending push notification to Expo API")
     except Exception as e:
         logger.error(f"Failed to send push notification: {e}")
 
