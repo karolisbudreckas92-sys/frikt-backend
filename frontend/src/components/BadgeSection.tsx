@@ -1,17 +1,33 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, Modal, StyleSheet, ScrollView, ActivityIndicator } from 'react-native';
+import { 
+  View, 
+  Text, 
+  TouchableOpacity, 
+  Modal, 
+  StyleSheet, 
+  ScrollView, 
+  ActivityIndicator,
+  SafeAreaView,
+  Dimensions 
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { api } from '../services/api';
 
+const { width } = Dimensions.get('window');
+const BADGE_SIZE = (width - 80) / 4;
+
 const colors = {
-  background: '#F6F3EE',
-  cardBg: '#FFFFFF',
-  darkBar: '#2B2F36',
+  background: '#1A1D24',
+  cardBg: '#2B2F36',
+  surface: '#3A3F47',
   primary: '#E4572E',
-  textPrimary: '#1A1A1A',
-  textSecondary: '#666666',
-  textMuted: '#999999',
-  border: '#E5E5E5',
+  textPrimary: '#FFFFFF',
+  textSecondary: '#9CA3AF',
+  textMuted: '#6B7280',
+  border: '#3A3F47',
+  gold: '#FFD700',
+  unlocked: '#F59E0B',
+  locked: '#4B5563',
 };
 
 interface Badge {
@@ -35,11 +51,196 @@ interface BadgeData {
   stats: any;
 }
 
-function SafeBadgeSection() {
+// Group badges by category
+function groupByCategory(badges: Badge[]): Record<string, Badge[]> {
+  return badges.reduce((acc, badge) => {
+    const cat = badge.category || 'Other';
+    if (!acc[cat]) acc[cat] = [];
+    acc[cat].push(badge);
+    return acc;
+  }, {} as Record<string, Badge[]>);
+}
+
+// Category display names
+const categoryNames: Record<string, string> = {
+  'streak': 'Visit Streaks',
+  'explorer': 'Explorer',
+  'relater': 'Relater',
+  'creator': 'Creator',
+  'commenter': 'Commenter',
+  'social_impact': 'Social Impact',
+  'social': 'Social',
+  'category_pioneer': 'Category Pioneer',
+  'category_expert': 'Category Expert',
+  'special': 'Special',
+  'Other': 'Other',
+};
+
+// Hexagon Badge Component
+function HexagonBadge({ badge, onPress }: { badge: Badge; onPress: () => void }) {
+  const isUnlocked = badge.unlocked;
+  
+  return (
+    <TouchableOpacity style={styles.hexagonContainer} onPress={onPress}>
+      <View style={[
+        styles.hexagon,
+        isUnlocked ? styles.hexagonUnlocked : styles.hexagonLocked
+      ]}>
+        {isUnlocked ? (
+          <Text style={styles.hexagonEmoji}>{badge.icon || '🏆'}</Text>
+        ) : (
+          <Ionicons name="lock-closed" size={24} color="#9CA3AF" />
+        )}
+      </View>
+      <Text style={[
+        styles.hexagonLabel,
+        !isUnlocked && styles.hexagonLabelLocked
+      ]} numberOfLines={2}>
+        {badge.name}
+      </Text>
+    </TouchableOpacity>
+  );
+}
+
+// Full Badges Screen Modal
+function BadgesModal({ 
+  visible, 
+  onClose, 
+  badgeData 
+}: { 
+  visible: boolean; 
+  onClose: () => void; 
+  badgeData: BadgeData | null;
+}) {
+  const [selectedBadge, setSelectedBadge] = useState<Badge | null>(null);
+
+  if (!badgeData) return null;
+
+  // Combine and group all badges
+  const allBadges = [
+    ...badgeData.unlocked.map(b => ({ ...b, unlocked: true })),
+    ...badgeData.locked.map(b => ({ ...b, unlocked: false }))
+  ];
+  const groupedBadges = groupByCategory(allBadges);
+  const categories = Object.keys(groupedBadges);
+
+  return (
+    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet">
+      <SafeAreaView style={styles.modalContainer}>
+        {/* Header */}
+        <View style={styles.modalHeader}>
+          <TouchableOpacity style={styles.backButton} onPress={onClose}>
+            <Ionicons name="chevron-back" size={24} color={colors.textPrimary} />
+          </TouchableOpacity>
+          <Text style={styles.modalTitle}>Badges</Text>
+          <View style={styles.backButton} />
+        </View>
+
+        <ScrollView style={styles.modalScroll} showsVerticalScrollIndicator={false}>
+          {/* Unlocked Section */}
+          {badgeData.unlocked.length > 0 && (
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Unlocked</Text>
+              <Text style={styles.sectionSubtitle}>
+                {badgeData.total_unlocked} badges earned
+              </Text>
+              <View style={styles.badgeGrid}>
+                {badgeData.unlocked.map((badge) => (
+                  <HexagonBadge 
+                    key={badge.badge_id} 
+                    badge={{ ...badge, unlocked: true }}
+                    onPress={() => setSelectedBadge({ ...badge, unlocked: true })}
+                  />
+                ))}
+              </View>
+            </View>
+          )}
+
+          {/* Locked Section */}
+          {badgeData.locked.length > 0 && (
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Locked</Text>
+              <Text style={styles.sectionSubtitle}>
+                {badgeData.locked.length} badges to unlock
+              </Text>
+              <View style={styles.badgeGrid}>
+                {badgeData.locked.map((badge) => (
+                  <HexagonBadge 
+                    key={badge.badge_id} 
+                    badge={{ ...badge, unlocked: false }}
+                    onPress={() => setSelectedBadge({ ...badge, unlocked: false })}
+                  />
+                ))}
+              </View>
+            </View>
+          )}
+
+          <View style={{ height: 40 }} />
+        </ScrollView>
+
+        {/* Badge Detail Modal */}
+        <Modal
+          visible={selectedBadge !== null}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setSelectedBadge(null)}
+        >
+          <TouchableOpacity 
+            style={styles.detailOverlay} 
+            activeOpacity={1} 
+            onPress={() => setSelectedBadge(null)}
+          >
+            <View style={styles.detailContent}>
+              <View style={[
+                styles.detailHexagon,
+                selectedBadge?.unlocked ? styles.hexagonUnlocked : styles.hexagonLocked
+              ]}>
+                {selectedBadge?.unlocked ? (
+                  <Text style={styles.detailEmoji}>{selectedBadge?.icon || '🏆'}</Text>
+                ) : (
+                  <Ionicons name="lock-closed" size={40} color="#9CA3AF" />
+                )}
+              </View>
+              <Text style={styles.detailTitle}>{selectedBadge?.name}</Text>
+              <Text style={styles.detailDescription}>
+                {selectedBadge?.description || selectedBadge?.requirement || 'Complete actions to unlock'}
+              </Text>
+              {selectedBadge?.unlocked && selectedBadge?.unlocked_at && (
+                <Text style={styles.detailDate}>
+                  Unlocked {new Date(selectedBadge.unlocked_at).toLocaleDateString()}
+                </Text>
+              )}
+              {!selectedBadge?.unlocked && selectedBadge?.progress && (
+                <View style={styles.progressContainer}>
+                  <View style={styles.progressBar}>
+                    <View 
+                      style={[
+                        styles.progressFill, 
+                        { width: `${Math.min(100, (selectedBadge.progress.current / selectedBadge.progress.target) * 100)}%` }
+                      ]} 
+                    />
+                  </View>
+                  <Text style={styles.progressText}>
+                    {selectedBadge.progress.current} / {selectedBadge.progress.target}
+                  </Text>
+                </View>
+              )}
+              <TouchableOpacity style={styles.detailCloseButton} onPress={() => setSelectedBadge(null)}>
+                <Text style={styles.detailCloseText}>Close</Text>
+              </TouchableOpacity>
+            </View>
+          </TouchableOpacity>
+        </Modal>
+      </SafeAreaView>
+    </Modal>
+  );
+}
+
+// Main Export - Compact Badge Button for Profile
+export function BadgeSection() {
   const [badgeData, setBadgeData] = useState<BadgeData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [selectedBadge, setSelectedBadge] = useState<Badge | null>(null);
+  const [modalVisible, setModalVisible] = useState(false);
 
   useEffect(() => {
     let mounted = true;
@@ -47,278 +248,221 @@ function SafeBadgeSection() {
     const loadBadges = async () => {
       try {
         const data = await api.getMyBadges();
-        if (mounted) {
-          setBadgeData(data);
-          setError(null);
-        }
-      } catch (err: any) {
+        if (mounted) setBadgeData(data);
+      } catch (err) {
         console.error('[BadgeSection] Error:', err);
-        if (mounted) {
-          setError(err?.message || 'Failed to load');
-        }
       } finally {
-        if (mounted) {
-          setLoading(false);
-        }
+        if (mounted) setLoading(false);
       }
     };
 
     loadBadges();
-    
-    return () => {
-      mounted = false;
-    };
+    return () => { mounted = false; };
   }, []);
 
   if (loading) {
     return (
-      <View style={styles.container}>
-        <View style={styles.header}>
-          <Text style={styles.title}>Badges</Text>
-        </View>
-        <ActivityIndicator size="small" color={colors.primary} style={{ marginVertical: 16 }} />
+      <View style={styles.compactContainer}>
+        <ActivityIndicator size="small" color={colors.primary} />
       </View>
     );
   }
 
-  if (error || !badgeData) {
-    return (
-      <View style={styles.container}>
-        <View style={styles.header}>
-          <Text style={styles.title}>Badges</Text>
-        </View>
-        <Text style={styles.emptyText}>Coming soon...</Text>
-      </View>
-    );
+  if (!badgeData) {
+    return null;
   }
 
-  const allBadges = [...(badgeData.unlocked || []), ...(badgeData.locked || [])];
-  
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title}>Badges</Text>
-        <View style={styles.countBadge}>
-          <Text style={styles.countText}>
-            {badgeData.total_unlocked || 0} / {allBadges.length}
-          </Text>
-        </View>
-      </View>
-
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.badgeScroll}>
-        {(badgeData.unlocked || []).map((badge) => (
-          <TouchableOpacity
-            key={badge.badge_id}
-            style={styles.badgeItem}
-            onPress={() => setSelectedBadge(badge)}
-          >
-            <View style={[styles.badgeIcon, styles.badgeUnlocked]}>
-              <Text style={styles.badgeEmoji}>{badge.icon || '🏆'}</Text>
-            </View>
-            <Text style={styles.badgeName} numberOfLines={1}>{badge.name || 'Badge'}</Text>
-          </TouchableOpacity>
-        ))}
-        
-        {(badgeData.locked || []).map((badge) => (
-          <TouchableOpacity
-            key={badge.badge_id}
-            style={styles.badgeItem}
-            onPress={() => setSelectedBadge(badge)}
-          >
-            <View style={[styles.badgeIcon, styles.badgeLocked]}>
-              <Ionicons name="lock-closed" size={20} color="#CCCCCC" />
-            </View>
-            <Text style={[styles.badgeName, styles.badgeNameLocked]} numberOfLines={1}>
-              {badge.name || 'Badge'}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
-
-      <Modal
-        visible={selectedBadge !== null}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setSelectedBadge(null)}
+    <>
+      {/* Compact Button */}
+      <TouchableOpacity 
+        style={styles.compactContainer} 
+        onPress={() => setModalVisible(true)}
       >
-        <TouchableOpacity 
-          style={styles.modalOverlay} 
-          activeOpacity={1} 
-          onPress={() => setSelectedBadge(null)}
-        >
-          <View style={styles.modalContent}>
-            <View style={[
-              styles.modalBadgeIcon,
-              selectedBadge?.unlocked ? styles.badgeUnlocked : styles.badgeLocked
-            ]}>
-              {selectedBadge?.unlocked ? (
-                <Text style={styles.modalBadgeEmoji}>{selectedBadge?.icon || '🏆'}</Text>
-              ) : (
-                <Ionicons name="lock-closed" size={32} color="#CCCCCC" />
-              )}
-            </View>
-            <Text style={styles.modalTitle}>{selectedBadge?.name || 'Badge'}</Text>
-            <Text style={styles.modalDescription}>
-              {selectedBadge?.description || selectedBadge?.requirement || 'Complete actions to unlock'}
-            </Text>
-            {selectedBadge?.unlocked && selectedBadge?.unlocked_at && (
-              <Text style={styles.modalUnlockedDate}>
-                Unlocked {new Date(selectedBadge.unlocked_at).toLocaleDateString()}
-              </Text>
-            )}
-            {!selectedBadge?.unlocked && selectedBadge?.progress && (
-              <View style={styles.progressContainer}>
-                <View style={styles.progressBar}>
-                  <View 
-                    style={[
-                      styles.progressFill, 
-                      { width: `${Math.min(100, (selectedBadge.progress.current / selectedBadge.progress.target) * 100)}%` }
-                    ]} 
-                  />
-                </View>
-                <Text style={styles.progressText}>
-                  {selectedBadge.progress.current} / {selectedBadge.progress.target}
-                </Text>
-              </View>
-            )}
-            <TouchableOpacity style={styles.closeButton} onPress={() => setSelectedBadge(null)}>
-              <Text style={styles.closeButtonText}>Close</Text>
-            </TouchableOpacity>
-          </View>
-        </TouchableOpacity>
-      </Modal>
-    </View>
+        <Text style={styles.compactLabel}>Badges</Text>
+        <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />
+        <View style={styles.compactBadge}>
+          <Text style={styles.compactIcon}>🏆</Text>
+          <Text style={styles.compactCount}>{badgeData.total_unlocked}</Text>
+        </View>
+      </TouchableOpacity>
+
+      {/* Full Badges Modal */}
+      <BadgesModal 
+        visible={modalVisible} 
+        onClose={() => setModalVisible(false)} 
+        badgeData={badgeData}
+      />
+    </>
   );
 }
 
-export function BadgeSection() {
-  try {
-    return <SafeBadgeSection />;
-  } catch (e) {
-    console.error('[BadgeSection] Crash:', e);
-    return (
-      <View style={styles.container}>
-        <View style={styles.header}>
-          <Text style={styles.title}>Badges</Text>
-        </View>
-        <Text style={styles.emptyText}>Coming soon...</Text>
-      </View>
-    );
-  }
-}
-
 const styles = StyleSheet.create({
-  container: {
-    backgroundColor: colors.cardBg,
-    borderRadius: 12,
-    padding: 16,
-    marginHorizontal: 16,
-    marginBottom: 16,
-  },
-  header: {
+  // Compact Button Styles
+  compactContainer: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    marginHorizontal: 16,
+    marginBottom: 8,
+    borderRadius: 12,
   },
-  title: {
+  compactLabel: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#1A1A1A',
+    flex: 1,
+  },
+  compactBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFF3E0',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 16,
+    marginLeft: 8,
+  },
+  compactIcon: {
+    fontSize: 14,
+    marginRight: 4,
+  },
+  compactCount: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#E4572E',
+  },
+
+  // Modal Styles
+  modalContainer: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalTitle: {
     fontSize: 18,
     fontWeight: '600',
     color: colors.textPrimary,
   },
-  countBadge: {
-    backgroundColor: colors.primary,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
+  modalScroll: {
+    flex: 1,
+    paddingHorizontal: 16,
   },
-  countText: {
-    color: '#FFFFFF',
-    fontSize: 12,
+
+  // Section Styles
+  section: {
+    marginTop: 24,
+  },
+  sectionTitle: {
+    fontSize: 18,
     fontWeight: '600',
+    color: colors.textPrimary,
+    marginBottom: 4,
   },
-  emptyText: {
+  sectionSubtitle: {
     fontSize: 14,
-    color: colors.textMuted,
-    textAlign: 'center',
-    paddingVertical: 16,
+    color: colors.textSecondary,
+    marginBottom: 16,
   },
-  badgeScroll: {
+
+  // Badge Grid
+  badgeGrid: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
   },
-  badgeItem: {
+
+  // Hexagon Badge
+  hexagonContainer: {
+    width: BADGE_SIZE,
     alignItems: 'center',
-    marginRight: 16,
-    width: 64,
+    marginBottom: 16,
   },
-  badgeIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+  hexagon: {
+    width: BADGE_SIZE - 16,
+    height: BADGE_SIZE - 16,
+    borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 6,
   },
-  badgeUnlocked: {
-    backgroundColor: '#FFF3E0',
+  hexagonUnlocked: {
+    backgroundColor: '#F59E0B20',
     borderWidth: 2,
-    borderColor: colors.primary,
+    borderColor: '#F59E0B',
   },
-  badgeLocked: {
-    backgroundColor: '#F5F5F5',
+  hexagonLocked: {
+    backgroundColor: colors.surface,
     borderWidth: 2,
-    borderColor: '#E0E0E0',
+    borderColor: colors.locked,
   },
-  badgeEmoji: {
-    fontSize: 22,
+  hexagonEmoji: {
+    fontSize: 28,
   },
-  badgeName: {
+  hexagonLabel: {
     fontSize: 11,
     color: colors.textPrimary,
     textAlign: 'center',
+    lineHeight: 14,
   },
-  badgeNameLocked: {
-    color: colors.textMuted,
+  hexagonLabelLocked: {
+    color: colors.textSecondary,
   },
-  modalOverlay: {
+
+  // Detail Modal
+  detailOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: 'rgba(0,0,0,0.7)',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  modalContent: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
+  detailContent: {
+    backgroundColor: colors.cardBg,
+    borderRadius: 20,
     padding: 24,
-    width: '80%',
+    width: '85%',
     alignItems: 'center',
   },
-  modalBadgeIcon: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
+  detailHexagon: {
+    width: 80,
+    height: 80,
+    borderRadius: 16,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 16,
   },
-  modalBadgeEmoji: {
-    fontSize: 36,
+  detailEmoji: {
+    fontSize: 40,
   },
-  modalTitle: {
+  detailTitle: {
     fontSize: 20,
     fontWeight: '700',
     color: colors.textPrimary,
     marginBottom: 8,
     textAlign: 'center',
   },
-  modalDescription: {
+  detailDescription: {
     fontSize: 14,
     color: colors.textSecondary,
     textAlign: 'center',
     marginBottom: 16,
     lineHeight: 20,
   },
-  modalUnlockedDate: {
+  detailDate: {
     fontSize: 12,
     color: colors.textMuted,
     marginBottom: 16,
@@ -329,7 +473,7 @@ const styles = StyleSheet.create({
   },
   progressBar: {
     height: 8,
-    backgroundColor: '#F0F0F0',
+    backgroundColor: colors.surface,
     borderRadius: 4,
     overflow: 'hidden',
     marginBottom: 4,
@@ -344,13 +488,13 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
     textAlign: 'center',
   },
-  closeButton: {
+  detailCloseButton: {
     backgroundColor: colors.primary,
     paddingHorizontal: 32,
     paddingVertical: 12,
     borderRadius: 8,
   },
-  closeButtonText: {
+  detailCloseText: {
     color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '600',
