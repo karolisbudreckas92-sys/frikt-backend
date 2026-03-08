@@ -16,7 +16,7 @@ let hasShownDebug = false;
 function RootLayoutNav() {
   const router = useRouter();
   const { user } = useAuth();
-  const { notification } = usePushNotifications();
+  const { notification } = usePushNotifications(!!user);
 
   // Debug alert - show once to verify URL
   useEffect(() => {

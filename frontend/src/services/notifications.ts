@@ -68,22 +68,18 @@ export async function registerForPushNotificationsAsync(): Promise<string | null
   return token;
 }
 
-export function usePushNotifications() {
+export function usePushNotifications(isAuthenticated: boolean = false) {
   const [expoPushToken, setExpoPushToken] = useState<string | null>(null);
   const [notification, setNotification] = useState<Notifications.Notification | null>(null);
   const notificationListener = useRef<Notifications.EventSubscription>();
   const responseListener = useRef<Notifications.EventSubscription>();
+  const hasRegistered = useRef(false);
 
+  // Get push token on mount
   useEffect(() => {
-    registerForPushNotificationsAsync().then(async (token) => {
+    registerForPushNotificationsAsync().then((token) => {
       if (token) {
         setExpoPushToken(token);
-        // Register token with backend
-        try {
-          await api.registerPushToken(token);
-        } catch (error) {
-          console.log('Failed to register push token:', error);
-        }
       }
     });
 
@@ -111,6 +107,24 @@ export function usePushNotifications() {
       }
     };
   }, []);
+
+  // Register token with backend when user is authenticated
+  useEffect(() => {
+    if (isAuthenticated && expoPushToken && !hasRegistered.current) {
+      hasRegistered.current = true;
+      api.registerPushToken(expoPushToken)
+        .then(() => console.log('[Push] Token registered successfully'))
+        .catch((error) => {
+          console.log('[Push] Failed to register push token:', error);
+          hasRegistered.current = false; // Allow retry
+        });
+    }
+    
+    // Reset when user logs out
+    if (!isAuthenticated) {
+      hasRegistered.current = false;
+    }
+  }, [isAuthenticated, expoPushToken]);
 
   return {
     expoPushToken,
