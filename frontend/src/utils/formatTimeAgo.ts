@@ -5,20 +5,37 @@
  */
 
 export function formatTimeAgo(dateString: string): string {
-  // Parse the date - assume UTC if no timezone specified
+  if (!dateString) return 'just now';
+  
+  // Parse the date - always treat as UTC
   let created: Date;
-  if (dateString.endsWith('Z') || dateString.includes('+') || dateString.includes('-')) {
-    created = new Date(dateString);
-  } else {
-    // Append Z to treat as UTC
-    created = new Date(dateString + 'Z');
+  try {
+    // Remove any existing timezone indicator and treat as UTC
+    const cleanDate = dateString.replace('Z', '').split('+')[0].split('-').slice(0, 3).join('-') + 
+                      'T' + (dateString.includes('T') ? dateString.split('T')[1].split('+')[0].split('Z')[0] : '00:00:00');
+    
+    // Parse as UTC by appending Z
+    created = new Date(cleanDate + 'Z');
+  } catch (e) {
+    // Fallback: try direct parsing with Z appended
+    created = new Date(dateString.endsWith('Z') ? dateString : dateString + 'Z');
   }
   
+  // Use UTC time for "now" as well
   const now = new Date();
-  const diffMs = now.getTime() - created.getTime();
+  const nowUtc = Date.UTC(
+    now.getUTCFullYear(),
+    now.getUTCMonth(),
+    now.getUTCDate(),
+    now.getUTCHours(),
+    now.getUTCMinutes(),
+    now.getUTCSeconds()
+  );
   
-  // Handle negative diff (future dates, shouldn't happen but be safe)
-  if (diffMs < 0) {
+  const diffMs = nowUtc - created.getTime();
+  
+  // Handle negative diff (future dates or parsing errors)
+  if (diffMs < 0 || isNaN(diffMs)) {
     return 'just now';
   }
   
@@ -30,17 +47,17 @@ export function formatTimeAgo(dateString: string): string {
   const diffMonths = Math.floor(diffDays / 30);
   
   if (diffMinutes < 1) {
-    return 'about 1 minute ago';
+    return 'just now';
   } else if (diffMinutes < 60) {
-    return `about ${diffMinutes} minute${diffMinutes === 1 ? '' : 's'} ago`;
+    return `${diffMinutes}m ago`;
   } else if (diffHours < 24) {
-    return `about ${diffHours} hour${diffHours === 1 ? '' : 's'} ago`;
+    return `${diffHours}h ago`;
   } else if (diffDays < 7) {
-    return `about ${diffDays} day${diffDays === 1 ? '' : 's'} ago`;
+    return `${diffDays}d ago`;
   } else if (diffWeeks < 4) {
-    return `about ${diffWeeks} week${diffWeeks === 1 ? '' : 's'} ago`;
+    return `${diffWeeks}w ago`;
   } else {
-    return `about ${diffMonths} month${diffMonths === 1 ? '' : 's'} ago`;
+    return `${diffMonths}mo ago`;
   }
 }
 
