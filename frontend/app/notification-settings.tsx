@@ -21,6 +21,7 @@ export default function NotificationSettings() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [settings, setSettings] = useState({
+    pushNotifications: true,
     newComments: true,
     newRelates: true,
     trending: true,
@@ -36,6 +37,7 @@ export default function NotificationSettings() {
     try {
       const data = await api.getNotificationSettings();
       setSettings({
+        pushNotifications: data.push_notifications,
         newComments: data.new_comments,
         newRelates: data.new_relates,
         trending: data.trending,
@@ -61,6 +63,7 @@ export default function NotificationSettings() {
     setIsSaving(true);
     try {
       await api.updateNotificationSettings({
+        push_notifications: newSettings.pushNotifications,
         new_comments: newSettings.newComments,
         new_relates: newSettings.newRelates,
         trending: newSettings.trending,
@@ -127,9 +130,29 @@ export default function NotificationSettings() {
           </View>
         </View>
 
-        <Text style={styles.sectionTitle}>Notification Types</Text>
+        <Text style={styles.sectionTitle}>Master Toggle</Text>
 
         <View style={styles.settingCard}>
+          <View style={styles.settingInfo}>
+            <View style={[styles.settingIcon, { backgroundColor: colors.accent + '20' }]}>
+              <Ionicons name="notifications" size={20} color={colors.accent} />
+            </View>
+            <View style={styles.settingText}>
+              <Text style={styles.settingTitle}>Push Notifications</Text>
+              <Text style={styles.settingDesc}>Enable or disable all push notifications</Text>
+            </View>
+          </View>
+          <Switch
+            value={settings.pushNotifications}
+            onValueChange={(value) => handleToggle('pushNotifications', value)}
+            trackColor={{ false: colors.border, true: colors.accent }}
+            thumbColor={colors.white}
+          />
+        </View>
+
+        <Text style={styles.sectionTitle}>Notification Types</Text>
+
+        <View style={[styles.settingCard, !settings.pushNotifications && styles.settingDisabled]}>
           <View style={styles.settingInfo}>
             <View style={[styles.settingIcon, { backgroundColor: colors.primary + '20' }]}>
               <Ionicons name="chatbubble" size={20} color={colors.primary} />
@@ -144,10 +167,11 @@ export default function NotificationSettings() {
             onValueChange={(value) => handleToggle('newComments', value)}
             trackColor={{ false: colors.border, true: colors.primary }}
             thumbColor={colors.white}
+            disabled={!settings.pushNotifications}
           />
         </View>
 
-        <View style={styles.settingCard}>
+        <View style={[styles.settingCard, !settings.pushNotifications && styles.settingDisabled]}>
           <View style={styles.settingInfo}>
             <View style={[styles.settingIcon, { backgroundColor: colors.relateActive + '20' }]}>
               <Ionicons name="heart" size={20} color={colors.relateActive} />
@@ -162,10 +186,11 @@ export default function NotificationSettings() {
             onValueChange={(value) => handleToggle('newRelates', value)}
             trackColor={{ false: colors.border, true: colors.primary }}
             thumbColor={colors.white}
+            disabled={!settings.pushNotifications}
           />
         </View>
 
-        <View style={styles.settingCard}>
+        <View style={[styles.settingCard, !settings.pushNotifications && styles.settingDisabled]}>
           <View style={styles.settingInfo}>
             <View style={[styles.settingIcon, { backgroundColor: colors.accent + '20' }]}>
               <Ionicons name="trending-up" size={20} color={colors.accent} />
@@ -180,11 +205,14 @@ export default function NotificationSettings() {
             onValueChange={(value) => handleToggle('trending', value)}
             trackColor={{ false: colors.border, true: colors.primary }}
             thumbColor={colors.white}
+            disabled={!settings.pushNotifications}
           />
         </View>
 
         <Text style={styles.footerText}>
-          Push notifications will be sent to your device when enabled.
+          {settings.pushNotifications 
+            ? 'Push notifications will be sent to your device when enabled.'
+            : 'All push notifications are disabled. Enable the master toggle to receive alerts.'}
         </Text>
       </ScrollView>
     </SafeAreaView>
@@ -267,6 +295,9 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 14,
     marginBottom: 10,
+  },
+  settingDisabled: {
+    opacity: 0.5,
   },
   settingInfo: {
     flexDirection: 'row',

@@ -50,6 +50,10 @@ export default function Notifications() {
         return { name: 'chatbubble', color: colors.primary };
       case 'problem_trending':
         return { name: 'trending-up', color: colors.accent };
+      case 'new_follower':
+        return { name: 'person-add', color: colors.accent };
+      case 'broadcast':
+        return { name: 'megaphone', color: colors.primary };
       default:
         return { name: 'notifications', color: colors.textSecondary };
     }
@@ -58,11 +62,25 @@ export default function Notifications() {
   const renderNotification = ({ item }: { item: any }) => {
     const icon = getIcon(item.type);
     const timeAgo = formatDistanceToNow(new Date(item.created_at), { addSuffix: true });
+    
+    // Determine navigation based on notification type
+    const handlePress = () => {
+      if (item.type === 'new_follower' && item.message) {
+        // For follower notifications, could navigate to profile
+        // For now, just dismiss (no user_id stored in notification)
+        return;
+      } else if (item.type === 'broadcast') {
+        // Broadcasts go to home
+        router.push('/(tabs)/home');
+      } else if (item.problem_id) {
+        router.push(`/problem/${item.problem_id}`);
+      }
+    };
 
     return (
       <TouchableOpacity
         style={[styles.notificationCard, !item.is_read && styles.unread]}
-        onPress={() => router.push(`/problem/${item.problem_id}`)}
+        onPress={handlePress}
       >
         <View style={[styles.iconContainer, { backgroundColor: icon.color + '20' }]}>
           <Ionicons name={icon.name as any} size={20} color={icon.color} />
@@ -71,7 +89,9 @@ export default function Notifications() {
           <Text style={styles.notificationMessage}>{item.message}</Text>
           <Text style={styles.notificationTime}>{timeAgo}</Text>
         </View>
-        <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
+        {item.problem_id && (
+          <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
+        )}
       </TouchableOpacity>
     );
   };

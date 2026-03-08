@@ -394,11 +394,13 @@ class PushTokenCreate(BaseModel):
 # Notification Settings Model
 class NotificationSettings(BaseModel):
     user_id: str
+    push_notifications: bool = True  # Global toggle
     new_comments: bool = True
     new_relates: bool = True
     trending: bool = True
 
 class NotificationSettingsUpdate(BaseModel):
+    push_notifications: Optional[bool] = None  # Global toggle
     new_comments: Optional[bool] = None
     new_relates: Optional[bool] = None
     trending: Optional[bool] = None
@@ -1597,6 +1599,10 @@ async def relate_to_problem(problem_id: str, user: dict = Depends(require_auth))
     if existing:
         raise HTTPException(status_code=400, detail="Already related to this problem")
     
+    # Check if problem owner is banned (don't send notifications to banned users)
+    problem_owner = await db.users.find_one({"id": problem["user_id"]})
+    owner_is_banned = problem_owner and problem_owner.get("status") in ["banned", "shadowbanned"]
+    
     # Create relate
     relate = Relate(problem_id=problem_id, user_id=user["id"])
     await db.relates.insert_one(relate.dict())
@@ -1642,8 +1648,14 @@ async def relate_to_problem(problem_id: str, user: dict = Depends(require_auth))
                     "created_at": datetime.utcnow()
                 })
     
-    # Create notification for problem owner (if not self)
-    if problem["user_id"] != user["id"]:
+    # Create notification for problem owner (if not self and not banned)
+    if problem["user_id"] != user["id"] and not owner_is_banned:
+        # Check global push toggle first
+        settings = await db.notification_settings.find_one({"user_id": problem["user_id"]})
+        global_push_enabled = not settings or settings.get("push_notifications", True)
+        relates_enabled = not settings or settings.get("new_relates", True)
+        
+        # Always create in-app notification
         notification = Notification(
             user_id=problem["user_id"],
             type="new_relate",
@@ -1652,9 +1664,8 @@ async def relate_to_problem(problem_id: str, user: dict = Depends(require_auth))
         )
         await db.notifications.insert_one(notification.dict())
         
-        # Send push notification
-        settings = await db.notification_settings.find_one({"user_id": problem["user_id"]})
-        if not settings or settings.get("new_relates", True):
+        # Send push notification only if both global and specific are enabled
+        if global_push_enabled and relates_enabled:
             await send_notification_to_user(
                 problem["user_id"],
                 "Someone relates to your problem",
@@ -2239,6 +2250,29 @@ async def follow_user(user_id: str, user: dict = Depends(require_auth)):
     # GAMIFICATION: Update stats and check badges
     stats = await increment_user_stat(user["id"], "users_followed")
     newly_awarded = await check_and_award_badges(user["id"], user, stats, "follow")
+    
+    # Send notification to the user being followed (if not banned)
+    target_is_banned = target_user.get("status") in ["banned", "shadowbanned"]
+    if not target_is_banned:
+        # Create in-app notification
+        notification = Notification(
+            user_id=user_id,
+            type="new_follower",
+            problem_id="",  # No problem associated
+            message=f"{user['name']} started following you"
+        )
+        await db.notifications.insert_one(notification.dict())
+        
+        # Check settings and send push
+        settings = await db.notification_settings.find_one({"user_id": user_id})
+        global_push = not settings or settings.get("push_notifications", True)
+        if global_push:
+            await send_notification_to_user(
+                user_id,
+                "New follower!",
+                f"{user['name']} started following you",
+                {"type": "new_follower", "userId": user["id"]}
+            )
     
     return {"following": True, "newly_awarded_badges": newly_awarded}
 
@@ -3497,11 +3531,13 @@ async def get_push_settings(user: dict = Depends(require_auth)):
     if not settings:
         # Return defaults
         return {
+            "push_notifications": True,
             "new_comments": True,
             "new_relates": True,
             "trending": True
         }
     return {
+        "push_notifications": settings.get("push_notifications", True),
         "new_comments": settings.get("new_comments", True),
         "new_relates": settings.get("new_relates", True),
         "trending": settings.get("trending", True)
