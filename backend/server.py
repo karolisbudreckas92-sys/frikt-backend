@@ -956,18 +956,20 @@ def calculate_signal_score(problem: dict, include_breakdown: bool = False) -> fl
 
 @api_router.post("/auth/register", response_model=TokenResponse)
 async def register(user_data: UserCreate):
-    # Check if email exists
-    existing = await db.users.find_one({"email": user_data.email})
+    # Normalize email to lowercase for consistent storage and lookup
+    email_lower = user_data.email.lower().strip()
+    
+    # Check if email exists (case-insensitive)
+    existing = await db.users.find_one({"email": email_lower})
     if existing:
         raise HTTPException(status_code=400, detail="Email already registered")
     
     # Determine role based on admin email list
-    email_lower = user_data.email.lower()
     role = "admin" if email_lower in ADMIN_EMAILS else "user"
     
-    # Create user
+    # Create user with normalized email
     user = User(
-        email=user_data.email,
+        email=email_lower,
         name=user_data.name,
         role=role,
     )
@@ -990,7 +992,9 @@ async def register(user_data: UserCreate):
 
 @api_router.post("/auth/login", response_model=TokenResponse)
 async def login(credentials: UserLogin):
-    user = await db.users.find_one({"email": credentials.email})
+    # Normalize email to lowercase for case-insensitive lookup
+    email_lower = credentials.email.lower().strip()
+    user = await db.users.find_one({"email": email_lower})
     if not user or not verify_password(credentials.password, user.get("password_hash", "")):
         raise HTTPException(status_code=401, detail="Invalid email or password")
     
@@ -999,7 +1003,6 @@ async def login(credentials: UserLogin):
         raise HTTPException(status_code=403, detail="Your account has been suspended")
     
     # Update role if email is in admin list (in case list was updated)
-    email_lower = credentials.email.lower()
     if email_lower in ADMIN_EMAILS and user.get("role") != "admin":
         await db.users.update_one({"id": user["id"]}, {"$set": {"role": "admin"}})
         user["role"] = "admin"
@@ -1026,6 +1029,11 @@ async def get_categories():
 
 @api_router.post("/problems")
 async def create_problem(problem_data: ProblemCreate, user: dict = Depends(require_auth)):
+    # Validate title - must not be empty or whitespace only
+    title_stripped = problem_data.title.strip() if problem_data.title else ""
+    if len(title_stripped) < 10:
+        raise HTTPException(status_code=400, detail="Title must have at least 10 non-whitespace characters")
+    
     # Check rate limit (max 10 posts/day - generous for MVP)
     today = datetime.utcnow().strftime("%Y-%m-%d")
     if user.get("last_post_date") == today and user.get("posts_today", 0) >= 10:
@@ -1039,12 +1047,12 @@ async def create_problem(problem_data: ProblemCreate, user: dict = Depends(requi
     frequency = problem_data.frequency if problem_data.frequency in FREQUENCY_OPTIONS else None
     pain_level = problem_data.pain_level if problem_data.pain_level and 1 <= problem_data.pain_level <= 5 else None
     
-    # Create problem
+    # Create problem with trimmed title
     problem = Problem(
         user_id=user["id"],
         user_name=user.get("displayName") or user["name"],
         user_avatar_url=user.get("avatarUrl"),
-        title=problem_data.title,
+        title=title_stripped,
         category_id=category_id,
         frequency=frequency,
         pain_level=pain_level,
@@ -1785,7 +1793,7 @@ async def delete_comment(comment_id: str, user: dict = Depends(require_auth)):
 @api_router.get("/notifications")
 async def get_notifications(user: dict = Depends(require_auth), limit: int = 50):
     notifications = await db.notifications.find(
-        {"user_id": user["id"]}
+        {"user_id": user["id"]}, {"_id": 0}
     ).sort("created_at", -1).limit(limit).to_list(limit)
     
     unread_count = await db.notifications.count_documents({"user_id": user["id"], "is_read": False})

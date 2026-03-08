@@ -12,7 +12,7 @@ from datetime import datetime
 import uuid
 
 # Backend URL from frontend/.env
-BACKEND_URL = "https://account-deletion-26.preview.emergentagent.com/api"
+BACKEND_URL = "https://frikt-quality.preview.emergentagent.com/api"
 
 class FRIKTTester:
     def __init__(self):

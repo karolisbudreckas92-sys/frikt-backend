@@ -114,6 +114,14 @@
 - [x] **Timestamp Display** (Mar 7, 2026) - Created formatTimeAgo utility for consistent "about X ago" format using UTC timestamps
 - [x] **Username Updates** (Mar 7, 2026) - Backend now fetches fresh usernames from user records instead of denormalized fields
 - [x] **Comment Edit/Delete** (Mar 7, 2026) - Added PUT/DELETE /api/comments/{id} endpoints with owner-only restrictions
+- [x] **Case-Sensitive Email** (Mar 8, 2026) - Fixed duplicate account creation with different email casing by normalizing to lowercase
+- [x] **Whitespace Post Validation** (Mar 8, 2026) - Fixed whitespace-only posts bypassing min_length validation
+- [x] **Notifications ObjectId** (Mar 8, 2026) - Fixed 500 error on /api/notifications by excluding MongoDB _id from response
+
+### Full Application Audit ✅ (Mar 8, 2026)
+- Completed comprehensive 14-section audit of all features
+- Tested 50+ endpoints and user flows
+- See: /app/test_reports/full_audit_report.md
 
 ## API Endpoints
 
@@ -185,3 +193,5 @@ eas submit --platform ios --latest
 - [ ] Add report option on comment long-press
 - [ ] Refactor server.py into separate routers
 - [ ] Environment variable system for api.ts (replace hardcoded production URL)
+- [ ] Implement password reset flow (flagged in audit)
+- [ ] Add database indexes on user_stats and user_achievements collections
