@@ -25,9 +25,9 @@ const colors = {
   textSecondary: '#9CA3AF',
   textMuted: '#6B7280',
   border: '#3A3F47',
-  gold: '#FFD700',
   unlocked: '#F59E0B',
   locked: '#4B5563',
+  profileBg: '#F6F3EE',
 };
 
 interface Badge {
@@ -51,30 +51,68 @@ interface BadgeData {
   stats: any;
 }
 
-// Group badges by category
-function groupByCategory(badges: Badge[]): Record<string, Badge[]> {
-  return badges.reduce((acc, badge) => {
-    const cat = badge.category || 'Other';
-    if (!acc[cat]) acc[cat] = [];
-    acc[cat].push(badge);
-    return acc;
-  }, {} as Record<string, Badge[]>);
-}
-
-// Category display names
-const categoryNames: Record<string, string> = {
-  'streak': 'Visit Streaks',
-  'explorer': 'Explorer',
-  'relater': 'Relater',
-  'creator': 'Creator',
-  'commenter': 'Commenter',
-  'social_impact': 'Social Impact',
-  'social': 'Social',
-  'category_pioneer': 'Category Pioneer',
-  'category_expert': 'Category Expert',
-  'special': 'Special',
-  'Other': 'Other',
+// Badge requirements/reasons mapping
+const badgeRequirements: Record<string, { howToGet: string; whyGot: string }> = {
+  // Streak badges
+  'just_browsing': { howToGet: 'Visit the app 2 days in a row', whyGot: 'You visited the app 2 days in a row' },
+  'hooked': { howToGet: 'Visit the app 7 days in a row', whyGot: 'You visited the app 7 days in a row' },
+  'regular_visitor': { howToGet: 'Visit the app 14 days in a row', whyGot: 'You visited the app 14 days in a row' },
+  'mayor_of_frikt': { howToGet: 'Visit the app 30 days in a row', whyGot: 'You visited the app 30 days in a row' },
+  'i_love_problems': { howToGet: 'Visit the app 100 days in a row', whyGot: 'You visited the app 100 days in a row' },
+  
+  // Explorer badges
+  'curious_human': { howToGet: 'Open 3 different Frikts', whyGot: 'You opened 3 different Frikts' },
+  'nosey': { howToGet: 'Open 25 different Frikts', whyGot: 'You explored 25 different Frikts' },
+  'rabbit_hole': { howToGet: 'Open 100 different Frikts', whyGot: 'You explored 100 different Frikts' },
+  
+  // Relater badges
+  'not_alone': { howToGet: 'Relate to your first Frikt', whyGot: 'You related to your first Frikt' },
+  'empathy_expert': { howToGet: 'Relate to 10 Frikts', whyGot: 'You related to 10 Frikts' },
+  'honorary_therapist': { howToGet: 'Relate to 50 Frikts', whyGot: 'You related to 50 Frikts' },
+  'community_pillar': { howToGet: 'Relate to 200 Frikts', whyGot: 'You related to 200 Frikts' },
+  'mother_theresa': { howToGet: 'Relate to 500 Frikts', whyGot: 'You related to 500 Frikts' },
+  
+  // Creator badges
+  'first_vent': { howToGet: 'Post your first Frikt', whyGot: 'You posted your first Frikt' },
+  'regular_frikter': { howToGet: 'Post 5 Frikts', whyGot: 'You posted 5 Frikts' },
+  'professional_hater': { howToGet: 'Post 10 Frikts', whyGot: 'You posted 10 Frikts' },
+  'drama_influencer': { howToGet: 'Get 20 relates on a single Frikt', whyGot: 'One of your Frikts got 20 relates' },
+  'universal_problem': { howToGet: 'Get 50 relates on a single Frikt', whyGot: 'One of your Frikts got 50 relates' },
+  
+  // Commenter badges
+  'helpful_stranger': { howToGet: 'Post your first comment', whyGot: 'You posted your first comment' },
+  'voice_of_reason': { howToGet: 'Post 10 comments', whyGot: 'You posted 10 comments' },
+  'community_voice': { howToGet: 'Post 25 comments', whyGot: 'You posted 25 comments' },
+  
+  // Social badges
+  'nosey_neighbor': { howToGet: 'Follow 5 users', whyGot: 'You followed 5 users' },
+  
+  // Social impact badges
+  'trending_topic': { howToGet: 'Receive 5 relates on your Frikts', whyGot: 'Your Frikts received 5 relates' },
+  'local_celebrity': { howToGet: 'Receive 25 relates on your Frikts', whyGot: 'Your Frikts received 25 relates' },
+  'frikt_famous': { howToGet: 'Receive 100 relates on your Frikts', whyGot: 'Your Frikts received 100 relates' },
+  
+  // Special badges
+  'og_member': { howToGet: 'Be an original member of FRIKT', whyGot: 'You were one of the first FRIKT users' },
+  'early_frikter': { howToGet: 'Join FRIKT early', whyGot: 'You joined FRIKT in its early days' },
 };
+
+// Get requirement text for a badge
+function getBadgeText(badge: Badge): { title: string; text: string } {
+  const req = badgeRequirements[badge.badge_id];
+  
+  if (badge.unlocked) {
+    return {
+      title: 'You earned this because:',
+      text: req?.whyGot || badge.description || 'You completed the required action'
+    };
+  } else {
+    return {
+      title: 'How to unlock:',
+      text: req?.howToGet || badge.requirement || 'Complete the required action'
+    };
+  }
+}
 
 // Hexagon Badge Component
 function HexagonBadge({ badge, onPress }: { badge: Badge; onPress: () => void }) {
@@ -115,14 +153,6 @@ function BadgesModal({
   const [selectedBadge, setSelectedBadge] = useState<Badge | null>(null);
 
   if (!badgeData) return null;
-
-  // Combine and group all badges
-  const allBadges = [
-    ...badgeData.unlocked.map(b => ({ ...b, unlocked: true })),
-    ...badgeData.locked.map(b => ({ ...b, unlocked: false }))
-  ];
-  const groupedBadges = groupByCategory(allBadges);
-  const categories = Object.keys(groupedBadges);
 
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet">
@@ -201,15 +231,32 @@ function BadgesModal({
                   <Ionicons name="lock-closed" size={40} color="#9CA3AF" />
                 )}
               </View>
+              
               <Text style={styles.detailTitle}>{selectedBadge?.name}</Text>
-              <Text style={styles.detailDescription}>
-                {selectedBadge?.description || selectedBadge?.requirement || 'Complete actions to unlock'}
-              </Text>
+              
+              {/* Requirement/Reason Section */}
+              {selectedBadge && (
+                <View style={styles.requirementBox}>
+                  <Text style={[
+                    styles.requirementLabel,
+                    selectedBadge.unlocked ? styles.requirementLabelUnlocked : styles.requirementLabelLocked
+                  ]}>
+                    {getBadgeText(selectedBadge).title}
+                  </Text>
+                  <Text style={styles.requirementText}>
+                    {getBadgeText(selectedBadge).text}
+                  </Text>
+                </View>
+              )}
+
+              {/* Unlocked date */}
               {selectedBadge?.unlocked && selectedBadge?.unlocked_at && (
                 <Text style={styles.detailDate}>
-                  Unlocked {new Date(selectedBadge.unlocked_at).toLocaleDateString()}
+                  Earned on {new Date(selectedBadge.unlocked_at).toLocaleDateString()}
                 </Text>
               )}
+
+              {/* Progress bar for locked badges */}
               {!selectedBadge?.unlocked && selectedBadge?.progress && (
                 <View style={styles.progressContainer}>
                   <View style={styles.progressBar}>
@@ -221,12 +268,13 @@ function BadgesModal({
                     />
                   </View>
                   <Text style={styles.progressText}>
-                    {selectedBadge.progress.current} / {selectedBadge.progress.target}
+                    Progress: {selectedBadge.progress.current} / {selectedBadge.progress.target}
                   </Text>
                 </View>
               )}
+
               <TouchableOpacity style={styles.detailCloseButton} onPress={() => setSelectedBadge(null)}>
-                <Text style={styles.detailCloseText}>Close</Text>
+                <Text style={styles.detailCloseText}>Got it</Text>
               </TouchableOpacity>
             </View>
           </TouchableOpacity>
@@ -236,7 +284,7 @@ function BadgesModal({
   );
 }
 
-// Main Export - Compact Badge Button for Profile
+// Main Export - Product Hunt style button for Profile
 export function BadgeSection() {
   const [badgeData, setBadgeData] = useState<BadgeData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -262,7 +310,7 @@ export function BadgeSection() {
 
   if (loading) {
     return (
-      <View style={styles.compactContainer}>
+      <View style={styles.statsRow}>
         <ActivityIndicator size="small" color={colors.primary} />
       </View>
     );
@@ -272,18 +320,22 @@ export function BadgeSection() {
     return null;
   }
 
+  // Get the first unlocked badge icon or default
+  const firstBadgeIcon = badgeData.unlocked[0]?.icon || '🏆';
+
   return (
     <>
-      {/* Compact Button */}
+      {/* Product Hunt Style Stats Row */}
       <TouchableOpacity 
-        style={styles.compactContainer} 
+        style={styles.statsRow} 
         onPress={() => setModalVisible(true)}
+        activeOpacity={0.7}
       >
-        <Text style={styles.compactLabel}>Badges</Text>
-        <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />
-        <View style={styles.compactBadge}>
-          <Text style={styles.compactIcon}>🏆</Text>
-          <Text style={styles.compactCount}>{badgeData.total_unlocked}</Text>
+        <Text style={styles.statsLabel}>Badges</Text>
+        <Ionicons name="chevron-forward" size={14} color={colors.textMuted} />
+        <View style={styles.statsBadge}>
+          <Text style={styles.statsIcon}>{firstBadgeIcon}</Text>
+          <Text style={styles.statsCount}>{badgeData.total_unlocked}</Text>
         </View>
       </TouchableOpacity>
 
@@ -298,8 +350,8 @@ export function BadgeSection() {
 }
 
 const styles = StyleSheet.create({
-  // Compact Button Styles
-  compactContainer: {
+  // Product Hunt Style Stats Row
+  statsRow: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#FFFFFF',
@@ -308,30 +360,32 @@ const styles = StyleSheet.create({
     marginHorizontal: 16,
     marginBottom: 8,
     borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E5E5E5',
   },
-  compactLabel: {
+  statsLabel: {
     fontSize: 16,
     fontWeight: '500',
     color: '#1A1A1A',
     flex: 1,
   },
-  compactBadge: {
+  statsBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFF3E0',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 16,
+    backgroundColor: '#FEF3C7',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
     marginLeft: 8,
   },
-  compactIcon: {
-    fontSize: 14,
-    marginRight: 4,
+  statsIcon: {
+    fontSize: 16,
+    marginRight: 6,
   },
-  compactCount: {
-    fontSize: 14,
+  statsCount: {
+    fontSize: 16,
     fontWeight: '700',
-    color: '#E4572E',
+    color: '#D97706',
   },
 
   // Modal Styles
@@ -369,8 +423,8 @@ const styles = StyleSheet.create({
     marginTop: 24,
   },
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: '600',
+    fontSize: 20,
+    fontWeight: '700',
     color: colors.textPrimary,
     marginBottom: 4,
   },
@@ -390,18 +444,18 @@ const styles = StyleSheet.create({
   hexagonContainer: {
     width: BADGE_SIZE,
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 20,
   },
   hexagon: {
     width: BADGE_SIZE - 16,
     height: BADGE_SIZE - 16,
-    borderRadius: 12,
+    borderRadius: 14,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 6,
+    marginBottom: 8,
   },
   hexagonUnlocked: {
-    backgroundColor: '#F59E0B20',
+    backgroundColor: '#FEF3C7',
     borderWidth: 2,
     borderColor: '#F59E0B',
   },
@@ -418,6 +472,7 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
     textAlign: 'center',
     lineHeight: 14,
+    paddingHorizontal: 2,
   },
   hexagonLabelLocked: {
     color: colors.textSecondary,
@@ -426,73 +481,96 @@ const styles = StyleSheet.create({
   // Detail Modal
   detailOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.7)',
+    backgroundColor: 'rgba(0,0,0,0.8)',
     justifyContent: 'center',
     alignItems: 'center',
   },
   detailContent: {
     backgroundColor: colors.cardBg,
-    borderRadius: 20,
-    padding: 24,
-    width: '85%',
+    borderRadius: 24,
+    padding: 28,
+    width: '88%',
     alignItems: 'center',
   },
   detailHexagon: {
-    width: 80,
-    height: 80,
-    borderRadius: 16,
+    width: 88,
+    height: 88,
+    borderRadius: 18,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 20,
   },
   detailEmoji: {
-    fontSize: 40,
+    fontSize: 44,
   },
   detailTitle: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: '700',
     color: colors.textPrimary,
-    marginBottom: 8,
-    textAlign: 'center',
-  },
-  detailDescription: {
-    fontSize: 14,
-    color: colors.textSecondary,
-    textAlign: 'center',
     marginBottom: 16,
-    lineHeight: 20,
+    textAlign: 'center',
   },
-  detailDate: {
+  
+  // Requirement Box
+  requirementBox: {
+    backgroundColor: colors.surface,
+    borderRadius: 12,
+    padding: 16,
+    width: '100%',
+    marginBottom: 16,
+  },
+  requirementLabel: {
     fontSize: 12,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: 6,
+  },
+  requirementLabelUnlocked: {
+    color: '#10B981',
+  },
+  requirementLabelLocked: {
+    color: '#F59E0B',
+  },
+  requirementText: {
+    fontSize: 15,
+    color: colors.textPrimary,
+    lineHeight: 22,
+  },
+  
+  detailDate: {
+    fontSize: 13,
     color: colors.textMuted,
     marginBottom: 16,
   },
+  
   progressContainer: {
     width: '100%',
     marginBottom: 16,
   },
   progressBar: {
-    height: 8,
+    height: 10,
     backgroundColor: colors.surface,
-    borderRadius: 4,
+    borderRadius: 5,
     overflow: 'hidden',
-    marginBottom: 4,
+    marginBottom: 6,
   },
   progressFill: {
     height: '100%',
-    backgroundColor: colors.primary,
-    borderRadius: 4,
+    backgroundColor: '#F59E0B',
+    borderRadius: 5,
   },
   progressText: {
-    fontSize: 12,
-    color: colors.textMuted,
+    fontSize: 13,
+    color: colors.textSecondary,
     textAlign: 'center',
   },
   detailCloseButton: {
     backgroundColor: colors.primary,
-    paddingHorizontal: 32,
-    paddingVertical: 12,
-    borderRadius: 8,
+    paddingHorizontal: 40,
+    paddingVertical: 14,
+    borderRadius: 12,
+    marginTop: 4,
   },
   detailCloseText: {
     color: '#FFFFFF',
