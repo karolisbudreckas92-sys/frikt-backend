@@ -19,25 +19,38 @@ interface BadgeContextType {
 const BadgeContext = createContext<BadgeContextType | undefined>(undefined);
 
 export function BadgeProvider({ children }: { children: ReactNode }) {
-  const [celebrationBadge, setCelebrationBadge] = useState<Badge | null>(null);
-  const [additionalBadges, setAdditionalBadges] = useState<Badge[]>([]);
+  const [badgeQueue, setBadgeQueue] = useState<Badge[]>([]);
+  const [currentBadge, setCurrentBadge] = useState<Badge | null>(null);
   const [showModal, setShowModal] = useState(false);
 
   const showCelebration = useCallback((badges: Badge[]) => {
     if (badges.length === 0) return;
 
-    // Show the first (most significant) badge in the modal
-    setCelebrationBadge(badges[0]);
-    // Store additional badges for toast notification
-    setAdditionalBadges(badges.slice(1));
-    setShowModal(true);
-  }, []);
+    // If no modal is showing, show the first badge immediately
+    if (!showModal && !currentBadge) {
+      setCurrentBadge(badges[0]);
+      setBadgeQueue(badges.slice(1));
+      setShowModal(true);
+    } else {
+      // Add all badges to the queue
+      setBadgeQueue(prev => [...prev, ...badges]);
+    }
+  }, [showModal, currentBadge]);
 
   const handleDismiss = useCallback(() => {
-    setShowModal(false);
-    setCelebrationBadge(null);
-    setAdditionalBadges([]);
-  }, []);
+    // Check if there are more badges in the queue
+    if (badgeQueue.length > 0) {
+      // Show the next badge
+      const [nextBadge, ...remainingBadges] = badgeQueue;
+      setCurrentBadge(nextBadge);
+      setBadgeQueue(remainingBadges);
+      // Keep modal visible, just update content
+    } else {
+      // No more badges, close the modal
+      setShowModal(false);
+      setCurrentBadge(null);
+    }
+  }, [badgeQueue]);
 
   const trackVisit = useCallback(async (): Promise<Badge[]> => {
     try {
@@ -68,13 +81,16 @@ export function BadgeProvider({ children }: { children: ReactNode }) {
     }
   }, [showCelebration]);
 
+  // Calculate remaining badges count for display
+  const remainingCount = badgeQueue.length;
+
   return (
     <BadgeContext.Provider value={{ showCelebration, trackVisit, checkPendingBadges }}>
       {children}
       <CelebrationModal
         visible={showModal}
-        badge={celebrationBadge}
-        additionalBadgesCount={additionalBadges.length}
+        badge={currentBadge}
+        additionalBadgesCount={remainingCount}
         onDismiss={handleDismiss}
       />
     </BadgeContext.Provider>

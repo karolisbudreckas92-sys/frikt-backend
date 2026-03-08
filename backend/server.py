@@ -464,6 +464,23 @@ class AdminAuditLog(BaseModel):
     details: Optional[dict] = None
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
+# Notification Batching Model
+class PendingNotificationBatch(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    recipient_user_id: str  # User who will receive the notification
+    batch_type: str  # "relate_batch" | "comment_batch"
+    target_id: str  # problem_id for relates/comments
+    target_title: str  # Frikt title for the notification message
+    user_ids: List[str] = []  # List of user IDs who triggered the action
+    user_names: List[str] = []  # List of user names for the notification
+    first_action_at: datetime = Field(default_factory=datetime.utcnow)
+    last_action_at: datetime = Field(default_factory=datetime.utcnow)
+    notification_sent: bool = False
+
+# Batching constants
+RELATE_BATCH_WINDOW_MINUTES = 5
+COMMENT_BATCH_WINDOW_MINUTES = 3
+
 # ===================== AUTH HELPERS =====================
 
 def hash_password(password: str) -> str:
@@ -525,6 +542,193 @@ async def log_admin_action(admin: dict, action: str, target_type: str, target_id
     )
     await db.admin_audit_logs.insert_one(log_entry.dict())
     logger.info(f"Admin action: {admin['email']} performed {action} on {target_type}/{target_id}")
+
+# ===================== NOTIFICATION BATCHING HELPERS =====================
+
+async def add_to_notification_batch(
+    recipient_user_id: str,
+    batch_type: str,  # "relate_batch" or "comment_batch"
+    target_id: str,
+    target_title: str,
+    actor_user_id: str,
+    actor_user_name: str
+) -> bool:
+    """
+    Add an action to a notification batch. Returns True if this is the first action
+    (immediate notification should be sent), False if batched.
+    """
+    now = datetime.utcnow()
+    
+    # Check if there's an existing pending batch for this recipient + target
+    existing_batch = await db.pending_notification_batches.find_one({
+        "recipient_user_id": recipient_user_id,
+        "batch_type": batch_type,
+        "target_id": target_id,
+        "notification_sent": False
+    })
+    
+    if existing_batch:
+        # Add to existing batch
+        if actor_user_id not in existing_batch.get("user_ids", []):
+            await db.pending_notification_batches.update_one(
+                {"id": existing_batch["id"]},
+                {
+                    "$push": {
+                        "user_ids": actor_user_id,
+                        "user_names": actor_user_name
+                    },
+                    "$set": {"last_action_at": now}
+                }
+            )
+        return False  # Batched, don't send immediate notification
+    
+    # Check if we recently sent a notification for this target
+    window_minutes = RELATE_BATCH_WINDOW_MINUTES if batch_type == "relate_batch" else COMMENT_BATCH_WINDOW_MINUTES
+    cutoff_time = now - timedelta(minutes=window_minutes)
+    
+    recent_sent = await db.pending_notification_batches.find_one({
+        "recipient_user_id": recipient_user_id,
+        "batch_type": batch_type,
+        "target_id": target_id,
+        "notification_sent": True,
+        "last_action_at": {"$gte": cutoff_time}
+    })
+    
+    if recent_sent:
+        # Create new pending batch (notification was recently sent)
+        batch = PendingNotificationBatch(
+            recipient_user_id=recipient_user_id,
+            batch_type=batch_type,
+            target_id=target_id,
+            target_title=target_title,
+            user_ids=[actor_user_id],
+            user_names=[actor_user_name],
+            first_action_at=now,
+            last_action_at=now,
+            notification_sent=False
+        )
+        await db.pending_notification_batches.insert_one(batch.dict())
+        return False  # Batched, don't send immediate
+    
+    # No recent notification, this is the first action - send immediately
+    # But also create a batch record to track the window
+    batch = PendingNotificationBatch(
+        recipient_user_id=recipient_user_id,
+        batch_type=batch_type,
+        target_id=target_id,
+        target_title=target_title,
+        user_ids=[actor_user_id],
+        user_names=[actor_user_name],
+        first_action_at=now,
+        last_action_at=now,
+        notification_sent=True  # Mark as sent since we're sending immediately
+    )
+    await db.pending_notification_batches.insert_one(batch.dict())
+    return True  # Send immediate notification
+
+def format_batch_notification_message(user_names: List[str], action_type: str) -> str:
+    """Format a batched notification message."""
+    if len(user_names) == 0:
+        return ""
+    elif len(user_names) == 1:
+        return f"{user_names[0]} {action_type}"
+    elif len(user_names) == 2:
+        return f"{user_names[0]} and {user_names[1]} {action_type}"
+    else:
+        others_count = len(user_names) - 2
+        return f"{user_names[0]}, {user_names[1]}, and {others_count} others {action_type}"
+
+async def process_pending_notification_batches():
+    """Process and send pending notification batches that have expired their window."""
+    now = datetime.utcnow()
+    
+    # Find relate batches older than 5 minutes
+    relate_cutoff = now - timedelta(minutes=RELATE_BATCH_WINDOW_MINUTES)
+    relate_batches = await db.pending_notification_batches.find({
+        "batch_type": "relate_batch",
+        "notification_sent": False,
+        "last_action_at": {"$lte": relate_cutoff}
+    }).to_list(100)
+    
+    # Find comment batches older than 3 minutes
+    comment_cutoff = now - timedelta(minutes=COMMENT_BATCH_WINDOW_MINUTES)
+    comment_batches = await db.pending_notification_batches.find({
+        "batch_type": "comment_batch",
+        "notification_sent": False,
+        "last_action_at": {"$lte": comment_cutoff}
+    }).to_list(100)
+    
+    all_batches = relate_batches + comment_batches
+    
+    for batch in all_batches:
+        try:
+            user_names = batch.get("user_names", [])
+            target_title = batch.get("target_title", "your Frikt")[:40]
+            target_id = batch.get("target_id")
+            recipient_id = batch.get("recipient_user_id")
+            
+            if batch["batch_type"] == "relate_batch":
+                action_text = "related to your Frikt"
+                title = "New relates!"
+            else:
+                action_text = "commented on your Frikt"
+                title = "New comments!"
+            
+            message = format_batch_notification_message(user_names, action_text)
+            
+            if message:
+                # Create in-app notification
+                notification = Notification(
+                    user_id=recipient_id,
+                    type="batched_" + batch["batch_type"],
+                    problem_id=target_id,
+                    message=message
+                )
+                await db.notifications.insert_one(notification.dict())
+                
+                # Send push notification
+                await send_notification_to_user(
+                    recipient_id,
+                    title,
+                    message,
+                    {"type": batch["batch_type"], "problemId": target_id}
+                )
+            
+            # Mark batch as sent
+            await db.pending_notification_batches.update_one(
+                {"id": batch["id"]},
+                {"$set": {"notification_sent": True}}
+            )
+            
+        except Exception as e:
+            logger.error(f"Error processing notification batch {batch.get('id')}: {e}")
+    
+    # Cleanup old batches (older than 24 hours)
+    cleanup_cutoff = now - timedelta(hours=24)
+    await db.pending_notification_batches.delete_many({
+        "notification_sent": True,
+        "last_action_at": {"$lte": cleanup_cutoff}
+    })
+
+# Background task to process batches
+notification_batch_task_running = False
+
+async def notification_batch_processor():
+    """Background task that runs every minute to process pending batches."""
+    global notification_batch_task_running
+    if notification_batch_task_running:
+        return
+    
+    notification_batch_task_running = True
+    try:
+        while True:
+            await asyncio.sleep(60)  # Check every minute
+            try:
+                await process_pending_notification_batches()
+            except Exception as e:
+                logger.error(f"Error in notification batch processor: {e}")
+    finally:
+        notification_batch_task_running = False
 
 # ===================== GAMIFICATION HELPERS =====================
 
@@ -1655,23 +1859,34 @@ async def relate_to_problem(problem_id: str, user: dict = Depends(require_auth))
         global_push_enabled = not settings or settings.get("push_notifications", True)
         relates_enabled = not settings or settings.get("new_relates", True)
         
-        # Always create in-app notification
-        notification = Notification(
-            user_id=problem["user_id"],
-            type="new_relate",
-            problem_id=problem_id,
-            message=f"{user['name']} relates to your problem"
-        )
-        await db.notifications.insert_one(notification.dict())
-        
-        # Send push notification only if both global and specific are enabled
         if global_push_enabled and relates_enabled:
-            await send_notification_to_user(
-                problem["user_id"],
-                "Someone relates to your problem",
-                f"{user['name']} relates to: {problem['title'][:50]}...",
-                {"type": "new_relate", "problemId": problem_id}
+            # Use notification batching
+            should_send_immediate = await add_to_notification_batch(
+                recipient_user_id=problem["user_id"],
+                batch_type="relate_batch",
+                target_id=problem_id,
+                target_title=problem.get("title", "your Frikt"),
+                actor_user_id=user["id"],
+                actor_user_name=user["name"]
             )
+            
+            if should_send_immediate:
+                # First relate - send immediate notification
+                notification = Notification(
+                    user_id=problem["user_id"],
+                    type="new_relate",
+                    problem_id=problem_id,
+                    message=f"{user['name']} related to your Frikt"
+                )
+                await db.notifications.insert_one(notification.dict())
+                
+                await send_notification_to_user(
+                    problem["user_id"],
+                    "Someone related to your Frikt",
+                    f"{user['name']} related to: {problem['title'][:50]}...",
+                    {"type": "new_relate", "problemId": problem_id}
+                )
+            # If not immediate, the batch processor will send later
     
     return {
         "relates_count": new_count,
@@ -1796,25 +2011,44 @@ async def create_comment(comment_data: CommentCreate, user: dict = Depends(requi
     stats = await increment_user_stat(user["id"], "total_comments")
     newly_awarded = await check_and_award_badges(user["id"], user, stats, "comment")
     
-    # Create notification for problem owner and followers
-    if problem["user_id"] != user["id"]:
-        notification = Notification(
-            user_id=problem["user_id"],
-            type="new_comment",
-            problem_id=comment_data.problem_id,
-            message=f"{user['name']} commented on your problem"
-        )
-        await db.notifications.insert_one(notification.dict())
-        
-        # Send push notification to problem owner
+    # Check if problem owner is banned
+    problem_owner = await db.users.find_one({"id": problem["user_id"]})
+    owner_is_banned = problem_owner and problem_owner.get("status") in ["banned", "shadowbanned"]
+    
+    # Create notification for problem owner (with batching)
+    if problem["user_id"] != user["id"] and not owner_is_banned:
         settings = await db.notification_settings.find_one({"user_id": problem["user_id"]})
-        if not settings or settings.get("new_comments", True):
-            await send_notification_to_user(
-                problem["user_id"],
-                "New comment on your problem",
-                f"{user['name']}: {comment_data.content[:60]}...",
-                {"type": "new_comment", "problemId": comment_data.problem_id}
+        global_push_enabled = not settings or settings.get("push_notifications", True)
+        comments_enabled = not settings or settings.get("new_comments", True)
+        
+        if global_push_enabled and comments_enabled:
+            # Use notification batching for comments (3 min window)
+            should_send_immediate = await add_to_notification_batch(
+                recipient_user_id=problem["user_id"],
+                batch_type="comment_batch",
+                target_id=comment_data.problem_id,
+                target_title=problem.get("title", "your Frikt"),
+                actor_user_id=user["id"],
+                actor_user_name=user["name"]
             )
+            
+            if should_send_immediate:
+                # First comment - send immediate notification
+                notification = Notification(
+                    user_id=problem["user_id"],
+                    type="new_comment",
+                    problem_id=comment_data.problem_id,
+                    message=f"{user['name']} commented on your Frikt"
+                )
+                await db.notifications.insert_one(notification.dict())
+                
+                await send_notification_to_user(
+                    problem["user_id"],
+                    "New comment on your Frikt",
+                    f"{user['name']}: {comment_data.content[:50]}...",
+                    {"type": "new_comment", "problemId": comment_data.problem_id}
+                )
+            # If not immediate, the batch processor will send later
     
     # Notify followers - optimized with projections and batch query
     followers = await db.users.find(
@@ -1829,28 +2063,41 @@ async def create_comment(comment_data: CommentCreate, user: dict = Depends(requi
         # Batch query notification settings to avoid N+1
         follower_settings_list = await db.notification_settings.find(
             {"user_id": {"$in": follower_ids}},
-            {"user_id": 1, "new_comments": 1}
+            {"user_id": 1, "new_comments": 1, "push_notifications": 1}
         ).to_list(100)
         follower_settings_map = {s["user_id"]: s for s in follower_settings_list}
         
         for follower_id in follower_ids:
-            notification = Notification(
-                user_id=follower_id,
-                type="new_comment",
-                problem_id=comment_data.problem_id,
-                message="New comment on a problem you follow"
-            )
-            await db.notifications.insert_one(notification.dict())
-            
-            # Send push notification to follower
             follower_settings = follower_settings_map.get(follower_id)
-            if not follower_settings or follower_settings.get("new_comments", True):
-                await send_notification_to_user(
-                    follower_id,
-                    "New comment on followed problem",
-                    f"{user['name']} commented on: {problem['title'][:40]}...",
-                    {"type": "new_comment", "problemId": comment_data.problem_id}
+            global_push = not follower_settings or follower_settings.get("push_notifications", True)
+            comments_on = not follower_settings or follower_settings.get("new_comments", True)
+            
+            if global_push and comments_on:
+                # Also use batching for followers
+                should_send = await add_to_notification_batch(
+                    recipient_user_id=follower_id,
+                    batch_type="comment_batch",
+                    target_id=comment_data.problem_id,
+                    target_title=problem.get("title", "a followed Frikt"),
+                    actor_user_id=user["id"],
+                    actor_user_name=user["name"]
                 )
+                
+                if should_send:
+                    notification = Notification(
+                        user_id=follower_id,
+                        type="new_comment",
+                        problem_id=comment_data.problem_id,
+                        message="New comment on a Frikt you follow"
+                    )
+                    await db.notifications.insert_one(notification.dict())
+                    
+                    await send_notification_to_user(
+                        follower_id,
+                        "New comment on followed Frikt",
+                        f"{user['name']} commented on: {problem['title'][:40]}...",
+                        {"type": "new_comment", "problemId": comment_data.problem_id}
+                    )
     
     response = CommentResponse(**comment.dict())
     return {**response.dict(), "newly_awarded_badges": newly_awarded}
@@ -3061,6 +3308,23 @@ async def broadcast_notification(request: BroadcastNotificationRequest, admin: d
         data={"type": "broadcast"}
     )
     
+    # Store broadcast in each recipient's notifications collection
+    recipient_user_ids = list(set(t["user_id"] for t in active_tokens))
+    broadcast_notifications = [
+        {
+            "id": str(uuid.uuid4()),
+            "user_id": user_id,
+            "type": "broadcast",
+            "problem_id": "",  # No problem associated
+            "message": f"{request.title.strip()}: {request.body.strip()[:80]}...",
+            "is_read": False,
+            "created_at": datetime.utcnow()
+        }
+        for user_id in recipient_user_ids
+    ]
+    if broadcast_notifications:
+        await db.notifications.insert_many(broadcast_notifications)
+    
     # Log the broadcast
     broadcast_log = {
         "id": str(uuid.uuid4()),
@@ -3700,6 +3964,12 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+@app.on_event("startup")
+async def startup_event():
+    """Start background tasks on app startup."""
+    asyncio.create_task(notification_batch_processor())
+    logger.info("Notification batch processor started")
 
 @app.on_event("shutdown")
 async def shutdown_db_client():

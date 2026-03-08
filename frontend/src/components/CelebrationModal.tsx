@@ -116,14 +116,11 @@ export function CelebrationModal({
 
           {/* Additional badges notification */}
           {additionalBadgesCount > 0 && (
-            <TouchableOpacity 
-              style={styles.additionalBadges}
-              onPress={onViewAllBadges}
-            >
+            <View style={styles.additionalBadges}>
               <Text style={styles.additionalBadgesText}>
-                +{additionalBadgesCount} more badge{additionalBadgesCount > 1 ? 's' : ''} earned!
+                +{additionalBadgesCount} more badge{additionalBadgesCount > 1 ? 's' : ''} to view
               </Text>
-            </TouchableOpacity>
+            </View>
           )}
 
           {/* Dismiss button */}
@@ -132,7 +129,9 @@ export function CelebrationModal({
             onPress={onDismiss}
             data-testid="celebration-dismiss-btn"
           >
-            <Text style={styles.dismissText}>Nice!</Text>
+            <Text style={styles.dismissText}>
+              {additionalBadgesCount > 0 ? 'Next' : 'Nice!'}
+            </Text>
           </TouchableOpacity>
         </Animated.View>
       </View>
