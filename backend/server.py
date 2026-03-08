@@ -785,9 +785,6 @@ async def get_user_badges_status(user_id: str, user: dict) -> dict:
     unlocked_badge_ids = {a["badge_id"] for a in achievements}
     unlocked_badges = []
     locked_badges = []
-    hidden_badges = []  # For viral badges not yet unlocked
-    
-    posts_per_cat = stats.get("posts_per_category", {})
     
     for badge_id, badge_info in BADGES.items():
         badge_data = {
@@ -796,36 +793,21 @@ async def get_user_badges_status(user_id: str, user: dict) -> dict:
             "icon": badge_info["icon"],
             "category": badge_info["category"],
             "threshold": badge_info.get("threshold"),
+            "description": badge_info.get("description", ""),
         }
         
         if badge_id in unlocked_badge_ids:
             # Find unlock date
             achievement = next((a for a in achievements if a["badge_id"] == badge_id), None)
-            badge_data["description"] = badge_info["description"]
             badge_data["unlocked"] = True
             badge_data["unlocked_at"] = achievement["unlocked_at"].isoformat() if achievement and isinstance(achievement.get("unlocked_at"), datetime) else achievement.get("unlocked_at") if achievement else None
             unlocked_badges.append(badge_data)
         else:
-            # Check visibility rules
-            is_hidden = badge_info.get("hidden", False)
-            is_category_badge = badge_info.get("category") == "category_specialist"
-            
-            if is_hidden:
-                # Drama Influencer, Universal Problem - don't show until unlocked
-                hidden_badges.append(badge_data)
-            elif is_category_badge:
-                # Only show category badge if user has posted in that category
-                cat_id = badge_info.get("category_id")
-                if cat_id and posts_per_cat.get(cat_id, 0) > 0:
-                    badge_data["unlocked"] = False
-                    badge_data["progress"] = get_badge_progress(badge_id, stats)
-                    badge_data["requirement"] = get_badge_requirement(badge_id)
-                    locked_badges.append(badge_data)
-            else:
-                badge_data["unlocked"] = False
-                badge_data["progress"] = get_badge_progress(badge_id, stats)
-                badge_data["requirement"] = get_badge_requirement(badge_id)
-                locked_badges.append(badge_data)
+            # Show ALL badges as locked (including hidden and category badges)
+            badge_data["unlocked"] = False
+            badge_data["progress"] = get_badge_progress(badge_id, stats)
+            badge_data["requirement"] = get_badge_requirement(badge_id)
+            locked_badges.append(badge_data)
     
     return {
         "unlocked": unlocked_badges,

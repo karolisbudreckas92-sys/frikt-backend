@@ -54,47 +54,83 @@ interface BadgeData {
 // Badge requirements/reasons mapping
 const badgeRequirements: Record<string, { howToGet: string; whyGot: string }> = {
   // Streak badges
-  'just_browsing': { howToGet: 'Visit the app 2 days in a row', whyGot: 'You visited the app 2 days in a row' },
-  'hooked': { howToGet: 'Visit the app 7 days in a row', whyGot: 'You visited the app 7 days in a row' },
-  'regular_visitor': { howToGet: 'Visit the app 14 days in a row', whyGot: 'You visited the app 14 days in a row' },
-  'mayor_of_frikt': { howToGet: 'Visit the app 30 days in a row', whyGot: 'You visited the app 30 days in a row' },
-  'i_love_problems': { howToGet: 'Visit the app 100 days in a row', whyGot: 'You visited the app 100 days in a row' },
+  'streak_2': { howToGet: 'Visit the app 2 days in a row', whyGot: 'You visited the app 2 days in a row' },
+  'streak_7': { howToGet: 'Visit the app 7 days in a row', whyGot: 'You visited the app 7 days in a row' },
+  'streak_14': { howToGet: 'Visit the app 14 days in a row', whyGot: 'You visited the app 14 days in a row' },
+  'streak_30': { howToGet: 'Visit the app 30 days in a row', whyGot: 'You visited the app 30 days in a row' },
+  'streak_100': { howToGet: 'Visit the app 100 days in a row', whyGot: 'You visited the app 100 days in a row' },
   
   // Explorer badges
-  'curious_human': { howToGet: 'Open 3 different Frikts', whyGot: 'You opened 3 different Frikts' },
-  'nosey': { howToGet: 'Open 25 different Frikts', whyGot: 'You explored 25 different Frikts' },
-  'rabbit_hole': { howToGet: 'Open 100 different Frikts', whyGot: 'You explored 100 different Frikts' },
+  'explorer_3': { howToGet: 'Open 3 different Frikts', whyGot: 'You opened 3 different Frikts' },
+  'explorer_25': { howToGet: 'Open 25 different Frikts', whyGot: 'You explored 25 different Frikts' },
+  'explorer_100': { howToGet: 'Open 100 different Frikts', whyGot: 'You explored 100 different Frikts' },
   
   // Relater badges
-  'not_alone': { howToGet: 'Relate to your first Frikt', whyGot: 'You related to your first Frikt' },
-  'empathy_expert': { howToGet: 'Relate to 10 Frikts', whyGot: 'You related to 10 Frikts' },
-  'honorary_therapist': { howToGet: 'Relate to 50 Frikts', whyGot: 'You related to 50 Frikts' },
-  'community_pillar': { howToGet: 'Relate to 200 Frikts', whyGot: 'You related to 200 Frikts' },
-  'mother_theresa': { howToGet: 'Relate to 500 Frikts', whyGot: 'You related to 500 Frikts' },
+  'relater_1': { howToGet: 'Relate to your first Frikt', whyGot: 'You related to your first Frikt' },
+  'relater_10': { howToGet: 'Relate to 10 Frikts', whyGot: 'You related to 10 Frikts' },
+  'relater_50': { howToGet: 'Relate to 50 Frikts', whyGot: 'You related to 50 Frikts' },
+  'relater_200': { howToGet: 'Relate to 200 Frikts', whyGot: 'You related to 200 Frikts' },
+  'relater_500': { howToGet: 'Relate to 500 Frikts', whyGot: 'You related to 500 Frikts' },
   
   // Creator badges
-  'first_vent': { howToGet: 'Post your first Frikt', whyGot: 'You posted your first Frikt' },
-  'regular_frikter': { howToGet: 'Post 5 Frikts', whyGot: 'You posted 5 Frikts' },
-  'professional_hater': { howToGet: 'Post 10 Frikts', whyGot: 'You posted 10 Frikts' },
+  'creator_1': { howToGet: 'Post your first Frikt', whyGot: 'You posted your first Frikt' },
+  'creator_5': { howToGet: 'Post 5 Frikts', whyGot: 'You posted 5 Frikts' },
+  'creator_10': { howToGet: 'Post 10 Frikts', whyGot: 'You posted 10 Frikts' },
   'drama_influencer': { howToGet: 'Get 20 relates on a single Frikt', whyGot: 'One of your Frikts got 20 relates' },
   'universal_problem': { howToGet: 'Get 50 relates on a single Frikt', whyGot: 'One of your Frikts got 50 relates' },
   
   // Commenter badges
-  'helpful_stranger': { howToGet: 'Post your first comment', whyGot: 'You posted your first comment' },
-  'voice_of_reason': { howToGet: 'Post 10 comments', whyGot: 'You posted 10 comments' },
-  'community_voice': { howToGet: 'Post 25 comments', whyGot: 'You posted 25 comments' },
+  'commenter_1': { howToGet: 'Post your first comment', whyGot: 'You posted your first comment' },
+  'commenter_10': { howToGet: 'Post 10 comments', whyGot: 'You posted 10 comments' },
+  'commenter_25': { howToGet: 'Post 25 comments', whyGot: 'You posted 25 comments' },
   
   // Social badges
-  'nosey_neighbor': { howToGet: 'Follow 5 users', whyGot: 'You followed 5 users' },
+  'follow_5': { howToGet: 'Follow 5 users', whyGot: 'You followed 5 users' },
   
   // Social impact badges
-  'trending_topic': { howToGet: 'Receive 5 relates on your Frikts', whyGot: 'Your Frikts received 5 relates' },
-  'local_celebrity': { howToGet: 'Receive 25 relates on your Frikts', whyGot: 'Your Frikts received 25 relates' },
-  'frikt_famous': { howToGet: 'Receive 100 relates on your Frikts', whyGot: 'Your Frikts received 100 relates' },
+  'impact_5': { howToGet: 'Receive 5 relates on your Frikts', whyGot: 'Your Frikts received 5 relates' },
+  'impact_25': { howToGet: 'Receive 25 relates on your Frikts', whyGot: 'Your Frikts received 25 relates' },
+  'impact_100': { howToGet: 'Receive 100 relates on your Frikts', whyGot: 'Your Frikts received 100 relates' },
   
   // Special badges
   'og_member': { howToGet: 'Be an original member of FRIKT', whyGot: 'You were one of the first FRIKT users' },
   'early_frikter': { howToGet: 'Join FRIKT early', whyGot: 'You joined FRIKT in its early days' },
+  
+  // Category badges - Money
+  'category_money_apprentice': { howToGet: 'Post 1 Frikt about Money', whyGot: 'You posted your first Frikt about Money' },
+  'category_money_master': { howToGet: 'Post 5 Frikts about Money', whyGot: 'You posted 5 Frikts about Money' },
+  
+  // Category badges - Work
+  'category_work_apprentice': { howToGet: 'Post 1 Frikt about Work', whyGot: 'You posted your first Frikt about Work' },
+  'category_work_master': { howToGet: 'Post 5 Frikts about Work', whyGot: 'You posted 5 Frikts about Work' },
+  
+  // Category badges - Health
+  'category_health_apprentice': { howToGet: 'Post 1 Frikt about Health', whyGot: 'You posted your first Frikt about Health' },
+  'category_health_master': { howToGet: 'Post 5 Frikts about Health', whyGot: 'You posted 5 Frikts about Health' },
+  
+  // Category badges - Home
+  'category_home_apprentice': { howToGet: 'Post 1 Frikt about Home', whyGot: 'You posted your first Frikt about Home' },
+  'category_home_master': { howToGet: 'Post 5 Frikts about Home', whyGot: 'You posted 5 Frikts about Home' },
+  
+  // Category badges - Tech
+  'category_tech_apprentice': { howToGet: 'Post 1 Frikt about Tech', whyGot: 'You posted your first Frikt about Tech' },
+  'category_tech_master': { howToGet: 'Post 5 Frikts about Tech', whyGot: 'You posted 5 Frikts about Tech' },
+  
+  // Category badges - School
+  'category_school_apprentice': { howToGet: 'Post 1 Frikt about School', whyGot: 'You posted your first Frikt about School' },
+  'category_school_master': { howToGet: 'Post 5 Frikts about School', whyGot: 'You posted 5 Frikts about School' },
+  
+  // Category badges - Relationships
+  'category_relationships_apprentice': { howToGet: 'Post 1 Frikt about Relationships', whyGot: 'You posted your first Frikt about Relationships' },
+  'category_relationships_master': { howToGet: 'Post 5 Frikts about Relationships', whyGot: 'You posted 5 Frikts about Relationships' },
+  
+  // Category badges - Travel
+  'category_travel_apprentice': { howToGet: 'Post 1 Frikt about Travel', whyGot: 'You posted your first Frikt about Travel' },
+  'category_travel_master': { howToGet: 'Post 5 Frikts about Travel', whyGot: 'You posted 5 Frikts about Travel' },
+  
+  // Category badges - Services
+  'category_services_apprentice': { howToGet: 'Post 1 Frikt about Services', whyGot: 'You posted your first Frikt about Services' },
+  'category_services_master': { howToGet: 'Post 5 Frikts about Services', whyGot: 'You posted 5 Frikts about Services' },
 };
 
 // Get requirement text for a badge
