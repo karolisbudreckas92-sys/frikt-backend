@@ -66,13 +66,18 @@ function BadgeSectionContent() {
   const [badgeData, setBadgeData] = useState<BadgeData | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedBadge, setSelectedBadge] = useState<Badge | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const loadBadges = useCallback(async () => {
     try {
+      console.log('[BadgeSection] Loading badges...');
       const data = await api.getMyBadges();
+      console.log('[BadgeSection] Badges loaded:', data?.total_unlocked, '/', data?.total_possible);
       setBadgeData(data);
-    } catch (error) {
-      // Silent fail - badges are non-critical
+      setError(null);
+    } catch (err: any) {
+      console.error('[BadgeSection] Error loading badges:', err?.message || err);
+      setError(err?.message || 'Failed to load badges');
     } finally {
       setLoading(false);
     }
@@ -93,18 +98,35 @@ function BadgeSectionContent() {
   if (loading) {
     return (
       <View style={styles.container}>
+        <View style={styles.header}>
+          <Text style={styles.title}>Badges</Text>
+        </View>
         <Text style={styles.loadingText}>Loading badges...</Text>
       </View>
     );
   }
 
-  if (!badgeData) {
-    return null;
+  if (error) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.header}>
+          <Text style={styles.title}>Badges</Text>
+        </View>
+        <Text style={[styles.loadingText, { color: '#E4572E' }]}>Could not load badges</Text>
+      </View>
+    );
   }
 
-  const unlockedGroups = groupBadgesByCategory(badgeData.unlocked);
-  const lockedGroups = groupBadgesByCategory(badgeData.locked);
-  const allCategories = [...new Set([...Object.keys(unlockedGroups), ...Object.keys(lockedGroups)])];
+  if (!badgeData) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.header}>
+          <Text style={styles.title}>Badges</Text>
+        </View>
+        <Text style={styles.loadingText}>No badge data available</Text>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
