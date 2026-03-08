@@ -16,9 +16,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { colors, radius } from '@/src/theme/colors';
 import { api } from '@/src/services/api';
 import { useAuth } from '@/src/context/AuthContext';
-// TEMPORALMENTE COMENTADO PARA DEBUG - BadgeSection causa crash
-// import { BadgeSection } from '@/src/components/BadgeSection';
-// import { useBadges } from '@/src/contexts/BadgeContext';
+import { BadgeSection } from '@/src/components/BadgeSection';
 
 export default function Profile() {
   const router = useRouter();
@@ -226,8 +224,8 @@ export default function Profile() {
           </View>
         )}
 
-        {/* Badges Section - TEMPORALMENTE COMENTADO PARA DEBUG */}
-        {/* <BadgeSection /> */}
+        {/* Badges Section */}
+        <BadgeSection />
 
         {/* Admin Section */}
         {isAdmin && (
