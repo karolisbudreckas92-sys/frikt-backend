@@ -21,6 +21,7 @@ import { formatTimeAgo } from '@/src/utils/formatTimeAgo';
 import { colors, radius } from '@/src/theme/colors';
 import { api } from '@/src/services/api';
 import { useAuth } from '@/src/context/AuthContext';
+import { useBadges } from '@/src/contexts/BadgeContext';
 import Toast from 'react-native-root-toast';
 
 const COMMENT_CHIPS = [
@@ -59,6 +60,7 @@ export default function ProblemDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const { user } = useAuth();
+  const { showCelebration } = useBadges();
   
   const [problem, setProblem] = useState<any>(null);
   const [comments, setComments] = useState<any[]>([]);
@@ -88,6 +90,11 @@ export default function ProblemDetail() {
       setProblem(problemData);
       setComments(commentsData);
       setRelatedProblems(relatedData);
+      
+      // Show celebration modal if new badges were awarded
+      if (problemData.newly_awarded_badges && problemData.newly_awarded_badges.length > 0) {
+        showCelebration(problemData.newly_awarded_badges);
+      }
     } catch (error) {
       console.error('Error loading problem:', error);
       Alert.alert('Error', 'Failed to load problem');
