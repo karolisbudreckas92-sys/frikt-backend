@@ -1541,8 +1541,7 @@ async def get_problem(problem_id: str, user: dict = Depends(get_current_user)):
         # GAMIFICATION: Track frikt opened (for explorer badges)
         # Only count if viewing someone else's post
         if problem["user_id"] != user["id"]:
-            await increment_user_stat(user["id"], "total_frikts_opened")
-            stats = await get_or_create_user_stats(user["id"])
+            stats = await increment_user_stat(user["id"], "total_frikts_opened")
             newly_awarded = await check_and_award_badges(user["id"], user, stats, "explore")
     
     response = ProblemResponse(
