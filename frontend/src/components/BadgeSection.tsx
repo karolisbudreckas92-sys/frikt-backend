@@ -50,6 +50,74 @@ interface BadgeData {
   stats: any;
 }
 
+// Badge category definitions with exact order
+const BADGE_CATEGORIES = [
+  {
+    id: 'streaks',
+    title: 'Visit Streaks',
+    subtitle: 'Come back daily to keep your streak alive.',
+    badgeIds: ['streak_2', 'streak_7', 'streak_14', 'streak_30', 'streak_100']
+  },
+  {
+    id: 'explorer',
+    title: 'Explorer',
+    subtitle: "Tap into other people's frustrations.",
+    badgeIds: ['explorer_3', 'explorer_25', 'explorer_100']
+  },
+  {
+    id: 'relater',
+    title: 'The Relater',
+    subtitle: "Show others they're not alone.",
+    badgeIds: ['relater_1', 'relater_10', 'relater_50', 'relater_200', 'relater_500']
+  },
+  {
+    id: 'creator',
+    title: 'Friction Creator',
+    subtitle: 'Let it out. Post your frustrations.',
+    badgeIds: ['creator_1', 'creator_5', 'creator_10', 'drama_influencer', 'universal_problem']
+  },
+  {
+    id: 'commenter',
+    title: 'The Commenter',
+    subtitle: 'Join the conversation.',
+    badgeIds: ['commenter_1', 'commenter_10', 'commenter_25']
+  },
+  {
+    id: 'impact',
+    title: 'Social Impact',
+    subtitle: 'Your Frikts resonated with others.',
+    badgeIds: ['impact_5', 'impact_25', 'impact_100']
+  },
+  {
+    id: 'special',
+    title: 'Special Milestones',
+    subtitle: 'Rare achievements for dedicated Frikters.',
+    badgeIds: ['follow_5', 'og_member', 'early_frikter']
+  },
+  {
+    id: 'category_specialist',
+    title: 'Category Specialists',
+    subtitle: 'Master each frustration category.',
+    badgeIds: [] // Will be populated dynamically based on user's posts
+  }
+];
+
+// All category badge IDs
+const CATEGORY_BADGE_IDS = [
+  'category_money_apprentice', 'category_money_master',
+  'category_work_apprentice', 'category_work_master',
+  'category_health_apprentice', 'category_health_master',
+  'category_home_apprentice', 'category_home_master',
+  'category_tech_apprentice', 'category_tech_master',
+  'category_school_apprentice', 'category_school_master',
+  'category_relationships_apprentice', 'category_relationships_master',
+  'category_travel_apprentice', 'category_travel_master',
+  'category_services_apprentice', 'category_services_master'
+];
+
+// Hidden badges that should only appear when unlocked
+const HIDDEN_UNTIL_UNLOCKED = ['drama_influencer', 'universal_problem'];
+
 // Badge requirements/reasons mapping
 const badgeRequirements: Record<string, { howToGet: string; whyGot: string }> = {
   // Streak badges
@@ -116,7 +184,7 @@ const badgeRequirements: Record<string, { howToGet: string; whyGot: string }> = 
   'category_services_master': { howToGet: 'Post 5 Frikts about Services', whyGot: 'You posted 5 Frikts about Services' },
 };
 
-// Get requirement text for a badge - with null safety
+// Get requirement text for a badge
 function getBadgeText(badge: Badge | null): { title: string; text: string } {
   if (!badge) {
     return { title: '', text: '' };
@@ -137,35 +205,57 @@ function getBadgeText(badge: Badge | null): { title: string; text: string } {
   }
 }
 
-// Hexagon Badge Component
-function HexagonBadge({ badge, onPress }: { badge: Badge; onPress: () => void }) {
+// Badge Component
+function BadgeItem({ badge, onPress }: { badge: Badge; onPress: () => void }) {
   if (!badge) return null;
   
   const isUnlocked = badge.unlocked === true;
+  const progress = badge.progress;
+  const progressPercent = progress && progress.target > 0 
+    ? Math.min(100, (progress.current / progress.target) * 100) 
+    : 0;
   
   return (
-    <TouchableOpacity style={styles.hexagonContainer} onPress={onPress}>
+    <TouchableOpacity style={styles.badgeContainer} onPress={onPress}>
       <View style={[
-        styles.hexagon,
-        isUnlocked ? styles.hexagonUnlocked : styles.hexagonLocked
+        styles.badgeIcon,
+        isUnlocked ? styles.badgeIconUnlocked : styles.badgeIconLocked
       ]}>
         {isUnlocked ? (
-          <Text style={styles.hexagonEmoji}>{badge.icon || '🏆'}</Text>
+          <Text style={styles.badgeEmoji}>{badge.icon || '🏆'}</Text>
         ) : (
-          <Ionicons name="lock-closed" size={24} color="#9CA3AF" />
+          <View style={styles.lockedBadge}>
+            <Text style={styles.badgeEmojiLocked}>{badge.icon || '🏆'}</Text>
+            <View style={styles.lockOverlay}>
+              <Ionicons name="lock-closed" size={14} color="#9CA3AF" />
+            </View>
+          </View>
         )}
       </View>
+      
       <Text style={[
-        styles.hexagonLabel,
-        !isUnlocked && styles.hexagonLabelLocked
+        styles.badgeLabel,
+        !isUnlocked && styles.badgeLabelLocked
       ]} numberOfLines={2}>
         {badge.name || 'Badge'}
       </Text>
+      
+      {/* Progress bar for locked badges */}
+      {!isUnlocked && progress && progress.target > 0 && (
+        <View style={styles.miniProgressContainer}>
+          <View style={styles.miniProgressBar}>
+            <View style={[styles.miniProgressFill, { width: `${progressPercent}%` }]} />
+          </View>
+          <Text style={styles.miniProgressText}>
+            {progress.current}/{progress.target}
+          </Text>
+        </View>
+      )}
     </TouchableOpacity>
   );
 }
 
-// Badge Detail Content - separated for safety
+// Badge Detail Content
 function BadgeDetailContent({ badge, onClose }: { badge: Badge; onClose: () => void }) {
   if (!badge) return null;
   
@@ -179,8 +269,8 @@ function BadgeDetailContent({ badge, onClose }: { badge: Badge; onClose: () => v
   return (
     <View style={styles.detailContent}>
       <View style={[
-        styles.detailHexagon,
-        isUnlocked ? styles.hexagonUnlocked : styles.hexagonLocked
+        styles.detailBadgeIcon,
+        isUnlocked ? styles.badgeIconUnlocked : styles.badgeIconLocked
       ]}>
         {isUnlocked ? (
           <Text style={styles.detailEmoji}>{badge.icon || '🏆'}</Text>
@@ -227,6 +317,53 @@ function BadgeDetailContent({ badge, onClose }: { badge: Badge; onClose: () => v
   );
 }
 
+// Summary Header with progress
+function SummaryHeader({ totalUnlocked, totalPossible }: { totalUnlocked: number; totalPossible: number }) {
+  const progressPercent = totalPossible > 0 ? (totalUnlocked / totalPossible) * 100 : 0;
+  
+  return (
+    <View style={styles.summaryContainer}>
+      <Text style={styles.summaryText}>
+        {totalUnlocked} / {totalPossible} badges earned
+      </Text>
+      <View style={styles.summaryProgressBar}>
+        <View style={[styles.summaryProgressFill, { width: `${progressPercent}%` }]} />
+      </View>
+    </View>
+  );
+}
+
+// Category Section
+function CategorySection({ 
+  title, 
+  subtitle, 
+  badges, 
+  onBadgePress 
+}: { 
+  title: string; 
+  subtitle: string; 
+  badges: Badge[]; 
+  onBadgePress: (badge: Badge) => void;
+}) {
+  if (badges.length === 0) return null;
+  
+  return (
+    <View style={styles.section}>
+      <Text style={styles.sectionTitle}>{title}</Text>
+      <Text style={styles.sectionSubtitle}>{subtitle}</Text>
+      <View style={styles.badgeGrid}>
+        {badges.map((badge) => (
+          <BadgeItem 
+            key={badge.badge_id} 
+            badge={badge}
+            onPress={() => onBadgePress(badge)}
+          />
+        ))}
+      </View>
+    </View>
+  );
+}
+
 // Full Badges Screen Modal
 function BadgesModal({ 
   visible, 
@@ -241,8 +378,57 @@ function BadgesModal({
 
   if (!badgeData) return null;
 
-  const unlockedBadges = badgeData.unlocked || [];
-  const lockedBadges = badgeData.locked || [];
+  // Create a map of all badges for easy lookup
+  const allBadgesMap: Record<string, Badge> = {};
+  
+  (badgeData.unlocked || []).forEach(badge => {
+    allBadgesMap[badge.badge_id] = { ...badge, unlocked: true };
+  });
+  
+  (badgeData.locked || []).forEach(badge => {
+    allBadgesMap[badge.badge_id] = { ...badge, unlocked: false };
+  });
+
+  // Get badges for a category, filtering out hidden ones if not unlocked
+  const getBadgesForCategory = (badgeIds: string[]): Badge[] => {
+    return badgeIds
+      .map(id => allBadgesMap[id])
+      .filter(badge => {
+        if (!badge) return false;
+        // Hide certain badges until unlocked
+        if (HIDDEN_UNTIL_UNLOCKED.includes(badge.badge_id) && !badge.unlocked) {
+          return false;
+        }
+        return true;
+      });
+  };
+
+  // Get category badges that user has interacted with
+  const getCategorySpecialistBadges = (): Badge[] => {
+    const categoryBadges: Badge[] = [];
+    const categories = ['money', 'work', 'health', 'home', 'tech', 'school', 'relationships', 'travel', 'services'];
+    
+    categories.forEach(cat => {
+      const apprenticeId = `category_${cat}_apprentice`;
+      const masterId = `category_${cat}_master`;
+      const apprentice = allBadgesMap[apprenticeId];
+      const master = allBadgesMap[masterId];
+      
+      // Show category badges if user has made any progress OR has unlocked any
+      const hasProgress = apprentice?.progress && apprentice.progress.current > 0;
+      const hasUnlocked = apprentice?.unlocked || master?.unlocked;
+      
+      if (hasProgress || hasUnlocked) {
+        if (apprentice) categoryBadges.push(apprentice);
+        if (master) categoryBadges.push(master);
+      }
+    });
+    
+    return categoryBadges;
+  };
+
+  const totalUnlocked = badgeData.total_unlocked || 0;
+  const totalPossible = badgeData.total_possible || 45;
 
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet">
@@ -256,41 +442,29 @@ function BadgesModal({
         </View>
 
         <ScrollView style={styles.modalScroll} showsVerticalScrollIndicator={false}>
-          {unlockedBadges.length > 0 && (
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Unlocked</Text>
-              <Text style={styles.sectionSubtitle}>
-                {badgeData.total_unlocked || 0} badges earned
-              </Text>
-              <View style={styles.badgeGrid}>
-                {unlockedBadges.map((badge) => (
-                  <HexagonBadge 
-                    key={badge.badge_id} 
-                    badge={{ ...badge, unlocked: true }}
-                    onPress={() => setSelectedBadge({ ...badge, unlocked: true })}
-                  />
-                ))}
-              </View>
-            </View>
-          )}
+          {/* Summary Header */}
+          <SummaryHeader totalUnlocked={totalUnlocked} totalPossible={totalPossible} />
 
-          {lockedBadges.length > 0 && (
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Locked</Text>
-              <Text style={styles.sectionSubtitle}>
-                {lockedBadges.length} badges to unlock
-              </Text>
-              <View style={styles.badgeGrid}>
-                {lockedBadges.map((badge) => (
-                  <HexagonBadge 
-                    key={badge.badge_id} 
-                    badge={{ ...badge, unlocked: false }}
-                    onPress={() => setSelectedBadge({ ...badge, unlocked: false })}
-                  />
-                ))}
-              </View>
-            </View>
-          )}
+          {/* Category Sections */}
+          {BADGE_CATEGORIES.map((category) => {
+            let badges: Badge[];
+            
+            if (category.id === 'category_specialist') {
+              badges = getCategorySpecialistBadges();
+            } else {
+              badges = getBadgesForCategory(category.badgeIds);
+            }
+            
+            return (
+              <CategorySection
+                key={category.id}
+                title={category.title}
+                subtitle={category.subtitle}
+                badges={badges}
+                onBadgePress={setSelectedBadge}
+              />
+            );
+          })}
 
           <View style={{ height: 40 }} />
         </ScrollView>
@@ -320,7 +494,7 @@ function BadgesModal({
   );
 }
 
-// Main Export - Product Hunt style button for Profile
+// Main Export - Button for Profile
 export function BadgeSection() {
   const [badgeData, setBadgeData] = useState<BadgeData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -348,7 +522,6 @@ export function BadgeSection() {
     return () => { mounted = false; };
   }, []);
 
-  // Don't show anything if loading
   if (loading) {
     return (
       <View style={styles.statsRow}>
@@ -358,13 +531,12 @@ export function BadgeSection() {
     );
   }
 
-  // Don't show if error or no data
   if (error || !badgeData) {
     return null;
   }
 
-  // Safe access to badge data
   const totalUnlocked = badgeData.total_unlocked || 0;
+  const totalPossible = badgeData.total_possible || 45;
   const unlockedBadges = badgeData.unlocked || [];
   const firstBadgeIcon = unlockedBadges.length > 0 ? (unlockedBadges[0]?.icon || '🏆') : '🏆';
 
@@ -379,7 +551,7 @@ export function BadgeSection() {
         <Ionicons name="chevron-forward" size={14} color="#999999" />
         <View style={styles.statsBadge}>
           <Text style={styles.statsIcon}>{firstBadgeIcon}</Text>
-          <Text style={styles.statsCount}>{totalUnlocked}</Text>
+          <Text style={styles.statsCount}>{totalUnlocked}/{totalPossible}</Text>
         </View>
       </TouchableOpacity>
 
@@ -393,6 +565,7 @@ export function BadgeSection() {
 }
 
 const styles = StyleSheet.create({
+  // Profile button styles
   statsRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -425,10 +598,12 @@ const styles = StyleSheet.create({
     marginRight: 6,
   },
   statsCount: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '700',
     color: '#D97706',
   },
+  
+  // Modal styles
   modalContainer: {
     flex: 1,
     backgroundColor: colors.background,
@@ -457,17 +632,43 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: 16,
   },
+  
+  // Summary header
+  summaryContainer: {
+    marginTop: 20,
+    marginBottom: 8,
+    paddingHorizontal: 4,
+  },
+  summaryText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.textPrimary,
+    marginBottom: 8,
+  },
+  summaryProgressBar: {
+    height: 8,
+    backgroundColor: colors.surface,
+    borderRadius: 4,
+    overflow: 'hidden',
+  },
+  summaryProgressFill: {
+    height: '100%',
+    backgroundColor: '#F59E0B',
+    borderRadius: 4,
+  },
+  
+  // Section styles
   section: {
-    marginTop: 24,
+    marginTop: 28,
   },
   sectionTitle: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: '700',
     color: colors.textPrimary,
     marginBottom: 4,
   },
   sectionSubtitle: {
-    fontSize: 14,
+    fontSize: 13,
     color: colors.textSecondary,
     marginBottom: 16,
   },
@@ -475,42 +676,83 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
   },
-  hexagonContainer: {
+  
+  // Badge item styles
+  badgeContainer: {
     width: BADGE_SIZE,
     alignItems: 'center',
     marginBottom: 20,
   },
-  hexagon: {
+  badgeIcon: {
     width: BADGE_SIZE - 16,
     height: BADGE_SIZE - 16,
     borderRadius: 14,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 6,
   },
-  hexagonUnlocked: {
+  badgeIconUnlocked: {
     backgroundColor: '#FEF3C7',
     borderWidth: 2,
     borderColor: '#F59E0B',
   },
-  hexagonLocked: {
+  badgeIconLocked: {
     backgroundColor: colors.surface,
     borderWidth: 2,
     borderColor: colors.locked,
   },
-  hexagonEmoji: {
-    fontSize: 28,
+  badgeEmoji: {
+    fontSize: 26,
   },
-  hexagonLabel: {
+  badgeEmojiLocked: {
+    fontSize: 26,
+    opacity: 0.3,
+  },
+  lockedBadge: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  lockOverlay: {
+    position: 'absolute',
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    borderRadius: 10,
+    padding: 4,
+  },
+  badgeLabel: {
     fontSize: 11,
     color: colors.textPrimary,
     textAlign: 'center',
     lineHeight: 14,
     paddingHorizontal: 2,
   },
-  hexagonLabelLocked: {
+  badgeLabelLocked: {
     color: colors.textSecondary,
   },
+  
+  // Mini progress bar on badge
+  miniProgressContainer: {
+    width: BADGE_SIZE - 20,
+    marginTop: 4,
+  },
+  miniProgressBar: {
+    height: 4,
+    backgroundColor: colors.surface,
+    borderRadius: 2,
+    overflow: 'hidden',
+  },
+  miniProgressFill: {
+    height: '100%',
+    backgroundColor: '#F59E0B',
+    borderRadius: 2,
+  },
+  miniProgressText: {
+    fontSize: 9,
+    color: colors.textMuted,
+    textAlign: 'center',
+    marginTop: 2,
+  },
+  
+  // Detail modal styles
   detailOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.8)',
@@ -524,7 +766,7 @@ const styles = StyleSheet.create({
     width: '88%',
     alignItems: 'center',
   },
-  detailHexagon: {
+  detailBadgeIcon: {
     width: 88,
     height: 88,
     borderRadius: 18,
