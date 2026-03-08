@@ -40,23 +40,28 @@ interface BadgeData {
 }
 
 // Error boundary wrapper for BadgeSection
-class BadgeSectionErrorBoundary extends React.Component<{children: React.ReactNode}, {hasError: boolean}> {
+class BadgeSectionErrorBoundary extends React.Component<{children: React.ReactNode}, {hasError: boolean, error: string}> {
   constructor(props: any) {
     super(props);
-    this.state = { hasError: false };
+    this.state = { hasError: false, error: '' };
   }
 
-  static getDerivedStateFromError() {
-    return { hasError: true };
+  static getDerivedStateFromError(error: any) {
+    return { hasError: true, error: error?.message || 'Unknown error' };
   }
 
   componentDidCatch(error: any, info: any) {
-    console.error('BadgeSection error:', error, info);
+    console.error('[BadgeSection] Render error:', error, info);
   }
 
   render() {
     if (this.state.hasError) {
-      return null; // Silently hide badges if there's an error
+      return (
+        <View style={{ backgroundColor: '#FFFFFF', borderRadius: 12, padding: 16, marginHorizontal: 16, marginBottom: 16 }}>
+          <Text style={{ fontSize: 18, fontWeight: '600', color: '#1A1A1A', marginBottom: 8 }}>Badges</Text>
+          <Text style={{ fontSize: 14, color: '#999999' }}>Coming soon...</Text>
+        </View>
+      );
     }
     return this.props.children;
   }
