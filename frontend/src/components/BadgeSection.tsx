@@ -11,7 +11,7 @@ import {
   Dimensions 
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { api } from '../services/api';
+import { api } from '@/src/services/api';
 
 const { width } = Dimensions.get('window');
 const BADGE_SIZE = (width - 80) / 4;
@@ -27,7 +27,6 @@ const colors = {
   border: '#3A3F47',
   unlocked: '#F59E0B',
   locked: '#4B5563',
-  profileBg: '#F6F3EE',
 };
 
 interface Badge {
@@ -96,45 +95,33 @@ const badgeRequirements: Record<string, { howToGet: string; whyGot: string }> = 
   'og_member': { howToGet: 'Be an original member of FRIKT', whyGot: 'You were one of the first FRIKT users' },
   'early_frikter': { howToGet: 'Join FRIKT early', whyGot: 'You joined FRIKT in its early days' },
   
-  // Category badges - Money
+  // Category badges
   'category_money_apprentice': { howToGet: 'Post 1 Frikt about Money', whyGot: 'You posted your first Frikt about Money' },
   'category_money_master': { howToGet: 'Post 5 Frikts about Money', whyGot: 'You posted 5 Frikts about Money' },
-  
-  // Category badges - Work
   'category_work_apprentice': { howToGet: 'Post 1 Frikt about Work', whyGot: 'You posted your first Frikt about Work' },
   'category_work_master': { howToGet: 'Post 5 Frikts about Work', whyGot: 'You posted 5 Frikts about Work' },
-  
-  // Category badges - Health
   'category_health_apprentice': { howToGet: 'Post 1 Frikt about Health', whyGot: 'You posted your first Frikt about Health' },
   'category_health_master': { howToGet: 'Post 5 Frikts about Health', whyGot: 'You posted 5 Frikts about Health' },
-  
-  // Category badges - Home
   'category_home_apprentice': { howToGet: 'Post 1 Frikt about Home', whyGot: 'You posted your first Frikt about Home' },
   'category_home_master': { howToGet: 'Post 5 Frikts about Home', whyGot: 'You posted 5 Frikts about Home' },
-  
-  // Category badges - Tech
   'category_tech_apprentice': { howToGet: 'Post 1 Frikt about Tech', whyGot: 'You posted your first Frikt about Tech' },
   'category_tech_master': { howToGet: 'Post 5 Frikts about Tech', whyGot: 'You posted 5 Frikts about Tech' },
-  
-  // Category badges - School
   'category_school_apprentice': { howToGet: 'Post 1 Frikt about School', whyGot: 'You posted your first Frikt about School' },
   'category_school_master': { howToGet: 'Post 5 Frikts about School', whyGot: 'You posted 5 Frikts about School' },
-  
-  // Category badges - Relationships
   'category_relationships_apprentice': { howToGet: 'Post 1 Frikt about Relationships', whyGot: 'You posted your first Frikt about Relationships' },
   'category_relationships_master': { howToGet: 'Post 5 Frikts about Relationships', whyGot: 'You posted 5 Frikts about Relationships' },
-  
-  // Category badges - Travel
   'category_travel_apprentice': { howToGet: 'Post 1 Frikt about Travel', whyGot: 'You posted your first Frikt about Travel' },
   'category_travel_master': { howToGet: 'Post 5 Frikts about Travel', whyGot: 'You posted 5 Frikts about Travel' },
-  
-  // Category badges - Services
   'category_services_apprentice': { howToGet: 'Post 1 Frikt about Services', whyGot: 'You posted your first Frikt about Services' },
   'category_services_master': { howToGet: 'Post 5 Frikts about Services', whyGot: 'You posted 5 Frikts about Services' },
 };
 
-// Get requirement text for a badge
-function getBadgeText(badge: Badge): { title: string; text: string } {
+// Get requirement text for a badge - with null safety
+function getBadgeText(badge: Badge | null): { title: string; text: string } {
+  if (!badge) {
+    return { title: '', text: '' };
+  }
+  
   const req = badgeRequirements[badge.badge_id];
   
   if (badge.unlocked) {
@@ -152,7 +139,9 @@ function getBadgeText(badge: Badge): { title: string; text: string } {
 
 // Hexagon Badge Component
 function HexagonBadge({ badge, onPress }: { badge: Badge; onPress: () => void }) {
-  const isUnlocked = badge.unlocked;
+  if (!badge) return null;
+  
+  const isUnlocked = badge.unlocked === true;
   
   return (
     <TouchableOpacity style={styles.hexagonContainer} onPress={onPress}>
@@ -170,9 +159,71 @@ function HexagonBadge({ badge, onPress }: { badge: Badge; onPress: () => void })
         styles.hexagonLabel,
         !isUnlocked && styles.hexagonLabelLocked
       ]} numberOfLines={2}>
-        {badge.name}
+        {badge.name || 'Badge'}
       </Text>
     </TouchableOpacity>
+  );
+}
+
+// Badge Detail Content - separated for safety
+function BadgeDetailContent({ badge, onClose }: { badge: Badge; onClose: () => void }) {
+  if (!badge) return null;
+  
+  const isUnlocked = badge.unlocked === true;
+  const badgeText = getBadgeText(badge);
+  const progress = badge.progress;
+  const progressPercent = progress && progress.target > 0 
+    ? Math.min(100, (progress.current / progress.target) * 100) 
+    : 0;
+  
+  return (
+    <View style={styles.detailContent}>
+      <View style={[
+        styles.detailHexagon,
+        isUnlocked ? styles.hexagonUnlocked : styles.hexagonLocked
+      ]}>
+        {isUnlocked ? (
+          <Text style={styles.detailEmoji}>{badge.icon || '🏆'}</Text>
+        ) : (
+          <Ionicons name="lock-closed" size={40} color="#9CA3AF" />
+        )}
+      </View>
+      
+      <Text style={styles.detailTitle}>{badge.name || 'Badge'}</Text>
+      
+      <View style={styles.requirementBox}>
+        <Text style={[
+          styles.requirementLabel,
+          isUnlocked ? styles.requirementLabelUnlocked : styles.requirementLabelLocked
+        ]}>
+          {badgeText.title}
+        </Text>
+        <Text style={styles.requirementText}>
+          {badgeText.text}
+        </Text>
+      </View>
+
+      {isUnlocked && badge.unlocked_at && (
+        <Text style={styles.detailDate}>
+          Earned on {new Date(badge.unlocked_at).toLocaleDateString()}
+        </Text>
+      )}
+
+      {!isUnlocked && progress && progress.target > 0 && (
+        <View style={styles.progressContainer}>
+          <View style={styles.progressBar}>
+            <View style={[styles.progressFill, { width: `${progressPercent}%` }]} />
+          </View>
+          <Text style={styles.progressText}>
+            Progress: {progress.current} / {progress.target}
+          </Text>
+        </View>
+      )}
+
+      <TouchableOpacity style={styles.detailCloseButton} onPress={onClose}>
+        <Text style={styles.detailCloseText}>Got it</Text>
+      </TouchableOpacity>
+    </View>
   );
 }
 
@@ -190,10 +241,12 @@ function BadgesModal({
 
   if (!badgeData) return null;
 
+  const unlockedBadges = badgeData.unlocked || [];
+  const lockedBadges = badgeData.locked || [];
+
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet">
       <SafeAreaView style={styles.modalContainer}>
-        {/* Header */}
         <View style={styles.modalHeader}>
           <TouchableOpacity style={styles.backButton} onPress={onClose}>
             <Ionicons name="chevron-back" size={24} color={colors.textPrimary} />
@@ -203,15 +256,14 @@ function BadgesModal({
         </View>
 
         <ScrollView style={styles.modalScroll} showsVerticalScrollIndicator={false}>
-          {/* Unlocked Section */}
-          {badgeData.unlocked.length > 0 && (
+          {unlockedBadges.length > 0 && (
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Unlocked</Text>
               <Text style={styles.sectionSubtitle}>
-                {badgeData.total_unlocked} badges earned
+                {badgeData.total_unlocked || 0} badges earned
               </Text>
               <View style={styles.badgeGrid}>
-                {badgeData.unlocked.map((badge) => (
+                {unlockedBadges.map((badge) => (
                   <HexagonBadge 
                     key={badge.badge_id} 
                     badge={{ ...badge, unlocked: true }}
@@ -222,15 +274,14 @@ function BadgesModal({
             </View>
           )}
 
-          {/* Locked Section */}
-          {badgeData.locked.length > 0 && (
+          {lockedBadges.length > 0 && (
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Locked</Text>
               <Text style={styles.sectionSubtitle}>
-                {badgeData.locked.length} badges to unlock
+                {lockedBadges.length} badges to unlock
               </Text>
               <View style={styles.badgeGrid}>
-                {badgeData.locked.map((badge) => (
+                {lockedBadges.map((badge) => (
                   <HexagonBadge 
                     key={badge.badge_id} 
                     badge={{ ...badge, unlocked: false }}
@@ -256,63 +307,12 @@ function BadgesModal({
             activeOpacity={1} 
             onPress={() => setSelectedBadge(null)}
           >
-            <View style={styles.detailContent}>
-              <View style={[
-                styles.detailHexagon,
-                selectedBadge?.unlocked ? styles.hexagonUnlocked : styles.hexagonLocked
-              ]}>
-                {selectedBadge?.unlocked ? (
-                  <Text style={styles.detailEmoji}>{selectedBadge?.icon || '🏆'}</Text>
-                ) : (
-                  <Ionicons name="lock-closed" size={40} color="#9CA3AF" />
-                )}
-              </View>
-              
-              <Text style={styles.detailTitle}>{selectedBadge?.name}</Text>
-              
-              {/* Requirement/Reason Section */}
-              {selectedBadge && (
-                <View style={styles.requirementBox}>
-                  <Text style={[
-                    styles.requirementLabel,
-                    selectedBadge.unlocked ? styles.requirementLabelUnlocked : styles.requirementLabelLocked
-                  ]}>
-                    {getBadgeText(selectedBadge).title}
-                  </Text>
-                  <Text style={styles.requirementText}>
-                    {getBadgeText(selectedBadge).text}
-                  </Text>
-                </View>
-              )}
-
-              {/* Unlocked date */}
-              {selectedBadge?.unlocked && selectedBadge?.unlocked_at && (
-                <Text style={styles.detailDate}>
-                  Earned on {new Date(selectedBadge.unlocked_at).toLocaleDateString()}
-                </Text>
-              )}
-
-              {/* Progress bar for locked badges */}
-              {!selectedBadge?.unlocked && selectedBadge?.progress && (
-                <View style={styles.progressContainer}>
-                  <View style={styles.progressBar}>
-                    <View 
-                      style={[
-                        styles.progressFill, 
-                        { width: `${Math.min(100, (selectedBadge.progress.current / selectedBadge.progress.target) * 100)}%` }
-                      ]} 
-                    />
-                  </View>
-                  <Text style={styles.progressText}>
-                    Progress: {selectedBadge.progress.current} / {selectedBadge.progress.target}
-                  </Text>
-                </View>
-              )}
-
-              <TouchableOpacity style={styles.detailCloseButton} onPress={() => setSelectedBadge(null)}>
-                <Text style={styles.detailCloseText}>Got it</Text>
-              </TouchableOpacity>
-            </View>
+            {selectedBadge && (
+              <BadgeDetailContent 
+                badge={selectedBadge} 
+                onClose={() => setSelectedBadge(null)} 
+              />
+            )}
           </TouchableOpacity>
         </Modal>
       </SafeAreaView>
@@ -324,6 +324,7 @@ function BadgesModal({
 export function BadgeSection() {
   const [badgeData, setBadgeData] = useState<BadgeData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
 
   useEffect(() => {
@@ -332,9 +333,12 @@ export function BadgeSection() {
     const loadBadges = async () => {
       try {
         const data = await api.getMyBadges();
-        if (mounted) setBadgeData(data);
+        if (mounted && data) {
+          setBadgeData(data);
+        }
       } catch (err) {
         console.error('[BadgeSection] Error:', err);
+        if (mounted) setError(true);
       } finally {
         if (mounted) setLoading(false);
       }
@@ -344,38 +348,41 @@ export function BadgeSection() {
     return () => { mounted = false; };
   }, []);
 
+  // Don't show anything if loading
   if (loading) {
     return (
       <View style={styles.statsRow}>
+        <Text style={styles.statsLabel}>Badges</Text>
         <ActivityIndicator size="small" color={colors.primary} />
       </View>
     );
   }
 
-  if (!badgeData) {
+  // Don't show if error or no data
+  if (error || !badgeData) {
     return null;
   }
 
-  // Get the first unlocked badge icon or default
-  const firstBadgeIcon = badgeData.unlocked[0]?.icon || '🏆';
+  // Safe access to badge data
+  const totalUnlocked = badgeData.total_unlocked || 0;
+  const unlockedBadges = badgeData.unlocked || [];
+  const firstBadgeIcon = unlockedBadges.length > 0 ? (unlockedBadges[0]?.icon || '🏆') : '🏆';
 
   return (
     <>
-      {/* Product Hunt Style Stats Row */}
       <TouchableOpacity 
         style={styles.statsRow} 
         onPress={() => setModalVisible(true)}
         activeOpacity={0.7}
       >
         <Text style={styles.statsLabel}>Badges</Text>
-        <Ionicons name="chevron-forward" size={14} color={colors.textMuted} />
+        <Ionicons name="chevron-forward" size={14} color="#999999" />
         <View style={styles.statsBadge}>
           <Text style={styles.statsIcon}>{firstBadgeIcon}</Text>
-          <Text style={styles.statsCount}>{badgeData.total_unlocked}</Text>
+          <Text style={styles.statsCount}>{totalUnlocked}</Text>
         </View>
       </TouchableOpacity>
 
-      {/* Full Badges Modal */}
       <BadgesModal 
         visible={modalVisible} 
         onClose={() => setModalVisible(false)} 
@@ -386,7 +393,6 @@ export function BadgeSection() {
 }
 
 const styles = StyleSheet.create({
-  // Product Hunt Style Stats Row
   statsRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -423,8 +429,6 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#D97706',
   },
-
-  // Modal Styles
   modalContainer: {
     flex: 1,
     backgroundColor: colors.background,
@@ -453,8 +457,6 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: 16,
   },
-
-  // Section Styles
   section: {
     marginTop: 24,
   },
@@ -469,14 +471,10 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     marginBottom: 16,
   },
-
-  // Badge Grid
   badgeGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
   },
-
-  // Hexagon Badge
   hexagonContainer: {
     width: BADGE_SIZE,
     alignItems: 'center',
@@ -513,8 +511,6 @@ const styles = StyleSheet.create({
   hexagonLabelLocked: {
     color: colors.textSecondary,
   },
-
-  // Detail Modal
   detailOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.8)',
@@ -546,8 +542,6 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     textAlign: 'center',
   },
-  
-  // Requirement Box
   requirementBox: {
     backgroundColor: colors.surface,
     borderRadius: 12,
@@ -573,13 +567,11 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
     lineHeight: 22,
   },
-  
   detailDate: {
     fontSize: 13,
     color: colors.textMuted,
     marginBottom: 16,
   },
-  
   progressContainer: {
     width: '100%',
     marginBottom: 16,

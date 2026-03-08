@@ -40,7 +40,7 @@
     "frontend": "Code review PASS, UI testing blocked by hardcoded production URL"
   },
   "test_credentials": {
-    "preview_api_url": "https://frikt-quality.preview.emergentagent.com",
+    "preview_api_url": "https://frikt-crash-hunt.preview.emergentagent.com",
     "note": "Frontend uses hardcoded production URL, backend tests use preview URL correctly"
   },
   "seed_data_creation": "Test users created during backend tests are deleted as part of test flow",

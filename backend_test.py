@@ -10,7 +10,7 @@ import sys
 from datetime import datetime
 
 # Backend URL from frontend/.env
-BACKEND_URL = "https://frikt-quality.preview.emergentagent.com/api"
+BACKEND_URL = "https://frikt-crash-hunt.preview.emergentagent.com/api"
 
 class PathGroTester:
     def __init__(self):
