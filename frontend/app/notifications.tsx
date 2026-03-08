@@ -14,12 +14,14 @@ import { Ionicons } from '@expo/vector-icons';
 import { formatDistanceToNow } from 'date-fns';
 import { colors } from '@/src/theme/colors';
 import { api } from '@/src/services/api';
+import { useNotifications } from '@/src/contexts/NotificationContext';
 
 export default function Notifications() {
   const router = useRouter();
   const [notifications, setNotifications] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const { markAllAsRead } = useNotifications();
 
   const loadNotifications = async (refresh = false) => {
     if (refresh) setIsRefreshing(true);
@@ -28,8 +30,6 @@ export default function Notifications() {
     try {
       const data = await api.getNotifications();
       setNotifications(data.notifications);
-      // Mark all as read
-      await api.markNotificationsRead();
     } catch (error) {
       console.error('Error loading notifications:', error);
     } finally {
@@ -39,6 +39,8 @@ export default function Notifications() {
   };
 
   useEffect(() => {
+    // On mount: clear badge count immediately then load notifications
+    markAllAsRead();
     loadNotifications();
   }, []);
 

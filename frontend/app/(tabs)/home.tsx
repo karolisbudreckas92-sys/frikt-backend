@@ -17,6 +17,7 @@ import ProblemCard from '@/src/components/ProblemCard';
 import MissionBanner from '@/src/components/MissionBanner';
 import Toast from 'react-native-root-toast';
 import { useBadges } from '@/src/contexts/BadgeContext';
+import { useNotifications } from '@/src/contexts/NotificationContext';
 
 type FeedType = 'foryou' | 'trending' | 'new';
 
@@ -44,10 +45,12 @@ export default function Home() {
   const [problems, setProblems] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [unreadCount, setUnreadCount] = useState(0);
   const [showMission, setShowMission] = useState(true);
   const [hasError, setHasError] = useState(false);
   const hasTrackedVisit = useRef(false);
+  
+  // Use notification context for badge count
+  const { unreadCount, refreshCount } = useNotifications();
   
   // Badge context for tracking visits
   let trackVisit: (() => Promise<any[]>) | undefined;
@@ -75,18 +78,9 @@ export default function Home() {
     }
   }, [feed]);
 
-  const loadNotifications = async () => {
-    try {
-      const data = await api.getNotifications();
-      setUnreadCount(data.unread_count);
-    } catch (error) {
-      console.error('Error loading notifications:', error);
-    }
-  };
-
   useEffect(() => {
     loadProblems();
-    loadNotifications();
+    refreshCount(); // Refresh notification count from context
     
     // Track visit for gamification (once per session)
     if (!hasTrackedVisit.current && trackVisit) {
