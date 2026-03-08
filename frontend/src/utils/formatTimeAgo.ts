@@ -1,41 +1,38 @@
 /**
- * Utility to format timestamps consistently as "about X ago"
- * Always uses UTC for both created_at and current time to ensure
- * all users see the same relative time regardless of timezone.
+ * Utility to format timestamps consistently as "X ago"
+ * Handles MongoDB UTC timestamps correctly.
  */
 
 export function formatTimeAgo(dateString: string): string {
   if (!dateString) return 'just now';
   
-  // Parse the date - always treat as UTC
+  // Parse the date - MongoDB stores in format: "2026-03-07T21:24:19.087000"
   let created: Date;
   try {
-    // Remove any existing timezone indicator and treat as UTC
-    const cleanDate = dateString.replace('Z', '').split('+')[0].split('-').slice(0, 3).join('-') + 
-                      'T' + (dateString.includes('T') ? dateString.split('T')[1].split('+')[0].split('Z')[0] : '00:00:00');
+    // If the date doesn't end with Z, append it to treat as UTC
+    const normalizedDate = dateString.endsWith('Z') ? dateString : dateString + 'Z';
+    created = new Date(normalizedDate);
     
-    // Parse as UTC by appending Z
-    created = new Date(cleanDate + 'Z');
+    // Check if parsing failed
+    if (isNaN(created.getTime())) {
+      console.warn('[formatTimeAgo] Invalid date:', dateString);
+      return 'just now';
+    }
   } catch (e) {
-    // Fallback: try direct parsing with Z appended
-    created = new Date(dateString.endsWith('Z') ? dateString : dateString + 'Z');
+    console.warn('[formatTimeAgo] Error parsing date:', dateString, e);
+    return 'just now';
   }
   
-  // Use UTC time for "now" as well
-  const now = new Date();
-  const nowUtc = Date.UTC(
-    now.getUTCFullYear(),
-    now.getUTCMonth(),
-    now.getUTCDate(),
-    now.getUTCHours(),
-    now.getUTCMinutes(),
-    now.getUTCSeconds()
-  );
+  // Get current time in milliseconds
+  const now = Date.now();
+  const createdMs = created.getTime();
+  const diffMs = now - createdMs;
   
-  const diffMs = nowUtc - created.getTime();
+  // Debug logging (remove in production)
+  // console.log('[formatTimeAgo]', { dateString, createdMs, now, diffMs, diffHours: diffMs / 3600000 });
   
   // Handle negative diff (future dates or parsing errors)
-  if (diffMs < 0 || isNaN(diffMs)) {
+  if (diffMs < 0) {
     return 'just now';
   }
   
