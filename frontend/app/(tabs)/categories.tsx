@@ -17,10 +17,18 @@ import { useAuth } from '@/src/context/AuthContext';
 
 export default function Categories() {
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
   const [categories, setCategories] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [followedCategories, setFollowedCategories] = useState<string[]>([]);
+
+  // Sync local state with user's followed categories
+  useEffect(() => {
+    if (user?.followed_categories) {
+      setFollowedCategories(user.followed_categories);
+    }
+  }, [user?.followed_categories]);
 
   const loadCategories = async (refresh = false) => {
     if (refresh) setIsRefreshing(true);
@@ -42,19 +50,34 @@ export default function Categories() {
   }, []);
 
   const handleFollowCategory = async (categoryId: string, isFollowing: boolean) => {
+    // Optimistic update - update UI immediately
+    if (isFollowing) {
+      setFollowedCategories(prev => prev.filter(id => id !== categoryId));
+    } else {
+      setFollowedCategories(prev => [...prev, categoryId]);
+    }
+    
     try {
       if (isFollowing) {
         await api.unfollowCategory(categoryId);
       } else {
         await api.followCategory(categoryId);
       }
+      // Refresh user to sync the state
+      await refreshUser();
     } catch (error) {
       console.error('Error toggling follow:', error);
+      // Revert optimistic update on error
+      if (isFollowing) {
+        setFollowedCategories(prev => [...prev, categoryId]);
+      } else {
+        setFollowedCategories(prev => prev.filter(id => id !== categoryId));
+      }
     }
   };
 
   const renderCategory = ({ item }: { item: any }) => {
-    const isFollowing = user?.followed_categories?.includes(item.id) || false;
+    const isFollowing = followedCategories.includes(item.id);
     
     return (
       <TouchableOpacity
