@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "314003661539",
+    "project_id": "frikt-fc250",
+    "storage_bucket": "frikt-fc250.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:314003661539:android:378f4356b98cdef08b9bd6",
+        "android_client_info": {
+          "package_name": "com.frikt.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBsSxExUXkTPV-sMuKsbFUTMrLs6dlBUwE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
