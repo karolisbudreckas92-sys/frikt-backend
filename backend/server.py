@@ -8,6 +8,7 @@ from motor.motor_asyncio import AsyncIOMotorClient
 import os
 import logging
 import asyncio
+import re
 from pathlib import Path
 from pydantic import BaseModel, Field, EmailStr
 from typing import List, Optional
@@ -1179,10 +1180,21 @@ def calculate_signal_score(problem: dict, include_breakdown: bool = False) -> fl
 
 # ===================== AUTH ROUTES =====================
 
+# Email validation regex pattern
+EMAIL_REGEX = re.compile(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$')
+
+def is_valid_email_format(email: str) -> bool:
+    """Validate email format using regex"""
+    return bool(EMAIL_REGEX.match(email))
+
 @api_router.post("/auth/register", response_model=TokenResponse)
 async def register(user_data: UserCreate):
     # Normalize email to lowercase for consistent storage and lookup
     email_lower = user_data.email.lower().strip()
+    
+    # Validate email format
+    if not is_valid_email_format(email_lower):
+        raise HTTPException(status_code=400, detail="Invalid email format")
     
     # Check if email exists (case-insensitive)
     existing = await db.users.find_one({"email": email_lower})
@@ -1563,8 +1575,14 @@ async def get_problems(
     search: Optional[str] = None,
     limit: int = 50,
     skip: int = 0,
-    user: dict = Depends(get_current_user)
+    user: dict = Depends(require_auth)  # Changed from get_current_user to require_auth for security
 ):
+    # Handle empty search - return empty results instead of 404
+    if search is not None:
+        search = search.strip()
+        if not search:  # Empty or whitespace-only search
+            return []  # Return empty array with 200 status
+    
     query = {"is_hidden": False, "status": "active"}
     
     # Filter out blocked users' content

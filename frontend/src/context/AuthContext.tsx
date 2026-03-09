@@ -1,6 +1,48 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as SecureStore from 'expo-secure-store';
+import { Platform } from 'react-native';
 import { api } from '../services/api';
+
+// Helper functions for secure token storage
+// SecureStore works on iOS and Android, but not on web
+const TOKEN_KEY = 'auth_token';
+
+async function getSecureToken(): Promise<string | null> {
+  if (Platform.OS === 'web') {
+    return AsyncStorage.getItem(TOKEN_KEY);
+  }
+  try {
+    return await SecureStore.getItemAsync(TOKEN_KEY);
+  } catch (error) {
+    console.error('Error reading secure token:', error);
+    return null;
+  }
+}
+
+async function setSecureToken(token: string): Promise<void> {
+  if (Platform.OS === 'web') {
+    await AsyncStorage.setItem(TOKEN_KEY, token);
+    return;
+  }
+  try {
+    await SecureStore.setItemAsync(TOKEN_KEY, token);
+  } catch (error) {
+    console.error('Error saving secure token:', error);
+  }
+}
+
+async function removeSecureToken(): Promise<void> {
+  if (Platform.OS === 'web') {
+    await AsyncStorage.removeItem(TOKEN_KEY);
+    return;
+  }
+  try {
+    await SecureStore.deleteItemAsync(TOKEN_KEY);
+  } catch (error) {
+    console.error('Error removing secure token:', error);
+  }
+}
 
 interface User {
   id: string;
@@ -45,7 +87,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const loadStoredAuth = async () => {
     try {
-      const storedToken = await AsyncStorage.getItem('auth_token');
+      // Use SecureStore for token (sensitive), AsyncStorage for user data (non-sensitive)
+      const storedToken = await getSecureToken();
       const storedUser = await AsyncStorage.getItem('auth_user');
       
       if (storedToken && storedUser) {
@@ -74,7 +117,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const response = await api.login(email, password);
     const { access_token, user: userData } = response;
     
-    await AsyncStorage.setItem('auth_token', access_token);
+    // Store token securely, user data in AsyncStorage
+    await setSecureToken(access_token);
     await AsyncStorage.setItem('auth_user', JSON.stringify(userData));
     
     api.setToken(access_token);
@@ -86,7 +130,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const response = await api.register(name, email, password);
     const { access_token, user: userData } = response;
     
-    await AsyncStorage.setItem('auth_token', access_token);
+    // Store token securely, user data in AsyncStorage
+    await setSecureToken(access_token);
     await AsyncStorage.setItem('auth_user', JSON.stringify(userData));
     
     api.setToken(access_token);
@@ -95,7 +140,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const logout = async () => {
-    await AsyncStorage.removeItem('auth_token');
+    // Remove token from secure storage
+    await removeSecureToken();
     await AsyncStorage.removeItem('auth_user');
     api.setToken(null);
     setToken(null);
@@ -107,6 +153,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       try {
         const response = await api.getMe();
         setUser(response);
+        // User data is non-sensitive, keep in AsyncStorage
         await AsyncStorage.setItem('auth_user', JSON.stringify(response));
       } catch (error) {
         console.error('Error refreshing user:', error);
