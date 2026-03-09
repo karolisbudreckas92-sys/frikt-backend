@@ -7,6 +7,25 @@
   "client": [
     {
       "client_info": {
+        "mobilesdk_app_id": "1:314003661539:android:756efb8566995f498b9bd6",
+        "android_client_info": {
+          "package_name": "au.path.gro"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBsSxExUXkTPV-sMuKsbFUTMrLs6dlBUwE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
         "mobilesdk_app_id": "1:314003661539:android:378f4356b98cdef08b9bd6",
         "android_client_info": {
           "package_name": "com.frikt.app"
