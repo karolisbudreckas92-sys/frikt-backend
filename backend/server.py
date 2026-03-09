@@ -761,6 +761,60 @@ async def increment_user_stat(user_id: str, field: str, amount: int = 1) -> dict
     )
     return await db.user_stats.find_one({"user_id": user_id}, {"_id": 0})
 
+async def sync_user_stats_from_db(user_id: str) -> dict:
+    """
+    Sync user stats from actual database counts.
+    This fixes any desynchronization between user_stats and actual data.
+    """
+    # Count actual data from database
+    total_posts = await db.problems.count_documents({"user_id": user_id, "status": "active"})
+    total_comments = await db.comments.count_documents({"user_id": user_id})
+    total_relates_given = await db.relates.count_documents({"user_id": user_id})
+    
+    # Count relates received (on user's posts)
+    user_posts = await db.problems.find({"user_id": user_id}, {"id": 1}).to_list(1000)
+    user_post_ids = [p["id"] for p in user_posts]
+    total_relates_received = await db.relates.count_documents({"problem_id": {"$in": user_post_ids}}) if user_post_ids else 0
+    
+    # Count posts per category
+    posts_per_category = {}
+    pipeline = [
+        {"$match": {"user_id": user_id, "status": "active"}},
+        {"$group": {"_id": "$category_id", "count": {"$sum": 1}}}
+    ]
+    category_counts = await db.problems.aggregate(pipeline).to_list(100)
+    for cat in category_counts:
+        if cat["_id"]:
+            posts_per_category[cat["_id"]] = cat["count"]
+    
+    # Count frikts opened (views) - this might not be tracked per user, keep existing
+    existing_stats = await get_or_create_user_stats(user_id)
+    total_frikts_opened = existing_stats.get("total_frikts_opened", 0)
+    current_visit_streak = existing_stats.get("current_visit_streak", 0)
+    users_followed = existing_stats.get("users_followed", 0)
+    
+    # Update user_stats with correct values
+    updated_stats = {
+        "total_posts": total_posts,
+        "total_comments": total_comments,
+        "total_relates_given": total_relates_given,
+        "total_relates_received": total_relates_received,
+        "posts_per_category": posts_per_category,
+        "total_frikts_opened": total_frikts_opened,
+        "current_visit_streak": current_visit_streak,
+        "users_followed": users_followed,
+    }
+    
+    await db.user_stats.update_one(
+        {"user_id": user_id},
+        {"$set": updated_stats},
+        upsert=True
+    )
+    
+    logger.info(f"Synced stats for user {user_id}: posts={total_posts}, comments={total_comments}, relates_given={total_relates_given}")
+    
+    return await db.user_stats.find_one({"user_id": user_id}, {"_id": 0})
+
 async def increment_category_posts(user_id: str, category_id: str) -> dict:
     """Increment posts count for a specific category"""
     await get_or_create_user_stats(user_id)
@@ -3776,6 +3830,65 @@ async def get_audit_log(
     total = await db.admin_audit_logs.count_documents(query)
     
     return {"logs": logs, "total": total}
+
+# --- Admin: Sync User Stats ---
+
+@api_router.post("/admin/sync-all-user-stats")
+async def admin_sync_all_user_stats(admin: dict = Depends(require_admin)):
+    """
+    Sync stats for ALL users from actual database counts.
+    This fixes badge progress desynchronization for existing users.
+    """
+    # Get all users
+    users = await db.users.find({}, {"id": 1}).to_list(10000)
+    
+    synced_count = 0
+    badges_awarded = 0
+    
+    for user_doc in users:
+        user_id = user_doc["id"]
+        try:
+            # Sync stats from actual database
+            stats = await sync_user_stats_from_db(user_id)
+            
+            # Get user data for badge check
+            user = await db.users.find_one({"id": user_id})
+            if user:
+                # Check and award any badges they should have earned
+                new_badges = await check_and_award_badges(user_id, user, stats, "all")
+                badges_awarded += len(new_badges)
+            
+            synced_count += 1
+        except Exception as e:
+            logger.error(f"Error syncing stats for user {user_id}: {e}")
+    
+    logger.info(f"Admin sync completed: {synced_count} users synced, {badges_awarded} badges awarded")
+    
+    return {
+        "success": True,
+        "users_synced": synced_count,
+        "badges_awarded": badges_awarded
+    }
+
+@api_router.post("/admin/sync-user-stats/{user_id}")
+async def admin_sync_user_stats(user_id: str, admin: dict = Depends(require_admin)):
+    """Sync stats for a specific user from actual database counts."""
+    user = await db.users.find_one({"id": user_id})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # Sync stats from actual database
+    stats = await sync_user_stats_from_db(user_id)
+    
+    # Check and award any badges they should have earned
+    new_badges = await check_and_award_badges(user_id, user, stats, "all")
+    
+    return {
+        "success": True,
+        "stats": stats,
+        "new_badges_awarded": len(new_badges),
+        "new_badges": new_badges
+    }
 
 # ===================== PUSH NOTIFICATIONS =====================
 
