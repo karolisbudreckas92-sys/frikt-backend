@@ -80,6 +80,14 @@ export default function PostWizard({ onComplete, onCancel }: PostWizardProps) {
   const [categoryId, setCategoryId] = useState('other');
   const [frequency, setFrequency] = useState<string | null>(null);
   const [severity, setSeverity] = useState<number | null>(null);
+  
+  // Local community toggle
+  const [isLocal, setIsLocal] = useState(false);
+  const [myCommunity, setMyCommunity] = useState<any>(null);
+  
+  useEffect(() => {
+    api.getMyCommunity().then(setMyCommunity).catch(() => setMyCommunity(null));
+  }, []);
 
   // Duplicate detection
   const searchSimilar = useCallback(async (text: string) => {
@@ -123,9 +131,10 @@ export default function PostWizard({ onComplete, onCancel }: PostWizardProps) {
     try {
       const result = await api.createProblem({
         title: problemText.trim(),
-        category_id: categoryId,
+        category_id: isLocal ? 'local' : categoryId,
         frequency: frequency || null,
         pain_level: severity || null,
+        is_local: isLocal,
       });
       
       // Reset state before calling onComplete
@@ -193,6 +202,28 @@ export default function PostWizard({ onComplete, onCancel }: PostWizardProps) {
           : `${problemText.length}/500`
         }
       </Text>
+
+      {/* Local toggle */}
+      {myCommunity && (
+        <TouchableOpacity
+          style={[styles.localToggle, isLocal && styles.localToggleActive]}
+          onPress={() => setIsLocal(!isLocal)}
+          data-testid="local-toggle-post"
+        >
+          <Ionicons name="location" size={18} color={isLocal ? '#fff' : '#E85D3A'} />
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.localToggleText, isLocal && styles.localToggleTextActive]}>
+              Post to {myCommunity.name}
+            </Text>
+            <Text style={[styles.localToggleHint, isLocal && { color: 'rgba(255,255,255,0.7)' }]}>
+              Only members of your community will see this
+            </Text>
+          </View>
+          <View style={[styles.localCheckbox, isLocal && styles.localCheckboxActive]}>
+            {isLocal && <Ionicons name="checkmark" size={14} color="#fff" />}
+          </View>
+        </TouchableOpacity>
+      )}
 
       {isSearching && (
         <View style={styles.searchingContainer}>
@@ -631,5 +662,46 @@ const styles = StyleSheet.create({
   },
   buttonDisabled: {
     opacity: 0.5,
+  },
+  localToggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginTop: 16,
+    padding: 14,
+    borderRadius: radius.lg,
+    borderWidth: 1.5,
+    borderColor: '#E85D3A40',
+    backgroundColor: colors.surface,
+  },
+  localToggleActive: {
+    backgroundColor: '#E85D3A',
+    borderColor: '#E85D3A',
+  },
+  localToggleText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.text,
+  },
+  localToggleTextActive: {
+    color: '#fff',
+  },
+  localToggleHint: {
+    fontSize: 12,
+    color: colors.textMuted,
+    marginTop: 2,
+  },
+  localCheckbox: {
+    width: 24,
+    height: 24,
+    borderRadius: 6,
+    borderWidth: 2,
+    borderColor: '#E85D3A',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  localCheckboxActive: {
+    backgroundColor: 'rgba(255,255,255,0.3)',
+    borderColor: '#fff',
   },
 });

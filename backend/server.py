@@ -87,6 +87,7 @@ CATEGORIES = [
     {"id": "relationships", "name": "Relationships", "icon": "people-outline", "color": "#F97316"},
     {"id": "travel", "name": "Travel/Transport", "icon": "car-outline", "color": "#06B6D4"},
     {"id": "services", "name": "Services", "icon": "construct-outline", "color": "#84CC16"},
+    {"id": "local", "name": "Local", "icon": "location-outline", "color": "#E85D3A"},
 ]
 
 FREQUENCY_OPTIONS = ["daily", "weekly", "monthly", "rare"]
@@ -286,6 +287,8 @@ class ProblemCreate(BaseModel):
     who_affected: Optional[str] = None
     what_tried: Optional[str] = None
     is_problem_not_solution: bool = True
+    is_local: bool = False
+    community_id: Optional[str] = None
 
 class Problem(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
@@ -312,6 +315,9 @@ class Problem(BaseModel):
     is_pinned: bool = False
     needs_context: bool = False
     merged_into: Optional[str] = None  # ID of primary problem if this is a duplicate
+    # Local community fields
+    is_local: bool = False
+    community_id: Optional[str] = None
 
 class ProblemResponse(Problem):
     category_name: str = ""
@@ -489,6 +495,61 @@ class PendingNotificationBatch(BaseModel):
 # Batching constants
 RELATE_BATCH_WINDOW_MINUTES = 5
 COMMENT_BATCH_WINDOW_MINUTES = 3
+
+# ===================== COMMUNITY MODELS =====================
+
+class Community(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    name: str
+    active_code: str
+    moderator_email: str
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+class CommunityMember(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    user_id: str
+    community_id: str
+    joined_at: datetime = Field(default_factory=datetime.utcnow)
+
+class CommunityJoinRequest(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    user_id: str
+    user_email: str
+    community_id: str
+    message: Optional[str] = None
+    status: str = "pending"  # "pending" | "sent"
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    expires_at: datetime = Field(default_factory=lambda: datetime.utcnow() + timedelta(days=7))
+
+class CommunityRequest(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    email: str
+    community_name: str
+    description: Optional[str] = None
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    expires_at: datetime = Field(default_factory=lambda: datetime.utcnow() + timedelta(days=3))
+
+class CommunityJoinCode(BaseModel):
+    code: str
+
+class CommunityRequestCreate(BaseModel):
+    email: str
+    community_name: str
+    description: Optional[str] = None
+
+class CommunityJoinRequestCreate(BaseModel):
+    message: Optional[str] = None
+
+class AdminCommunityCreate(BaseModel):
+    name: str
+    code: str
+    moderator_email: str
+
+class AdminCodeUpdate(BaseModel):
+    new_code: str
+
+class AdminJoinRequestUpdate(BaseModel):
+    status: str  # "sent"
 
 # ===================== AUTH HELPERS =====================
 
@@ -1510,6 +1571,18 @@ async def create_problem(problem_data: ProblemCreate, user: dict = Depends(requi
     
     # Validate category (default to "other" if not provided)
     category_id = problem_data.category_id or "other"
+    
+    # Handle local community posting
+    is_local = problem_data.is_local
+    local_community_id = None
+    if is_local:
+        # User must be in a community to post locally
+        membership = await db.community_members.find_one({"user_id": user["id"]}, {"_id": 0})
+        if not membership:
+            raise HTTPException(status_code=403, detail="You must join a community to post locally")
+        local_community_id = membership["community_id"]
+        category_id = "local"  # Force category to local
+    
     category = next((c for c in CATEGORIES if c["id"] == category_id), CATEGORIES[-1])
     
     # Frequency and pain are optional now - no validation needed for null values
@@ -1529,6 +1602,8 @@ async def create_problem(problem_data: ProblemCreate, user: dict = Depends(requi
         when_happens=problem_data.when_happens,
         who_affected=problem_data.who_affected,
         what_tried=problem_data.what_tried,
+        is_local=is_local,
+        community_id=local_community_id,
     )
     
     problem_dict = problem.dict()
@@ -1632,11 +1707,13 @@ async def delete_problem(problem_id: str, user: dict = Depends(require_auth)):
 
 @api_router.get("/problems", response_model=List[ProblemResponse])
 async def get_problems(
-    feed: str = "new",  # "new", "trending", "foryou"
+    feed: str = "new",  # "new", "trending", "foryou", "local"
     category_id: Optional[str] = None,
+    community_id: Optional[str] = None,
     search: Optional[str] = None,
     limit: int = 50,
     skip: int = 0,
+    sort_by: Optional[str] = None,  # For local feed: "trending", "new", "top"
     user: dict = Depends(require_auth)  # Changed from get_current_user to require_auth for security
 ):
     # Handle empty search - return empty results instead of 404
@@ -1646,6 +1723,10 @@ async def get_problems(
             return []  # Return empty array with 200 status
     
     query = {"is_hidden": False, "status": "active"}
+    
+    # Exclude local frikts from global feeds
+    if feed in ("new", "trending", "foryou"):
+        query["is_local"] = {"$ne": True}
     
     # Filter out blocked users' content
     if user:
@@ -1730,6 +1811,41 @@ async def get_problems(
             # No user: just show by recency
             sort = [("created_at", -1)]
             problems = await db.problems.find(query).sort(sort).skip(skip).limit(limit).to_list(limit)
+    elif feed == "local":
+        # LOCAL feed: community-specific frikts
+        if not community_id:
+            raise HTTPException(status_code=400, detail="community_id is required for local feed")
+        query["is_local"] = True
+        query["community_id"] = community_id
+        # Remove the global exclusion filter for local feed
+        query.pop("is_local", None)
+        query["is_local"] = True
+        query["community_id"] = community_id
+        
+        local_sort = sort_by or "trending"
+        if local_sort == "new":
+            problems = await db.problems.find(query).sort("created_at", -1).skip(skip).limit(limit).to_list(limit)
+        elif local_sort == "top":
+            problems = await db.problems.find(query).sort("relates_count", -1).skip(skip).limit(limit).to_list(limit)
+        else:  # trending
+            week_ago = datetime.utcnow() - timedelta(days=7)
+            trending_query = {**query, "created_at": {"$gte": week_ago}}
+            pipeline = [
+                {"$match": trending_query},
+                {"$addFields": {
+                    "hot_score": {
+                        "$add": [
+                            {"$multiply": [{"$ifNull": ["$relates_count", 0]}, 3]},
+                            {"$multiply": [{"$ifNull": ["$comments_count", 0]}, 2]},
+                            {"$ifNull": ["$unique_commenters", 0]}
+                        ]
+                    }
+                }},
+                {"$sort": {"hot_score": -1, "created_at": -1}},
+                {"$skip": skip},
+                {"$limit": limit}
+            ]
+            problems = await db.problems.aggregate(pipeline).to_list(limit)
     else:
         # Fallback
         sort = [("created_at", -1)]
@@ -1772,7 +1888,7 @@ async def get_problems(
     return results
 
 @api_router.get("/problems/similar")
-async def get_similar_problems(title: str, limit: int = 3):
+async def get_similar_problems(title: str, limit: int = 3, is_local: bool = False, community_id: Optional[str] = None):
     """Find similar problems based on title for duplicate detection"""
     if len(title) < 5:
         return []
@@ -1788,6 +1904,13 @@ async def get_similar_problems(title: str, limit: int = 3):
         "is_hidden": False,
         "$or": [{"title": {"$regex": kw, "$options": "i"}} for kw in keywords[:3]]
     }
+    
+    # Context-aware: local vs global
+    if is_local and community_id:
+        query["is_local"] = True
+        query["community_id"] = community_id
+    else:
+        query["is_local"] = {"$ne": True}
     
     problems = await db.problems.find(query).sort("signal_score", -1).limit(limit).to_list(limit)
     
@@ -1839,7 +1962,19 @@ async def get_problem(problem_id: str, user: dict = Depends(get_current_user)):
         user_is_following=user_is_following
     )
     
-    return {**response.dict(), "newly_awarded_badges": newly_awarded}
+    result = {**response.dict(), "newly_awarded_badges": newly_awarded}
+    
+    # For local frikts, include community info and membership status
+    if problem.get("is_local") and problem.get("community_id"):
+        community = await db.communities.find_one({"id": problem["community_id"]}, {"_id": 0, "name": 1, "id": 1})
+        result["community_name"] = community["name"] if community else None
+        if user:
+            membership = await db.community_members.find_one({"user_id": user["id"], "community_id": problem["community_id"]})
+            result["viewer_is_community_member"] = membership is not None
+        else:
+            result["viewer_is_community_member"] = False
+    
+    return result
 
 @api_router.get("/problems/{problem_id}/related")
 async def get_related_problems(problem_id: str, limit: int = 5):
@@ -1877,6 +2012,15 @@ async def relate_to_problem(problem_id: str, user: dict = Depends(require_auth))
     # Prevent self-relates
     if problem["user_id"] == user["id"]:
         raise HTTPException(status_code=400, detail="Cannot relate to your own post")
+    
+    # Restrict relating to local frikts to community members only
+    if problem.get("is_local") and problem.get("community_id"):
+        membership = await db.community_members.find_one({
+            "user_id": user["id"],
+            "community_id": problem["community_id"]
+        })
+        if not membership:
+            raise HTTPException(status_code=403, detail="Only community members can relate to local frikts")
     
     # Check if already related
     existing = await db.relates.find_one({"problem_id": problem_id, "user_id": user["id"]})
@@ -2257,6 +2401,14 @@ async def get_comments(problem_id: str, user: dict = Depends(get_current_user)):
     # Get all comments for this problem
     all_comments = await db.comments.find(query).to_list(500)
     
+    # Check if this is a local frikt (for community member tagging)
+    problem = await db.problems.find_one({"id": problem_id}, {"is_local": 1, "community_id": 1})
+    is_local_frikt = problem and problem.get("is_local") and problem.get("community_id")
+    community_member_ids = set()
+    if is_local_frikt:
+        members = await db.community_members.find({"community_id": problem["community_id"]}, {"user_id": 1}).to_list(500)
+        community_member_ids = {m["user_id"] for m in members}
+    
     # Get user's helpful marks
     user_helpfuls = set()
     if user:
@@ -2283,6 +2435,7 @@ async def get_comments(problem_id: str, user: dict = Depends(get_current_user)):
             **c,
             "user_name": fresh_username,
             "user_marked_helpful": c["id"] in user_helpfuls,
+            "is_community_member": c["user_id"] in community_member_ids if is_local_frikt else True,
             "replies": [],
             "reply_count": 0
         }
@@ -4315,6 +4468,294 @@ async def delete_feedback(feedback_id: str, admin: dict = Depends(require_admin)
         raise HTTPException(status_code=404, detail="Feedback not found")
     await log_admin_action(admin, "delete_feedback", "feedback", feedback_id)
     return {"success": True}
+
+# ===================== COMMUNITY ROUTES =====================
+
+@api_router.post("/communities/join")
+async def join_community(data: CommunityJoinCode, user: dict = Depends(require_auth)):
+    """Join a community using an invite code."""
+    community = await db.communities.find_one(
+        {"active_code": {"$regex": f"^{re.escape(data.code)}$", "$options": "i"}},
+        {"_id": 0}
+    )
+    if not community:
+        raise HTTPException(status_code=404, detail="Invalid community code")
+    
+    # Check if already in this community
+    existing = await db.community_members.find_one({"user_id": user["id"]}, {"_id": 0})
+    if existing:
+        if existing["community_id"] == community["id"]:
+            raise HTTPException(status_code=400, detail="You are already a member of this community")
+        # User is in a different community - return 409 for switch prompt
+        old_community = await db.communities.find_one({"id": existing["community_id"]}, {"_id": 0})
+        raise HTTPException(status_code=409, detail={
+            "message": "You are already in a community. Switch?",
+            "current_community": old_community["name"] if old_community else "Unknown",
+            "new_community": community["name"],
+            "new_community_id": community["id"]
+        })
+    
+    member = CommunityMember(user_id=user["id"], community_id=community["id"])
+    await db.community_members.insert_one(member.dict())
+    
+    return {"success": True, "community": community}
+
+@api_router.post("/communities/switch")
+async def switch_community(data: CommunityJoinCode, user: dict = Depends(require_auth)):
+    """Switch to a new community (leaves old one)."""
+    community = await db.communities.find_one(
+        {"active_code": {"$regex": f"^{re.escape(data.code)}$", "$options": "i"}},
+        {"_id": 0}
+    )
+    if not community:
+        raise HTTPException(status_code=404, detail="Invalid community code")
+    
+    # Remove from current community
+    await db.community_members.delete_many({"user_id": user["id"]})
+    
+    # Join new community
+    member = CommunityMember(user_id=user["id"], community_id=community["id"])
+    await db.community_members.insert_one(member.dict())
+    
+    return {"success": True, "community": community}
+
+@api_router.delete("/communities/leave")
+async def leave_community(user: dict = Depends(require_auth)):
+    """Leave current community."""
+    result = await db.community_members.delete_many({"user_id": user["id"]})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="You are not in any community")
+    return {"success": True}
+
+@api_router.get("/communities")
+async def list_communities(search: Optional[str] = None, user: dict = Depends(require_auth)):
+    """List all communities with stats."""
+    query = {}
+    if search:
+        query["name"] = {"$regex": search, "$options": "i"}
+    
+    communities = await db.communities.find(query, {"_id": 0}).sort("name", 1).to_list(100)
+    
+    # Add member and frikt counts
+    for c in communities:
+        c["member_count"] = await db.community_members.count_documents({"community_id": c["id"]})
+        c["frikt_count"] = await db.problems.count_documents({"community_id": c["id"], "is_local": True, "status": "active"})
+    
+    return communities
+
+@api_router.get("/communities/me")
+async def get_my_community(user: dict = Depends(require_auth)):
+    """Get the user's current community."""
+    membership = await db.community_members.find_one({"user_id": user["id"]}, {"_id": 0})
+    if not membership:
+        return None
+    
+    community = await db.communities.find_one({"id": membership["community_id"]}, {"_id": 0})
+    if not community:
+        return None
+    
+    community["member_count"] = await db.community_members.count_documents({"community_id": community["id"]})
+    community["frikt_count"] = await db.problems.count_documents({"community_id": community["id"], "is_local": True, "status": "active"})
+    community["joined_at"] = membership.get("joined_at")
+    
+    return community
+
+@api_router.get("/communities/{community_id}")
+async def get_community(community_id: str, user: dict = Depends(require_auth)):
+    """Get a specific community with stats."""
+    community = await db.communities.find_one({"id": community_id}, {"_id": 0})
+    if not community:
+        raise HTTPException(status_code=404, detail="Community not found")
+    
+    community["member_count"] = await db.community_members.count_documents({"community_id": community_id})
+    community["frikt_count"] = await db.problems.count_documents({"community_id": community_id, "is_local": True, "status": "active"})
+    
+    # Check if user is a member
+    membership = await db.community_members.find_one({"user_id": user["id"], "community_id": community_id})
+    community["is_member"] = membership is not None
+    
+    # Check if user has a pending join request
+    pending_request = await db.community_join_requests.find_one({
+        "user_id": user["id"],
+        "community_id": community_id,
+        "status": "pending",
+        "expires_at": {"$gte": datetime.utcnow()}
+    })
+    community["has_pending_request"] = pending_request is not None
+    
+    return community
+
+@api_router.post("/community-requests")
+async def create_community_request(data: CommunityRequestCreate, user: dict = Depends(require_auth)):
+    """Request creation of a new local community."""
+    request = CommunityRequest(
+        email=data.email,
+        community_name=data.community_name,
+        description=data.description
+    )
+    await db.community_requests.insert_one(request.dict())
+    return {"success": True, "message": "Request submitted. We'll review it soon."}
+
+@api_router.post("/communities/{community_id}/request-join")
+async def request_join_community(community_id: str, data: CommunityJoinRequestCreate, user: dict = Depends(require_auth)):
+    """Request to join an existing community."""
+    community = await db.communities.find_one({"id": community_id})
+    if not community:
+        raise HTTPException(status_code=404, detail="Community not found")
+    
+    # Check if already a member
+    existing_membership = await db.community_members.find_one({"user_id": user["id"], "community_id": community_id})
+    if existing_membership:
+        raise HTTPException(status_code=400, detail="You are already a member of this community")
+    
+    # Check for existing pending request
+    existing_request = await db.community_join_requests.find_one({
+        "user_id": user["id"],
+        "community_id": community_id,
+        "status": "pending",
+        "expires_at": {"$gte": datetime.utcnow()}
+    })
+    if existing_request:
+        raise HTTPException(status_code=400, detail="You already have a pending request for this community")
+    
+    join_request = CommunityJoinRequest(
+        user_id=user["id"],
+        user_email=user["email"],
+        community_id=community_id,
+        message=data.message
+    )
+    await db.community_join_requests.insert_one(join_request.dict())
+    return {"success": True, "message": "Join request submitted"}
+
+# ===================== ADMIN COMMUNITY ROUTES =====================
+
+@api_router.post("/admin/communities")
+async def admin_create_community(data: AdminCommunityCreate, admin: dict = Depends(require_admin)):
+    """Create a new community."""
+    # Check code uniqueness (case-insensitive)
+    existing = await db.communities.find_one(
+        {"active_code": {"$regex": f"^{re.escape(data.code)}$", "$options": "i"}}
+    )
+    if existing:
+        raise HTTPException(status_code=400, detail="A community with this code already exists")
+    
+    community = Community(
+        name=data.name,
+        active_code=data.code,
+        moderator_email=data.moderator_email
+    )
+    await db.communities.insert_one(community.dict())
+    await log_admin_action(admin, "create_community", "community", community.id, {"name": data.name, "code": data.code})
+    return {"success": True, "community": community.dict()}
+
+@api_router.put("/admin/communities/{community_id}/code")
+async def admin_update_community_code(community_id: str, data: AdminCodeUpdate, admin: dict = Depends(require_admin)):
+    """Change a community's active invite code."""
+    # Check code uniqueness
+    existing = await db.communities.find_one(
+        {"active_code": {"$regex": f"^{re.escape(data.new_code)}$", "$options": "i"}, "id": {"$ne": community_id}}
+    )
+    if existing:
+        raise HTTPException(status_code=400, detail="This code is already in use by another community")
+    
+    result = await db.communities.update_one(
+        {"id": community_id},
+        {"$set": {"active_code": data.new_code}}
+    )
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Community not found")
+    
+    await log_admin_action(admin, "update_community_code", "community", community_id, {"new_code": data.new_code})
+    return {"success": True}
+
+@api_router.get("/admin/communities")
+async def admin_list_communities(search: Optional[str] = None, limit: int = 50, skip: int = 0, admin: dict = Depends(require_admin)):
+    """List all communities with detailed stats for admin."""
+    query = {}
+    if search:
+        query["name"] = {"$regex": search, "$options": "i"}
+    
+    communities = await db.communities.find(query, {"_id": 0}).sort("created_at", -1).skip(skip).limit(limit).to_list(limit)
+    
+    for c in communities:
+        c["member_count"] = await db.community_members.count_documents({"community_id": c["id"]})
+        c["frikt_count"] = await db.problems.count_documents({"community_id": c["id"], "is_local": True, "status": "active"})
+        c["pending_join_requests"] = await db.community_join_requests.count_documents({
+            "community_id": c["id"],
+            "status": "pending",
+            "expires_at": {"$gte": datetime.utcnow()}
+        })
+    
+    total = await db.communities.count_documents(query)
+    return {"communities": communities, "total": total}
+
+@api_router.get("/admin/community-requests")
+async def admin_get_community_requests(admin: dict = Depends(require_admin)):
+    """Get pending community creation requests."""
+    requests = await db.community_requests.find(
+        {"expires_at": {"$gte": datetime.utcnow()}},
+        {"_id": 0}
+    ).sort("created_at", -1).to_list(100)
+    return requests
+
+@api_router.get("/admin/communities/{community_id}/join-requests")
+async def admin_get_join_requests(community_id: str, admin: dict = Depends(require_admin)):
+    """Get join requests for a specific community."""
+    requests = await db.community_join_requests.find(
+        {
+            "community_id": community_id,
+            "status": "pending",
+            "expires_at": {"$gte": datetime.utcnow()}
+        },
+        {"_id": 0}
+    ).sort("created_at", -1).to_list(100)
+    return requests
+
+@api_router.put("/admin/communities/{community_id}/join-requests/{request_id}")
+async def admin_update_join_request(community_id: str, request_id: str, data: AdminJoinRequestUpdate, admin: dict = Depends(require_admin)):
+    """Update a join request status (mark as sent)."""
+    result = await db.community_join_requests.update_one(
+        {"id": request_id, "community_id": community_id},
+        {"$set": {"status": data.status}}
+    )
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Join request not found")
+    
+    await log_admin_action(admin, "update_join_request", "community_join_request", request_id, {"status": data.status})
+    return {"success": True}
+
+@api_router.get("/admin/communities/{community_id}/export")
+async def admin_export_community_data(community_id: str, period: str = "all", admin: dict = Depends(require_admin)):
+    """Export community frikt data as structured text."""
+    community = await db.communities.find_one({"id": community_id}, {"_id": 0})
+    if not community:
+        raise HTTPException(status_code=404, detail="Community not found")
+    
+    query = {"community_id": community_id, "is_local": True, "status": "active"}
+    if period != "all":
+        days = {"7d": 7, "30d": 30, "90d": 90}.get(period, 0)
+        if days:
+            query["created_at"] = {"$gte": datetime.utcnow() - timedelta(days=days)}
+    
+    problems = await db.problems.find(query, {"_id": 0}).sort("created_at", -1).to_list(500)
+    
+    lines = [f"COMMUNITY EXPORT: {community['name']}", f"Period: {period}", f"Total frikts: {len(problems)}", "=" * 50, ""]
+    
+    for p in problems:
+        lines.append(f"FRIKT: {p['title']}")
+        lines.append(f"  By: {p.get('user_name', 'Unknown')} | {p.get('created_at', '')}")
+        lines.append(f"  Relates: {p.get('relates_count', 0)} | Comments: {p.get('comments_count', 0)}")
+        
+        # Get comments with threading
+        comments = await db.comments.find({"problem_id": p["id"], "status": "active"}, {"_id": 0}).sort("created_at", 1).to_list(100)
+        if comments:
+            lines.append("  Comments:")
+            for c in comments:
+                prefix = "    > " if c.get("parent_comment_id") else "    - "
+                lines.append(f"{prefix}{c.get('user_name', 'Unknown')}: {c.get('content', '')}")
+        lines.append("")
+    
+    return {"content": "\n".join(lines), "filename": f"{community['name']}_export_{period}.txt"}
 
 # ===================== HEALTH CHECK =====================
 

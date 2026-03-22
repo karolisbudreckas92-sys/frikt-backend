@@ -18,6 +18,89 @@ import { api } from '@/src/services/api';
 import { useAuth } from '@/src/context/AuthContext';
 import { BadgeSection } from '@/src/components/BadgeSection';
 
+function CommunityCard() {
+  const [community, setCommunity] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const router = useRouter();
+
+  useEffect(() => {
+    api.getMyCommunity()
+      .then(setCommunity)
+      .catch(() => setCommunity(null))
+      .finally(() => setLoading(false));
+  }, []);
+
+  if (loading) return null;
+
+  if (!community) {
+    return (
+      <View style={commStyles.card}>
+        <View style={commStyles.row}>
+          <Ionicons name="location-outline" size={22} color="#E85D3A" />
+          <View style={{ flex: 1, marginLeft: 10 }}>
+            <Text style={commStyles.title}>No community yet</Text>
+            <Text style={commStyles.subtitle}>Join a local community to see what bugs your area</Text>
+          </View>
+        </View>
+      </View>
+    );
+  }
+
+  return (
+    <View style={commStyles.card} data-testid="community-card">
+      <View style={commStyles.row}>
+        <View style={commStyles.icon}>
+          <Ionicons name="location" size={18} color="#fff" />
+        </View>
+        <View style={{ flex: 1 }}>
+          <Text style={commStyles.title}>{community.name}</Text>
+          <Text style={commStyles.subtitle}>
+            {community.member_count} members | {community.frikt_count} frikts
+          </Text>
+        </View>
+      </View>
+      <TouchableOpacity
+        style={commStyles.leaveBtn}
+        onPress={() => {
+          Alert.alert('Leave Community', `Leave ${community.name}?`, [
+            { text: 'Cancel', style: 'cancel' },
+            {
+              text: 'Leave', style: 'destructive',
+              onPress: async () => {
+                try { await api.leaveCommunity(); setCommunity(null); } catch (e) {}
+              }
+            }
+          ]);
+        }}
+        data-testid="leave-community-btn"
+      >
+        <Ionicons name="exit-outline" size={16} color={colors.error} />
+        <Text style={commStyles.leaveBtnText}>Leave</Text>
+      </TouchableOpacity>
+    </View>
+  );
+}
+
+const commStyles = StyleSheet.create({
+  card: {
+    marginHorizontal: 16, marginTop: 12, padding: 16,
+    backgroundColor: colors.surface, borderRadius: radius.lg,
+    borderWidth: 1, borderColor: '#E85D3A20',
+  },
+  row: { flexDirection: 'row', alignItems: 'center' },
+  icon: {
+    width: 36, height: 36, borderRadius: 18, backgroundColor: '#E85D3A',
+    justifyContent: 'center', alignItems: 'center', marginRight: 10,
+  },
+  title: { fontSize: 15, fontWeight: '600', color: colors.text },
+  subtitle: { fontSize: 13, color: colors.textMuted, marginTop: 2 },
+  leaveBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 4, alignSelf: 'flex-end', marginTop: 10,
+    paddingVertical: 6, paddingHorizontal: 12, borderRadius: 8, borderWidth: 1, borderColor: colors.error + '40',
+  },
+  leaveBtnText: { fontSize: 13, color: colors.error, fontWeight: '500' },
+});
+
 export default function Profile() {
   const router = useRouter();
   const { user, logout, isAdmin, refreshUser } = useAuth();
@@ -223,6 +306,9 @@ export default function Profile() {
             </View>
           </View>
         )}
+
+        {/* Community Section */}
+        <CommunityCard />
 
         {/* Badges Section */}
         <BadgeSection />

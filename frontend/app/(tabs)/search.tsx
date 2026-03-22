@@ -18,7 +18,7 @@ import { api } from '@/src/services/api';
 import ProblemCard from '@/src/components/ProblemCard';
 import Toast from 'react-native-root-toast';
 
-type SearchType = 'frikts' | 'users';
+type SearchType = 'frikts' | 'users' | 'communities';
 
 interface UserResult {
   id: string;
@@ -26,6 +26,15 @@ interface UserResult {
   avatarUrl?: string;
   bio?: string;
   posts_count: number;
+}
+
+interface CommunityResult {
+  id: string;
+  name: string;
+  member_count: number;
+  frikt_count: number;
+  is_member?: boolean;
+  has_pending_request?: boolean;
 }
 
 const showToast = (message: string, isError: boolean = false) => {
@@ -52,10 +61,34 @@ export default function Search() {
   const [searchType, setSearchType] = useState<SearchType>('frikts');
   const [friktsResults, setFriktsResults] = useState<any[]>([]);
   const [usersResults, setUsersResults] = useState<UserResult[]>([]);
+  const [communitiesResults, setCommunitiesResults] = useState<CommunityResult[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
 
+  // Load communities on mount (no search needed)
+  useEffect(() => {
+    if (searchType === 'communities') {
+      loadCommunities();
+    }
+  }, [searchType]);
+
+  const loadCommunities = async (search?: string) => {
+    setIsLoading(true);
+    try {
+      const data = await api.getCommunities(search || undefined);
+      setCommunitiesResults(data);
+    } catch (error) {
+      console.error('Error loading communities:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleSearch = useCallback(async () => {
+    if (searchType === 'communities') {
+      loadCommunities(query.trim() || undefined);
+      return;
+    }
     if (!query.trim()) return;
     
     Keyboard.dismiss();
@@ -251,6 +284,21 @@ export default function Search() {
             Users
           </Text>
         </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.segmentButton, searchType === 'communities' && { backgroundColor: '#E85D3A' }]}
+          onPress={() => handleSearchTypeChange('communities')}
+          activeOpacity={0.7}
+          data-testid="search-tab-communities"
+        >
+          <Ionicons 
+            name="location-outline" 
+            size={18} 
+            color={searchType === 'communities' ? colors.white : colors.textSecondary} 
+          />
+          <Text style={[styles.segmentText, searchType === 'communities' && styles.segmentTextActive]}>
+            Communities
+          </Text>
+        </TouchableOpacity>
       </View>
 
       <View style={styles.searchContainer}>
@@ -258,7 +306,7 @@ export default function Search() {
           <Ionicons name="search-outline" size={20} color={colors.textMuted} />
           <TextInput
             style={styles.searchInput}
-            placeholder={searchType === 'frikts' ? 'Search Frikts...' : 'Search users...'}
+            placeholder={searchType === 'communities' ? 'Search communities...' : searchType === 'frikts' ? 'Search Frikts...' : 'Search users...'}
             placeholderTextColor={colors.textMuted}
             value={query}
             onChangeText={setQuery}
@@ -301,12 +349,50 @@ export default function Search() {
           ListEmptyComponent={renderEmptyFrikts}
           contentContainerStyle={styles.listContent}
         />
-      ) : (
+      ) : searchType === 'users' ? (
         <FlatList
           data={usersResults}
           keyExtractor={(item) => item.id}
           renderItem={renderUserCard}
           ListEmptyComponent={renderEmptyUsers}
+          contentContainerStyle={styles.listContent}
+        />
+      ) : (
+        <FlatList
+          data={communitiesResults}
+          keyExtractor={(item) => item.id}
+          renderItem={({ item }) => (
+            <TouchableOpacity
+              style={styles.communityCard}
+              onPress={() => router.push(`/community/${item.id}`)}
+              activeOpacity={0.7}
+              data-testid={`community-card-${item.id}`}
+            >
+              <View style={styles.communityIcon}>
+                <Ionicons name="location" size={22} color="#fff" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.communityName}>{item.name}</Text>
+                <Text style={styles.communityStats}>
+                  {item.member_count} members | {item.frikt_count} frikts
+                </Text>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
+            </TouchableOpacity>
+          )}
+          ListEmptyComponent={() => (
+            <View style={styles.emptyContainer}>
+              <Ionicons name="location-outline" size={64} color={colors.textMuted} />
+              <Text style={styles.emptyTitle}>No communities found</Text>
+              <Text style={styles.emptyText}>Try a different search or request a new one</Text>
+              <TouchableOpacity
+                style={[styles.searchButton, { marginTop: 16, backgroundColor: '#E85D3A' }]}
+                onPress={() => router.push('/request-community')}
+              >
+                <Text style={styles.searchButtonText}>Request a Community</Text>
+              </TouchableOpacity>
+            </View>
+          )}
           contentContainerStyle={styles.listContent}
         />
       )}
@@ -473,5 +559,35 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: colors.textMuted,
     marginTop: 4,
+  },
+  communityCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    marginHorizontal: 16,
+    marginTop: 8,
+    backgroundColor: colors.surface,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: '#E85D3A20',
+  },
+  communityIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#E85D3A',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  communityName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.text,
+  },
+  communityStats: {
+    fontSize: 13,
+    color: colors.textMuted,
+    marginTop: 2,
   },
 });

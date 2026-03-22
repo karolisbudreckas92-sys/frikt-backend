@@ -133,10 +133,12 @@ class ApiService {
   }
 
   // Problems
-  async getProblems(feed: string = 'new', categoryId?: string, search?: string, skip: number = 0) {
+  async getProblems(feed: string = 'new', categoryId?: string, search?: string, skip: number = 0, communityId?: string, sortBy?: string) {
     const params: any = { feed, skip, limit: 50 };
     if (categoryId) params.category_id = categoryId;
     if (search) params.search = search;
+    if (communityId) params.community_id = communityId;
+    if (sortBy) params.sort_by = sortBy;
     const response = await this.client.get('/problems', { params });
     return response.data;
   }
@@ -161,8 +163,11 @@ class ApiService {
     return response.data;
   }
 
-  async getSimilarProblems(title: string) {
-    const response = await this.client.get('/problems/similar', { params: { title } });
+  async getSimilarProblems(title: string, isLocal?: boolean, communityId?: string) {
+    const params: any = { title };
+    if (isLocal) params.is_local = true;
+    if (communityId) params.community_id = communityId;
+    const response = await this.client.get('/problems/similar', { params });
     return response.data;
   }
 
@@ -593,6 +598,108 @@ class ApiService {
 
   async deleteComment(commentId: string) {
     const response = await this.client.delete(`/comments/${commentId}`);
+    return response.data;
+  }
+
+  // ===================== COMMUNITIES =====================
+
+  async joinCommunity(code: string) {
+    const response = await this.client.post('/communities/join', { code });
+    return response.data;
+  }
+
+  async switchCommunity(code: string) {
+    const response = await this.client.post('/communities/switch', { code });
+    return response.data;
+  }
+
+  async leaveCommunity() {
+    const response = await this.client.delete('/communities/leave');
+    return response.data;
+  }
+
+  async getCommunities(search?: string) {
+    const params: any = {};
+    if (search) params.search = search;
+    const response = await this.client.get('/communities', { params });
+    return response.data;
+  }
+
+  async getMyCommunity() {
+    const response = await this.client.get('/communities/me');
+    return response.data;
+  }
+
+  async getCommunity(communityId: string) {
+    const response = await this.client.get(`/communities/${communityId}`);
+    return response.data;
+  }
+
+  async requestCommunity(email: string, communityName: string, description?: string) {
+    const response = await this.client.post('/community-requests', {
+      email,
+      community_name: communityName,
+      description
+    });
+    return response.data;
+  }
+
+  async requestJoinCommunity(communityId: string, message?: string) {
+    const response = await this.client.post(`/communities/${communityId}/request-join`, {
+      message
+    });
+    return response.data;
+  }
+
+  async getLocalFeed(communityId: string, sortBy: string = 'trending', skip: number = 0) {
+    const params: any = { feed: 'local', community_id: communityId, sort_by: sortBy, skip, limit: 50 };
+    const response = await this.client.get('/problems', { params });
+    return response.data;
+  }
+
+  // Admin Communities
+  async adminCreateCommunity(name: string, code: string, moderatorEmail: string) {
+    const response = await this.client.post('/admin/communities', {
+      name,
+      code,
+      moderator_email: moderatorEmail
+    });
+    return response.data;
+  }
+
+  async adminUpdateCommunityCode(communityId: string, newCode: string) {
+    const response = await this.client.put(`/admin/communities/${communityId}/code`, {
+      new_code: newCode
+    });
+    return response.data;
+  }
+
+  async adminGetCommunities(search?: string) {
+    const params: any = {};
+    if (search) params.search = search;
+    const response = await this.client.get('/admin/communities', { params });
+    return response.data;
+  }
+
+  async adminGetCommunityRequests() {
+    const response = await this.client.get('/admin/community-requests');
+    return response.data;
+  }
+
+  async adminGetJoinRequests(communityId: string) {
+    const response = await this.client.get(`/admin/communities/${communityId}/join-requests`);
+    return response.data;
+  }
+
+  async adminUpdateJoinRequest(communityId: string, requestId: string, status: string) {
+    const response = await this.client.put(`/admin/communities/${communityId}/join-requests/${requestId}`, { status });
+    return response.data;
+  }
+
+  async adminExportCommunityData(communityId: string, period: string = 'all') {
+    const response = await this.client.get(`/admin/communities/${communityId}/export`, {
+      params: { period }
+    });
     return response.data;
   }
 
