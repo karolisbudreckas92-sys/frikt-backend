@@ -8,7 +8,7 @@ import os
 import time
 
 # Use preview URL for testing
-BASE_URL = os.environ.get('EXPO_PUBLIC_BACKEND_URL', 'https://frikt-crash-hunt.preview.emergentagent.com')
+BASE_URL = os.environ.get('EXPO_PUBLIC_BACKEND_URL', 'https://local-hub-14.preview.emergentagent.com')
 print(f"[TEST] Using BASE_URL: {BASE_URL}")
 
 

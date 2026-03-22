@@ -40,7 +40,7 @@
     "frontend": "UI verified - timestamps show 'about X ago', code review confirms edit/delete UI"
   },
   "test_credentials": {
-    "preview_api_url": "https://frikt-crash-hunt.preview.emergentagent.com",
+    "preview_api_url": "https://local-hub-14.preview.emergentagent.com",
     "test_user_email": "testuser.frikt@example.com",
     "test_user_password": "TestUser123!"
   },
