@@ -219,8 +219,18 @@ class ApiService {
     return response.data;
   }
 
-  async createComment(problemId: string, content: string) {
-    const response = await this.client.post('/comments', { problem_id: problemId, content });
+  async createComment(
+    problemId: string, 
+    content: string,
+    parentCommentId?: string,
+    replyToUserId?: string
+  ) {
+    const response = await this.client.post('/comments', { 
+      problem_id: problemId, 
+      content,
+      parent_comment_id: parentCommentId || null,
+      reply_to_user_id: replyToUserId || null
+    });
     return response.data;
   }
 

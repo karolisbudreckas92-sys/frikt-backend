@@ -324,6 +324,8 @@ class ProblemResponse(Problem):
 class CommentCreate(BaseModel):
     problem_id: str
     content: str = Field(..., min_length=10)
+    parent_comment_id: Optional[str] = None  # For replies
+    reply_to_user_id: Optional[str] = None  # User whose Reply button was tapped
 
 class Comment(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
@@ -337,9 +339,15 @@ class Comment(BaseModel):
     is_pinned: bool = False
     status: str = "active"  # "active" | "hidden" | "removed"
     reports_count: int = 0
+    # Reply threading fields
+    parent_comment_id: Optional[str] = None  # null for top-level, comment.id for replies
+    reply_to_user_id: Optional[str] = None  # user whose Reply button was tapped
+    reply_to_user_name: Optional[str] = None  # denormalized for UI display
 
 class CommentResponse(Comment):
     user_marked_helpful: bool = False
+    replies: List[dict] = []  # Nested replies for threaded display
+    reply_count: int = 0
 
 # Relate Model
 class Relate(BaseModel):
@@ -2044,19 +2052,47 @@ async def create_comment(comment_data: CommentCreate, user: dict = Depends(requi
     if not problem:
         raise HTTPException(status_code=404, detail="Problem not found")
     
+    # Handle reply threading
+    parent_comment_id = comment_data.parent_comment_id
+    reply_to_user_id = comment_data.reply_to_user_id
+    reply_to_user_name = None
+    
+    if parent_comment_id:
+        # Validate parent comment exists and is active
+        parent_comment = await db.comments.find_one({"id": parent_comment_id})
+        if not parent_comment:
+            raise HTTPException(status_code=400, detail="Parent comment not found")
+        if parent_comment.get("status") != "active":
+            raise HTTPException(status_code=400, detail="This comment is no longer available")
+        if parent_comment["problem_id"] != comment_data.problem_id:
+            raise HTTPException(status_code=400, detail="Parent comment belongs to a different Frikt")
+        
+        # FLATTEN: If parent is itself a reply, redirect to the top-level comment
+        if parent_comment.get("parent_comment_id"):
+            parent_comment_id = parent_comment["parent_comment_id"]
+    
+    # Get reply_to_user_name if replying
+    if reply_to_user_id:
+        reply_to_user = await db.users.find_one({"id": reply_to_user_id}, {"name": 1, "displayName": 1})
+        if reply_to_user:
+            reply_to_user_name = reply_to_user.get("displayName") or reply_to_user.get("name")
+    
     comment = Comment(
         problem_id=comment_data.problem_id,
         user_id=user["id"],
         user_name=user["name"],
-        content=comment_data.content
+        content=comment_data.content,
+        parent_comment_id=parent_comment_id,
+        reply_to_user_id=reply_to_user_id,
+        reply_to_user_name=reply_to_user_name
     )
     
     await db.comments.insert_one(comment.dict())
     
-    # Update problem stats
+    # Update problem stats (replies count toward comments_count)
     comments_count = problem["comments_count"] + 1
     
-    # Check if user is a unique commenter
+    # Check if user is a unique commenter (replies also count for uniqueness)
     existing_comment = await db.comments.find_one({
         "problem_id": comment_data.problem_id,
         "user_id": user["id"],
@@ -2079,7 +2115,7 @@ async def create_comment(comment_data: CommentCreate, user: dict = Depends(requi
         }}
     )
     
-    # GAMIFICATION: Update stats and check badges
+    # GAMIFICATION: Update stats and check badges (same for replies)
     stats = await increment_user_stat(user["id"], "total_comments")
     newly_awarded = await check_and_award_badges(user["id"], user, stats, "comment")
     
@@ -2171,6 +2207,40 @@ async def create_comment(comment_data: CommentCreate, user: dict = Depends(requi
                         {"type": "new_comment", "problemId": comment_data.problem_id}
                     )
     
+    # NEW: Notify the person whose Reply button was tapped (comment_reply notification)
+    if reply_to_user_id and reply_to_user_id != user["id"] and reply_to_user_id != problem["user_id"]:
+        # Check if target user has notifications enabled
+        reply_target_settings = await db.notification_settings.find_one({"user_id": reply_to_user_id})
+        reply_target_push_enabled = not reply_target_settings or reply_target_settings.get("push_notifications", True)
+        reply_target_comments_enabled = not reply_target_settings or reply_target_settings.get("new_comments", True)
+        
+        if reply_target_push_enabled and reply_target_comments_enabled:
+            # Use batching for replies too
+            should_send_reply_notif = await add_to_notification_batch(
+                recipient_user_id=reply_to_user_id,
+                batch_type="comment_batch",
+                target_id=comment_data.problem_id,
+                target_title=f"your comment",
+                actor_user_id=user["id"],
+                actor_user_name=user["name"]
+            )
+            
+            if should_send_reply_notif:
+                reply_notification = Notification(
+                    user_id=reply_to_user_id,
+                    type="comment_reply",
+                    problem_id=comment_data.problem_id,
+                    message=f"{user['name']} replied to your comment"
+                )
+                await db.notifications.insert_one(reply_notification.dict())
+                
+                await send_notification_to_user(
+                    reply_to_user_id,
+                    "Someone replied to your comment",
+                    f"{user['name']}: {comment_data.content[:50]}...",
+                    {"type": "comment_reply", "problemId": comment_data.problem_id}
+                )
+    
     response = CommentResponse(**comment.dict())
     return {**response.dict(), "newly_awarded_badges": newly_awarded}
 
@@ -2184,7 +2254,8 @@ async def get_comments(problem_id: str, user: dict = Depends(get_current_user)):
         if blocked_ids:
             query["user_id"] = {"$nin": blocked_ids}
     
-    comments = await db.comments.find(query).sort("helpful_count", -1).to_list(100)
+    # Get all comments for this problem
+    all_comments = await db.comments.find(query).to_list(500)
     
     # Get user's helpful marks
     user_helpfuls = set()
@@ -2193,20 +2264,49 @@ async def get_comments(problem_id: str, user: dict = Depends(get_current_user)):
         user_helpfuls = {h["comment_id"] for h in helpfuls}
     
     # Fetch fresh usernames from user records
-    user_ids = list(set(c["user_id"] for c in comments))
+    user_ids = list(set(c["user_id"] for c in all_comments))
     users = await db.users.find({"id": {"$in": user_ids}}, {"id": 1, "name": 1, "displayName": 1}).to_list(len(user_ids))
     user_map = {u["id"]: u.get("displayName") or u.get("name", "Unknown") for u in users}
     
-    result = []
-    for c in comments:
-        # Use fresh username from user record
-        fresh_username = user_map.get(c["user_id"], c.get("user_name", "Unknown"))
-        comment_data = {**c, "user_name": fresh_username, "user_marked_helpful": c["id"] in user_helpfuls}
-        # Remove _id if present
-        comment_data.pop("_id", None)
-        result.append(comment_data)
+    # Build comment map for threading
+    comment_map = {}
+    top_level_comments = []
+    replies_by_parent = {}
     
-    return result
+    for c in all_comments:
+        fresh_username = user_map.get(c["user_id"], c.get("user_name", "Unknown"))
+        comment_data = {
+            **c,
+            "user_name": fresh_username,
+            "user_marked_helpful": c["id"] in user_helpfuls,
+            "replies": [],
+            "reply_count": 0
+        }
+        comment_data.pop("_id", None)
+        comment_map[c["id"]] = comment_data
+        
+        parent_id = c.get("parent_comment_id")
+        if parent_id:
+            # This is a reply
+            if parent_id not in replies_by_parent:
+                replies_by_parent[parent_id] = []
+            replies_by_parent[parent_id].append(comment_data)
+        else:
+            # Top-level comment
+            top_level_comments.append(comment_data)
+    
+    # Attach replies to their parent comments
+    for parent_id, replies in replies_by_parent.items():
+        if parent_id in comment_map:
+            # Sort replies by created_at (oldest first for chronological order)
+            replies.sort(key=lambda x: x["created_at"])
+            comment_map[parent_id]["replies"] = replies
+            comment_map[parent_id]["reply_count"] = len(replies)
+    
+    # Sort top-level comments by helpful_count (descending)
+    top_level_comments.sort(key=lambda x: x["helpful_count"], reverse=True)
+    
+    return top_level_comments
 
 @api_router.post("/comments/{comment_id}/helpful")
 async def mark_helpful(comment_id: str, user: dict = Depends(require_auth)):
@@ -2272,7 +2372,10 @@ async def edit_comment(comment_id: str, request: CommentEditRequest, user: dict 
 
 @api_router.delete("/comments/{comment_id}")
 async def delete_comment(comment_id: str, user: dict = Depends(require_auth)):
-    """Delete a comment. Only the comment author can delete."""
+    """Delete a comment. Only the comment author can delete.
+    If the comment has replies, soft-delete by setting content to [deleted].
+    If deleting a reply, also update parent's reply_count.
+    """
     comment = await db.comments.find_one({"id": comment_id})
     if not comment:
         raise HTTPException(status_code=404, detail="Comment not found")
@@ -2282,29 +2385,46 @@ async def delete_comment(comment_id: str, user: dict = Depends(require_auth)):
         raise HTTPException(status_code=403, detail="You can only delete your own comments")
     
     problem_id = comment["problem_id"]
+    parent_comment_id = comment.get("parent_comment_id")
     
-    # Delete the comment
-    await db.comments.delete_one({"id": comment_id})
+    # Check if this comment has replies
+    has_replies = await db.comments.count_documents({"parent_comment_id": comment_id}) > 0
     
-    # Update problem's comment count
-    problem = await db.problems.find_one({"id": problem_id})
-    if problem:
-        new_count = max(0, problem["comments_count"] - 1)
-        await db.problems.update_one(
-            {"id": problem_id},
-            {"$set": {"comments_count": new_count}}
+    if has_replies:
+        # SOFT DELETE: Replace content with [deleted], keep structure for replies
+        await db.comments.update_one(
+            {"id": comment_id},
+            {"$set": {
+                "content": "[deleted]",
+                "user_name": "[deleted]",
+                "status": "removed"
+            }}
         )
-    
-    # Decrement user's comment count in gamification stats (but don't revoke badges)
-    await db.user_stats.update_one(
-        {"user_id": user["id"]},
-        {"$inc": {"total_comments": -1}}
-    )
-    
-    # Also delete any helpfuls on this comment
-    await db.helpfuls.delete_many({"comment_id": comment_id})
-    
-    return {"success": True, "message": "Comment deleted"}
+        # Note: Don't decrement comment count since the "slot" still exists
+        return {"success": True, "message": "Comment removed", "soft_deleted": True}
+    else:
+        # HARD DELETE: Actually remove the comment
+        await db.comments.delete_one({"id": comment_id})
+        
+        # Update problem's comment count
+        problem = await db.problems.find_one({"id": problem_id})
+        if problem:
+            new_count = max(0, problem["comments_count"] - 1)
+            await db.problems.update_one(
+                {"id": problem_id},
+                {"$set": {"comments_count": new_count}}
+            )
+        
+        # Decrement user's comment count in gamification stats (but don't revoke badges)
+        await db.user_stats.update_one(
+            {"user_id": user["id"]},
+            {"$inc": {"total_comments": -1}}
+        )
+        
+        # Also delete any helpfuls on this comment
+        await db.helpfuls.delete_many({"comment_id": comment_id})
+        
+        return {"success": True, "message": "Comment deleted", "soft_deleted": False}
 
 # ===================== NOTIFICATIONS ROUTES =====================
 

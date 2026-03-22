@@ -77,6 +77,14 @@ export default function ProblemDetail() {
   const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
   const [editedContent, setEditedContent] = useState('');
   const [commentMenuId, setCommentMenuId] = useState<string | null>(null);
+  
+  // Reply state
+  const [replyingTo, setReplyingTo] = useState<{
+    commentId: string;
+    userId: string;
+    userName: string;
+  } | null>(null);
+  const [expandedReplies, setExpandedReplies] = useState<Set<string>>(new Set());
 
   const loadData = async () => {
     if (!id) return;
@@ -251,11 +259,36 @@ export default function ProblemDetail() {
     
     setIsSubmitting(true);
     try {
-      const response = await api.createComment(id!, commentText.trim());
-      setComments([response, ...comments]);
+      const response = await api.createComment(
+        id!, 
+        commentText.trim(),
+        replyingTo?.commentId,
+        replyingTo?.userId
+      );
+      
+      if (replyingTo) {
+        // This is a reply - add to parent's replies array
+        setComments(prevComments => prevComments.map(c => {
+          if (c.id === replyingTo.commentId) {
+            return {
+              ...c,
+              replies: [...(c.replies || []), response],
+              reply_count: (c.reply_count || 0) + 1
+            };
+          }
+          return c;
+        }));
+        // Auto-expand replies for the parent comment
+        setExpandedReplies(prev => new Set(prev).add(replyingTo.commentId));
+        setReplyingTo(null);
+      } else {
+        // This is a top-level comment
+        setComments([response, ...comments]);
+      }
+      
       setCommentText('');
       setProblem({ ...problem, comments_count: problem.comments_count + 1 });
-      showToast('Comment added ✓');
+      showToast(replyingTo ? 'Reply added ✓' : 'Comment added ✓');
       
       // Show celebration if badges were awarded
       if (response.newly_awarded_badges && response.newly_awarded_badges.length > 0) {
@@ -266,6 +299,31 @@ export default function ProblemDetail() {
     } finally {
       setIsSubmitting(false);
     }
+  };
+  
+  const handleReply = (comment: any) => {
+    setReplyingTo({
+      commentId: comment.parent_comment_id || comment.id, // Flatten: always reply to top-level
+      userId: comment.user_id,
+      userName: comment.user_name
+    });
+    setCommentMenuId(null);
+  };
+  
+  const cancelReply = () => {
+    setReplyingTo(null);
+  };
+  
+  const toggleReplies = (commentId: string) => {
+    setExpandedReplies(prev => {
+      const next = new Set(prev);
+      if (next.has(commentId)) {
+        next.delete(commentId);
+      } else {
+        next.add(commentId);
+      }
+      return next;
+    });
   };
 
   const handleHelpful = async (commentId: string, isHelpful: boolean) => {
@@ -580,6 +638,17 @@ export default function ProblemDetail() {
 
             {/* Comment Input */}
             <View style={styles.commentInputContainer}>
+              {/* Reply indicator */}
+              {replyingTo && (
+                <View style={styles.replyIndicator}>
+                  <Text style={styles.replyIndicatorText}>
+                    Replying to @{replyingTo.userName}
+                  </Text>
+                  <TouchableOpacity onPress={cancelReply} style={styles.cancelReplyButton}>
+                    <Ionicons name="close-circle" size={18} color={colors.textMuted} />
+                  </TouchableOpacity>
+                </View>
+              )}
               <View style={styles.chipRow}>
                 {COMMENT_CHIPS.map((chip) => (
                   <TouchableOpacity 
@@ -593,7 +662,7 @@ export default function ProblemDetail() {
               </View>
               <TextInput
                 style={styles.commentInput}
-                placeholder="Add a comment..."
+                placeholder={replyingTo ? `Reply to @${replyingTo.userName}...` : "Add a comment..."}
                 placeholderTextColor={colors.textMuted}
                 value={commentText}
                 onChangeText={setCommentText}
@@ -623,12 +692,16 @@ export default function ProblemDetail() {
             ) : (
               comments.map((comment) => (
                 <View key={comment.id} style={styles.commentCard}>
+                  {/* Top-level comment */}
                   <View style={styles.commentHeader}>
-                    <View style={styles.commentAvatar}>
+                    <TouchableOpacity 
+                      style={styles.commentAvatar}
+                      onPress={() => router.push(`/user/${comment.user_id}`)}
+                    >
                       <Text style={styles.commentAvatarText}>
                         {comment.user_name.charAt(0).toUpperCase()}
                       </Text>
-                    </View>
+                    </TouchableOpacity>
                     <View style={styles.commentMeta}>
                       <Text style={styles.commentAuthor}>{comment.user_name}</Text>
                       <Text style={styles.commentTime}>
@@ -637,8 +710,8 @@ export default function ProblemDetail() {
                       </Text>
                     </View>
                     
-                    {/* Edit/Delete menu - only for comment author */}
-                    {user && comment.user_id === user.id && (
+                    {/* Menu for comment author */}
+                    {user && comment.user_id === user.id && comment.content !== '[deleted]' && (
                       <View style={styles.commentMenuContainer}>
                         <TouchableOpacity
                           style={styles.commentMenuButton}
@@ -701,25 +774,202 @@ export default function ProblemDetail() {
                       </View>
                     </View>
                   ) : (
-                    <Text style={styles.commentContent}>{comment.content}</Text>
+                    <Text style={[
+                      styles.commentContent,
+                      comment.content === '[deleted]' && styles.deletedContent
+                    ]}>
+                      {comment.content}
+                    </Text>
                   )}
                   
-                  <TouchableOpacity 
-                    style={styles.helpfulButton}
-                    onPress={() => handleHelpful(comment.id, comment.user_marked_helpful)}
-                  >
-                    <Ionicons 
-                      name={comment.user_marked_helpful ? 'thumbs-up' : 'thumbs-up-outline'} 
-                      size={16} 
-                      color={comment.user_marked_helpful ? colors.accent : colors.textMuted} 
-                    />
-                    <Text style={[
-                      styles.helpfulText,
-                      comment.user_marked_helpful && styles.helpfulTextActive
-                    ]}>
-                      Helpful ({comment.helpful_count})
-                    </Text>
-                  </TouchableOpacity>
+                  {/* Action row: Helpful + Reply */}
+                  <View style={styles.commentActions}>
+                    <TouchableOpacity 
+                      style={styles.helpfulButton}
+                      onPress={() => handleHelpful(comment.id, comment.user_marked_helpful)}
+                    >
+                      <Ionicons 
+                        name={comment.user_marked_helpful ? 'thumbs-up' : 'thumbs-up-outline'} 
+                        size={16} 
+                        color={comment.user_marked_helpful ? colors.accent : colors.textMuted} 
+                      />
+                      <Text style={[
+                        styles.helpfulText,
+                        comment.user_marked_helpful && styles.helpfulTextActive
+                      ]}>
+                        Helpful ({comment.helpful_count})
+                      </Text>
+                    </TouchableOpacity>
+                    
+                    {/* Reply button */}
+                    {comment.content !== '[deleted]' && (
+                      <TouchableOpacity 
+                        style={styles.replyButton}
+                        onPress={() => handleReply(comment)}
+                        data-testid={`reply-btn-${comment.id}`}
+                      >
+                        <Ionicons name="arrow-undo-outline" size={16} color={colors.textMuted} />
+                        <Text style={styles.replyButtonText}>Reply</Text>
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                  
+                  {/* Replies section */}
+                  {comment.replies && comment.replies.length > 0 && (
+                    <View style={styles.repliesContainer}>
+                      {/* Show/Hide replies toggle */}
+                      {comment.replies.length > 3 && !expandedReplies.has(comment.id) && (
+                        <TouchableOpacity 
+                          style={styles.viewRepliesButton}
+                          onPress={() => toggleReplies(comment.id)}
+                        >
+                          <Text style={styles.viewRepliesText}>
+                            View {comment.replies.length} replies
+                          </Text>
+                          <Ionicons name="chevron-down" size={16} color={colors.primary} />
+                        </TouchableOpacity>
+                      )}
+                      
+                      {/* Render replies (first 3 or all if expanded) */}
+                      {(expandedReplies.has(comment.id) ? comment.replies : comment.replies.slice(0, 3)).map((reply: any) => (
+                        <View key={reply.id} style={styles.replyCard}>
+                          <View style={styles.replyHeader}>
+                            <TouchableOpacity 
+                              style={styles.replyAvatar}
+                              onPress={() => router.push(`/user/${reply.user_id}`)}
+                            >
+                              <Text style={styles.replyAvatarText}>
+                                {reply.user_name.charAt(0).toUpperCase()}
+                              </Text>
+                            </TouchableOpacity>
+                            <View style={styles.replyMeta}>
+                              <View style={styles.replyNameRow}>
+                                <Text style={styles.replyAuthor}>{reply.user_name}</Text>
+                                {reply.reply_to_user_name && (
+                                  <Text style={styles.replyToIndicator}>
+                                    ↩ @{reply.reply_to_user_name}
+                                  </Text>
+                                )}
+                              </View>
+                              <Text style={styles.replyTime}>
+                                {formatTimeAgo(reply.created_at)}
+                              </Text>
+                            </View>
+                            
+                            {/* Menu for reply author */}
+                            {user && reply.user_id === user.id && reply.content !== '[deleted]' && (
+                              <View style={styles.commentMenuContainer}>
+                                <TouchableOpacity
+                                  style={styles.commentMenuButton}
+                                  onPress={() => setCommentMenuId(commentMenuId === reply.id ? null : reply.id)}
+                                >
+                                  <Ionicons name="ellipsis-horizontal" size={16} color={colors.textMuted} />
+                                </TouchableOpacity>
+                                
+                                {commentMenuId === reply.id && (
+                                  <View style={styles.commentMenuDropdown}>
+                                    <TouchableOpacity
+                                      style={styles.commentMenuItem}
+                                      onPress={() => handleEditComment(reply)}
+                                    >
+                                      <Ionicons name="pencil-outline" size={14} color={colors.textSecondary} />
+                                      <Text style={styles.commentMenuText}>Edit</Text>
+                                    </TouchableOpacity>
+                                    <TouchableOpacity
+                                      style={[styles.commentMenuItem, styles.commentMenuItemDanger]}
+                                      onPress={() => handleDeleteComment(reply.id)}
+                                    >
+                                      <Ionicons name="trash-outline" size={14} color={colors.error} />
+                                      <Text style={[styles.commentMenuText, styles.commentMenuTextDanger]}>Delete</Text>
+                                    </TouchableOpacity>
+                                  </View>
+                                )}
+                              </View>
+                            )}
+                          </View>
+                          
+                          {/* Reply content */}
+                          {editingCommentId === reply.id ? (
+                            <View style={styles.editCommentContainer}>
+                              <TextInput
+                                style={styles.editCommentInput}
+                                value={editedContent}
+                                onChangeText={setEditedContent}
+                                multiline
+                                autoFocus
+                              />
+                              <View style={styles.editCommentActions}>
+                                <TouchableOpacity
+                                  style={styles.editCancelButton}
+                                  onPress={() => {
+                                    setEditingCommentId(null);
+                                    setEditedContent('');
+                                  }}
+                                >
+                                  <Text style={styles.editCancelText}>Cancel</Text>
+                                </TouchableOpacity>
+                                <TouchableOpacity
+                                  style={styles.editSaveButton}
+                                  onPress={() => handleSaveEdit(reply.id)}
+                                >
+                                  <Text style={styles.editSaveText}>Save</Text>
+                                </TouchableOpacity>
+                              </View>
+                            </View>
+                          ) : (
+                            <Text style={[
+                              styles.replyContent,
+                              reply.content === '[deleted]' && styles.deletedContent
+                            ]}>
+                              {reply.content}
+                            </Text>
+                          )}
+                          
+                          {/* Reply actions */}
+                          <View style={styles.replyActions}>
+                            <TouchableOpacity 
+                              style={styles.helpfulButton}
+                              onPress={() => handleHelpful(reply.id, reply.user_marked_helpful)}
+                            >
+                              <Ionicons 
+                                name={reply.user_marked_helpful ? 'thumbs-up' : 'thumbs-up-outline'} 
+                                size={14} 
+                                color={reply.user_marked_helpful ? colors.accent : colors.textMuted} 
+                              />
+                              <Text style={[
+                                styles.helpfulText,
+                                styles.helpfulTextSmall,
+                                reply.user_marked_helpful && styles.helpfulTextActive
+                              ]}>
+                                ({reply.helpful_count})
+                              </Text>
+                            </TouchableOpacity>
+                            
+                            {reply.content !== '[deleted]' && (
+                              <TouchableOpacity 
+                                style={styles.replyButton}
+                                onPress={() => handleReply(reply)}
+                              >
+                                <Ionicons name="arrow-undo-outline" size={14} color={colors.textMuted} />
+                                <Text style={[styles.replyButtonText, styles.replyButtonTextSmall]}>Reply</Text>
+                              </TouchableOpacity>
+                            )}
+                          </View>
+                        </View>
+                      ))}
+                      
+                      {/* Collapse button when expanded */}
+                      {expandedReplies.has(comment.id) && comment.replies.length > 3 && (
+                        <TouchableOpacity 
+                          style={styles.viewRepliesButton}
+                          onPress={() => toggleReplies(comment.id)}
+                        >
+                          <Text style={styles.viewRepliesText}>Hide replies</Text>
+                          <Ionicons name="chevron-up" size={16} color={colors.primary} />
+                        </TouchableOpacity>
+                      )}
+                    </View>
+                  )}
                 </View>
               ))
             )}
@@ -1320,5 +1570,127 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     color: colors.white,
+  },
+  // Reply styles
+  replyIndicator: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: colors.primary + '15',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: radius.sm,
+    marginBottom: 8,
+  },
+  replyIndicatorText: {
+    fontSize: 13,
+    color: colors.primary,
+    fontWeight: '500',
+  },
+  cancelReplyButton: {
+    padding: 4,
+  },
+  commentActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 10,
+    gap: 16,
+  },
+  replyButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  replyButtonText: {
+    fontSize: 12,
+    color: colors.textMuted,
+  },
+  replyButtonTextSmall: {
+    fontSize: 11,
+  },
+  repliesContainer: {
+    marginTop: 12,
+    marginLeft: 16,
+    borderLeftWidth: 2,
+    borderLeftColor: colors.border,
+    paddingLeft: 12,
+  },
+  viewRepliesButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingVertical: 8,
+  },
+  viewRepliesText: {
+    fontSize: 13,
+    color: colors.primary,
+    fontWeight: '500',
+  },
+  replyCard: {
+    marginBottom: 12,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  replyHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  replyAvatar: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: colors.accent,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  replyAvatarText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: colors.white,
+  },
+  replyMeta: {
+    marginLeft: 8,
+    flex: 1,
+  },
+  replyNameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: 6,
+  },
+  replyAuthor: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: colors.text,
+  },
+  replyToIndicator: {
+    fontSize: 12,
+    color: colors.primary,
+  },
+  replyTime: {
+    fontSize: 10,
+    color: colors.textMuted,
+  },
+  replyContent: {
+    fontSize: 13,
+    color: colors.text,
+    lineHeight: 18,
+    marginLeft: 34,
+  },
+  replyActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 6,
+    marginLeft: 34,
+    gap: 12,
+  },
+  helpfulTextSmall: {
+    fontSize: 11,
+  },
+  deletedContent: {
+    fontStyle: 'italic',
+    color: colors.textMuted,
   },
 });
