@@ -100,75 +100,71 @@
 - **How to get there:** Bottom tab "Search"
 - **Elements:**
   - Search input field
-  - Tab pills: "Frikts", "Users", **"Communities"**
-  - Results list depends on active tab
+  - Tab buttons: "Frikts", "People", "Communities"
 
 **Frikts tab:**
-  - Results as ProblemCards
-  - **API:** `GET /api/problems?search={query}`
+  - Shows search results from `GET /api/problems?search={query}`
+  - Displays ProblemCards
 
-**Users tab:**
-  - User cards with avatar, name, bio, posts count
-  - **API:** `GET /api/users/search?q={query}`
+**People tab:**
+  - Shows results from `GET /api/users/search?q={query}`
+  - Displays user cards with avatar, displayName, bio, posts count
+  - Tap -> navigates to `/user/{id}`
 
 **Communities tab:**
-  - Community cards with location icon (coral circle), name, member count, frikt count, chevron arrow
-  - Tapping a card -> navigates to `/community/{id}`
-  - Loads all communities on tab activation, searchable
-  - Empty state: "No communities found" + "Request a Community" button
-  - **API:** `GET /api/communities?search={query}`
+  - Shows results from `GET /api/communities?search={query}`
+  - If no search query, shows all communities
+  - Displays community name, member count, frikt count
+  - Tap -> navigates to `/community/{id}`
+  - Empty state: "Want a local community? Request one here" -> `/request-community`
 
 #### Post Screen (`/app/(tabs)/post.tsx`)
-- **How to get there:** Bottom tab "+" (center)
-- **Elements (PostWizard component):**
-  - **Step 1 - Quick Post:**
-    - Title textarea (min 10 chars, required)
-    - Character counter
-    - **Local toggle** (only shown when user is in a community):
-      - Row with location icon, "Post to {community_name}" text, hint "Only members of your community will see this", checkbox
-      - When toggled ON: category auto-set to "local", frikt posted to user's community
-    - Similar problems list (duplicate detection)
-    - "Next" button
-  - **Step 2 - Optional Tags:**
-    - Category selector (10 options including "Local")
-    - Frequency selector: Daily, Weekly, Monthly, Rare
-    - Severity/Pain Level: 1-5
-    - "Post" button
+- **How to get there:** Bottom tab "+" (Post)
+- **Elements:**
+  - Title input (required, min 10 chars)
+  - **"Post to {community_name}" toggle** (only if user has a community)
+  - Category picker (disabled/auto-set to "Local" when local toggle is ON)
+  - Similar problems indicator (real-time as user types)
+  - Optional fields:
+    - Frequency (daily/weekly/monthly/rare)
+    - Pain level (1-5)
+    - Willing to pay ($0/$1-10/$10-50/$50+)
+    - When it happens (text)
+    - Who's affected (text)
+    - What I've tried (text)
+  - "Post" button
 - **API Calls:**
-  - Check similar -> `GET /api/problems/similar?title={title}&is_local={bool}&community_id={id}`
-  - Create post -> `POST /api/problems` with `{title, category_id, frequency, pain_level, is_local}`
+  - Similar check -> `GET /api/problems/similar?title={title}` (or with `is_local=true&community_id={id}`)
+  - Submit -> `POST /api/problems`
 
 #### Categories Screen (`/app/(tabs)/categories.tsx`)
 - **How to get there:** Bottom tab "Categories"
 - **Elements:**
-  - List of 10 category cards (including "Local")
-  - Each card shows: icon, name, follow button (+ or checkmark)
-- **API Calls:**
-  - Get categories -> `GET /api/categories` (returns static CATEGORIES list)
-  - Follow -> `POST /api/categories/{category_id}/follow`
-  - Unfollow -> `DELETE /api/categories/{category_id}/follow`
-- **Data Modified:** `users.followed_categories` array
+  - Grid of 10 category cards (icon, name, color, frikt count)
+  - Follow/Unfollow button per card
+  - "Local" card navigates to Home (Local tab) instead of category detail
+- **Actions:**
+  - Follow -> `POST /api/categories/{id}/follow`
+  - Unfollow -> `DELETE /api/categories/{id}/follow`
+  - Tap card -> `/category/{id}` (or Home for "Local")
 
 #### Profile Screen (`/app/(tabs)/profile.tsx`)
 - **How to get there:** Bottom tab "Profile"
 - **Elements:**
-  - Avatar image
-  - Display name
-  - City (if showCity=true)
-  - Bio
-  - Stats row: X Frikts, Y Comments, Z Relates
-  - Streak card (if streak > 0)
-  - **Community card:**
-    - If in community: coral location icon, community name, member count, frikt count, "Leave" button (with confirm alert)
-    - If not in community: outline icon, "No community yet", subtitle text
-  - Badges section
-  - "Edit Profile" button
-  - Menu items: My Posts, Saved, Badges, Settings section
-  - Logout button
-- **API Calls:**
-  - Get profile -> `GET /api/auth/me`
-  - Get community -> `GET /api/communities/me`
-  - Leave community -> `DELETE /api/communities/leave`
+  - Avatar (tappable to edit)
+  - Display name, bio, city
+  - **Community card** (if member): community name, member count, "Leave" button
+  - Stats: posts count, comments count, relates count
+  - Badge progress bar + unlocked badge count
+  - Menu links: Edit Profile, My Posts, Saved, Notifications, Badges, Settings
+- **Settings sub-menu:**
+  - Change Password
+  - Blocked Users
+  - Send Feedback
+  - Terms of Service
+  - Privacy Policy
+  - Delete Account
+  - Logout
 
 ---
 
@@ -177,121 +173,102 @@
 #### Problem Detail Screen (`/app/problem/[id].tsx`)
 - **How to get there:** Tap any ProblemCard
 - **Elements:**
-  - Full Frikt details (title, category, frequency, pain, willing_to_pay, when_happens, who_affected, what_tried)
-  - User info (avatar, name)
+  - Category tag + Local tag (if applicable)
+  - Frikt title
+  - Author name (tappable -> user profile) + avatar + timestamp
+  - Detail fields: frequency, pain level, when, who, what tried
   - Relate button + count
   - Save button
   - Follow button
   - Share button
-  - **For local frikts:** community name, viewer_is_community_member flag
-  - **Threaded comments list** (see Section 6)
-  - Comment input with quick-reply pills
-  - 3-dot menu (Report, Block, Edit/Delete if owner)
-- **API Calls:**
-  - Get problem -> `GET /api/problems/{problem_id}` (returns `community_name`, `viewer_is_community_member` for local frikts)
-  - Get comments -> `GET /api/problems/{problem_id}/comments` (returns threaded structure with `replies[]` and `is_community_member` per comment)
-  - Relate -> `POST /api/problems/{problem_id}/relate` (403 if non-member on local frikt)
-  - Unrelate -> `DELETE /api/problems/{problem_id}/relate`
-  - Save -> `POST /api/problems/{problem_id}/save`
-  - Unsave -> `DELETE /api/problems/{problem_id}/save`
-  - Follow -> `POST /api/problems/{problem_id}/follow`
-  - Unfollow -> `DELETE /api/problems/{problem_id}/follow`
-  - Post comment -> `POST /api/comments`
-  - Post reply -> `POST /api/comments` with `parent_comment_id` and `reply_to_user_id`
+  - Report button (3-dot menu)
+  - **For local frikts:** community name banner + membership status
+  - **Comments section:**
+    - Top-level comments sorted by `helpful_count DESC`
+    - Each comment: user name, content, timestamp, helpful button+count, reply button
+    - Replies nested under parent, sorted by `created_at ASC`
+    - Soft-deleted comments show "[deleted]" for content and username
+    - `is_community_member` badge on comments for local frikts
+  - **Comment input:** text field + quick reply pills
+  - Related frikts section at bottom
 
 #### Quick Reply Pills:
-- "I relate because..." - prefills comment
-- "One thing I tried..." - prefills comment
-- "Have you tried...?" - prefills comment
+- "I relate because..."
+- "One thing I tried..."
+- "Have you tried...?"
 
 #### Community Detail Screen (`/app/community/[id].tsx`)
-- **How to get there:** Tap a community card in Search -> Communities tab, or any community link
+- **How to get there:** Search -> Communities tab -> Tap community
 - **Elements:**
-  - Header with back button and community name
-  - Community info: coral location icon (56px), community name, member/frikt count
-  - **Request to Join banner** (non-members only):
-    - "Want to join {name}?" title
-    - Optional message input (multiline)
-    - "Request to Join" button
-    - After submission: checkmark icon + "Request sent!" confirmation text
-  - **Non-member notice:** "You can browse and comment, but only members can relate to local frikts."
-  - Sort pills: "Trending", "New", "Top"
-  - FlatList of ProblemCards (local frikts in this community)
-  - Empty state: "No frikts yet" + contextual message
+  - Community name, location icon
+  - Member count, frikt count
+  - **If member:** "Your Community" badge, community feed (FlatList of ProblemCards)
+  - **If not member, no pending request:** "Request to Join" banner with optional message input
+  - **If pending request:** "Request Pending" badge
 - **API Calls:**
-  - Get community -> `GET /api/communities/{community_id}` (returns `is_member`, `has_pending_request`)
-  - Get local feed -> `GET /api/problems?feed=local&community_id={id}&sort_by={trending|new|top}`
-  - Request to join -> `POST /api/communities/{community_id}/request-join`
-  - Relate -> `POST /api/problems/{problem_id}/relate` (403 if non-member)
+  - Load -> `GET /api/communities/{id}`
+  - Request join -> `POST /api/communities/{id}/request-join`
+  - Feed -> `GET /api/problems?feed=local&community_id={id}`
 
 #### User Profile Screen (`/app/user/[id].tsx`)
-- **How to get there:** Tap any user avatar/name
+- **How to get there:** Tap any username
 - **Elements:**
-  - Avatar, name, city, bio
+  - Avatar, display name, bio, city
+  - **Community tag** (if user has one)
+  - Stats row: posts, comments, relates
   - Follow/Unfollow button
-  - Stats
-  - User's Frikts list
-- **API Calls:**
-  - Get profile -> `GET /api/users/{user_id}/profile`
-  - Get posts -> `GET /api/users/{user_id}/posts`
-  - Follow -> `POST /api/users/{user_id}/follow`
-  - Unfollow -> `DELETE /api/users/{user_id}/follow`
+  - User's posts list (sortable: newest/top)
+  - Badge gallery
 
 #### Category Detail Screen (`/app/category/[id].tsx`)
-- **How to get there:** Tap category card or category pill on Frikt
+- **How to get there:** Categories grid -> Tap card
 - **Elements:**
-  - Category header (icon, name, color)
-  - Follow button
-  - Frikts list filtered by category
-- **API Calls:**
-  - Get Frikts -> `GET /api/problems?category_id={category_id}`
+  - Category header: icon, name, color
+  - Follow/Unfollow button
+  - FlatList of frikts in this category
 
 #### Request Community Screen (`/app/request-community.tsx`)
 - **How to get there:** Home Local tab -> "Request one here" link, or Search Communities empty state
 - **Elements:**
-  - Header with back button
-  - Location icon + "Want a local community?" title
-  - Subtitle: "Tell us about the community you'd like and we'll set it up for you."
-  - Email input (pre-filled from user's email)
+  - Email input (pre-filled with user's email)
   - Community name input
-  - Description textarea (optional)
+  - Description input (optional)
   - "Submit Request" button
-  - Success state: checkmark icon, "Request Submitted!", info text, "Done" button
-- **API Calls:**
-  - Submit request -> `POST /api/community-requests`
+- **API Call:** `POST /api/community-requests`
+- **Outcome:** Request created with `expires_at = created_at + 3 days`. Admin reviews in Communities tab.
 
 ---
 
 ### 1.4 Settings & User Screens
 
 #### Edit Profile (`/app/edit-profile.tsx`)
-- **Elements:** Display name, Bio, City, Show City toggle, Avatar picker
-- **API:** `PUT /api/users/me/profile`, `POST /api/users/me/avatar-base64`
+- Fields: displayName, bio, city, showCity toggle, avatar upload
+- API: `PUT /api/users/me/profile`, `POST /api/users/me/avatar` or `POST /api/users/me/avatar-base64`
 
 #### My Posts (`/app/my-posts.tsx`)
-- **Elements:** List of user's own Frikts
-- **API:** `GET /api/users/me/posts`
+- Shows all user's posts (including hidden/removed)
+- API: `GET /api/users/me/posts`
 
 #### Saved (`/app/saved.tsx`)
-- **Elements:** List of saved Frikts
-- **API:** `GET /api/users/me/saved`
+- Shows saved frikts
+- API: `GET /api/users/me/saved`
 
 #### Notifications (`/app/notifications.tsx`)
-- **Elements:** List of notifications (relates, comments, badges, replies)
-- **API:** `GET /api/notifications`, `POST /api/notifications/read` (marks all read)
+- List of notifications with unread badge
+- API: `GET /api/notifications`, `POST /api/notifications/read`
 
 #### Notification Settings (`/app/notification-settings.tsx`)
-- **Elements:** Toggles for push_notifications, new_comments, new_relates, trending
-- **API:** `GET /api/push/settings`, `PUT /api/push/settings`
+- Toggles: push_notifications (master), new_comments, new_relates, trending
+- API: `GET /api/push/settings`, `PUT /api/push/settings`
 
 #### Change Password (`/app/change-password.tsx`)
-- **API:** `POST /api/users/me/change-password`
+- API: `POST /api/users/me/change-password`
 
 #### Blocked Users (`/app/blocked-users.tsx`)
-- **API:** `GET /api/users/me/blocked`, `DELETE /api/users/{user_id}/block`
+- API: `GET /api/users/me/blocked`, `DELETE /api/users/{id}/block`
 
 #### Feedback (`/app/feedback.tsx`)
-- **API:** `POST /api/feedback`
+- API: `POST /api/feedback`
 
 #### Terms (`/app/terms.tsx`) & Privacy Policy (`/app/privacy-policy.tsx`)
 - Static content screens
@@ -300,131 +277,134 @@
 
 ### 1.5 Admin Panel (`/app/admin.tsx`)
 
-**Access:** Only visible if user.role === "admin"
+- **How to get there:** Only visible if `user.role === "admin"`. Profile -> Admin Panel.
+- **Requires:** `role: "admin"` (auto-assigned if email in ADMIN_EMAILS env var)
 
 #### Tabs:
 
-**Overview Tab:**
-- Total users count
-- Total Frikts count
-- Total comments count
-- Frikts today count
-- New users today count
-- **API:** `GET /api/admin/analytics`
+**Dashboard Tab:**
+- Total users, problems, comments, reports
+- Pending community requests count, pending join requests count
+- Quick analytics overview
+
+**Content Tab:**
+- List of all problems with search/filter
+- Actions per problem: Hide, Unhide, Delete, Pin, Unpin, Needs Context, Clear Context, Merge
+- Comment management: Hide, Unhide, Delete
+
+**Users Tab:**
+- List of all users with search
+- Actions: Ban, Shadowban, Unban
+- View user details: email, role, status, post count, join date, stats sync
+
+**Reports Tab:**
+- List of reported problems, comments, and users
+- Filter by type (problem/comment/user) and status (pending/reviewed/dismissed)
+- Actions: Dismiss, Mark Reviewed
+
+**Analytics Tab:**
+- User growth over time
+- Post creation trends
+- Category distribution
+- Top frikts by engagement
+- **LOCAL section:** community stats, local frikt count, member distribution
+
+**Broadcast Tab:**
+- Send push notification to all users or admins only
+- Title + message + optional link
+- Broadcast history with delivery stats
+- Debug push tokens list
+- Test push to specific user
+
+**Communities Tab:**
+- **Community Requests section:** Pending new community creation requests (filtered: non-expired only)
+  - Approve/reject actions
+- **Create Community:** Name + code + moderator email form
+- **Active Communities list:** Name, code, member count, frikt count, pending join requests
+  - Change code action
+- **Join Requests per community:** Pending, non-expired requests
+  - "Send Code" action (opens mailto with invite code)
+- **Export:** Download community data as anonymous `.txt` file (period filter: all/7d/30d/90d)
 
 **Feedback Tab:**
 - List of user feedback submissions
-- Mark as read/unread
-- Delete
-- **API:** `GET /api/admin/feedback`, `POST /api/admin/feedback/{id}/read`, `DELETE /api/admin/feedback/{id}`
+- Mark read/unread, delete
 
-**Reports Tab:**
-- List of reported content (problems, comments, users)
-- Filter by status: pending, reviewed, dismissed
-- Actions: Dismiss, Mark Reviewed, Hide Content, Delete Content
-- **API:** `GET /api/admin/reports`, `POST /api/admin/reports/{id}/dismiss`, `POST /api/admin/reports/{id}/reviewed`
+**Audit Log Tab:**
+- Chronological log of all admin actions
+- Filterable by action type
 
-**Broadcast Tab:**
-- Title input
-- Message textarea
-- Send to: All Users / Admins Only toggle
-- Send button
-- Broadcast history list
-- **API:** `POST /api/admin/broadcast-notification`, `GET /api/admin/broadcast-history`, `GET /api/admin/broadcast-stats`
-
-**Users Tab:**
-- Search users
-- User list with status badges
-- Actions: Ban, Shadowban, Unban
-- **API:** `GET /api/admin/users`, `POST /api/admin/users/{id}/ban`, `POST /api/admin/users/{id}/shadowban`, `POST /api/admin/users/{id}/unban`
-
-**Audit Tab:**
-- Log of admin actions (action, target, admin, timestamp)
-- **API:** `GET /api/admin/audit-log`
-
-**Communities Tab (Local):**
-- **Community Requests** section: List of pending community creation requests (name, email, description). Sourced from `community_requests` collection.
-  - **API:** `GET /api/admin/community-requests`
-- **Create Community** form: Name input, invite code input, moderator email input, "Create Community" button.
-  - **API:** `POST /api/admin/communities`
-- **Active Communities** list (searchable, collapsible rows):
-  - Each row header: community name, current code, member count, frikt count, pending join requests count. Tap to expand.
-  - **Expanded view:**
-    - **Change Code:** Displays current code with pencil icon. Tap to edit. Save/Cancel buttons.
-      - **API:** `PUT /api/admin/communities/{id}/code`
-    - **Join Requests:** List of pending join requests (email, message). Each has a "Send Code" button that opens a `mailto:` link with pre-filled subject and body containing the invite code, and marks the request as "sent".
-      - **API:** `GET /api/admin/communities/{id}/join-requests`, `PUT /api/admin/communities/{id}/join-requests/{id}`
-    - **Export Data:** Period pills (All time, 7 days, 30 days, 90 days). "Export" button triggers Share sheet with structured text export.
-      - **API:** `GET /api/admin/communities/{id}/export?period={all|7d|30d|90d}`
-  - **API:** `GET /api/admin/communities?search={query}`
+**Stats Sync:**
+- Sync all user stats (recalculates from DB)
+- Sync individual user stats
 
 ---
 
 ## 2. USER TYPES AND PERMISSIONS
 
 ### Logged-out User
-- **Can see:** Nothing - redirected to login screen
-- **Can do:** Register, Login, Forgot Password
+- Cannot access the app (redirected to login)
+- Can register and login
+- Can request password reset
 
 ### Logged-in User (role: "user")
-- **Can see:** All feeds (global + local if in community), own profile, other profiles, categories, communities
-- **Can do:**
-  - Create Frikts (global or local)
-  - Relate to others' Frikts (not own; local frikts only if community member)
-  - Comment on any Frikt (including local frikts of non-member communities)
-  - Reply to comments (threaded)
-  - Save/Follow Frikts
-  - Follow categories
-  - Follow users
-  - Edit own profile
-  - Delete own posts/comments
-  - Report content
-  - Block users
-  - Change password
-  - Submit feedback
-  - Join a community via invite code
-  - Switch community
-  - Leave community
-  - Browse communities
-  - Request to join a community
-  - Request creation of a new community
+- View global feeds (New, Trending, For You)
+- View and interact with local feed (if community member)
+- Create frikts (max 10/day)
+- Relate to frikts (not own, community-gated for local)
+- Comment and reply (min 10 chars)
+- Mark comments as helpful
+- Edit/delete own comments and frikts
+- Save and follow frikts
+- Follow/unfollow categories
+- Follow/unfollow users
+- Search frikts, users, communities
+- View user profiles and badges
+- Join/leave/switch communities via invite code
+- Request to join a community
+- Request creation of a new community
+- Block/unblock users
+- Report frikts, comments, users
+- Edit profile, change password
+- Manage notification settings
+- Delete own account
 
 ### Community Member (additional context)
-- User who has joined a community via invite code
-- **Additional abilities:**
-  - Post local Frikts visible only in community feed
-  - Relate to local Frikts in their community
-  - See "Local" tab on home screen with community-specific feed
-  - One community at a time (switch available)
+- All "Logged-in User" permissions, plus:
+- Post local frikts to their community
+- View local community feed
+- Relate to local frikts in their community
+- Only 1 community membership at a time
 
 ### Admin User (role: "admin")
-- **All user permissions PLUS:**
-- **Can see:** Admin panel with all tabs
-- **Can do:**
-  - View analytics
-  - Review reports
-  - Hide/Unhide posts
-  - Delete any post/comment
-  - Ban/Shadowban/Unban users
-  - Send broadcast notifications
-  - View audit log
-  - Pin/Unpin posts
-  - Mark posts as "needs context"
-  - Merge duplicate posts
-  - Create communities
-  - Change community invite codes
-  - View/manage community join requests (Send Code via mailto)
-  - Export community data
-  - View community creation requests
-  - Sync user stats
+- All "Logged-in User" permissions, plus:
+- Access Admin Panel
+- Hide/unhide/delete any frikt
+- Pin/unpin frikts
+- Mark frikts as "needs context"
+- Merge duplicate frikts
+- Hide/unhide/delete any comment
+- Ban/shadowban/unban users
+- Review and dismiss reports
+- Send broadcast notifications
+- View analytics dashboard
+- Create communities, change invite codes
+- Approve/reject community requests
+- View and manage join requests
+- Export community data
+- View audit log
+- Sync user stats
+- Manage feedback
+- Debug push tokens
 
 ### Banned User (status: "banned")
-- Cannot login (returns 403)
+- Cannot login (403 on login attempt)
+- All API calls with auth return 403
 
 ### Shadowbanned User (status: "shadowbanned")
-- Can login and use app normally
-- Their content is hidden from others
-- They don't receive notifications
+- Can still use the app normally
+- Their content (posts, comments) is hidden from other users
+- Notifications to them are suppressed
 
 ---
 
@@ -432,40 +412,40 @@
 
 ### Collection: `users`
 ```
-id: string (UUID) - primary key
-email: string (unique, lowercase)
+id: string (UUID)
+email: string (lowercase, unique)
 name: string
-password_hash: string
-created_at: datetime
-role: "user" | "admin"
-status: "active" | "banned" | "shadowbanned"
+password_hash: string (bcrypt)
 displayName: string | null
 avatarUrl: string | null
 bio: string | null
 city: string | null
-showCity: boolean (default: false)
+showCity: boolean (default false)
+role: "user" | "admin"
+status: "active" | "banned" | "shadowbanned"
+created_at: datetime
 rocket10_completed: boolean
 rocket10_day: int
 rocket10_start_date: datetime | null
 posts_today: int
-last_post_date: string | null
+last_post_date: string | null (YYYY-MM-DD)
 streak_days: int
-followed_categories: string[] - array of category IDs
-followed_problems: string[] - array of problem IDs
-saved_problems: string[] - array of problem IDs
+followed_categories: string[] (category IDs)
+followed_problems: string[] (problem IDs)
+saved_problems: string[] (problem IDs)
 ```
 
 ### Collection: `problems`
 ```
-id: string (UUID) - primary key
+id: string (UUID)
 user_id: string - FK to users.id
 user_name: string (denormalized)
-user_avatar_url: string | null
+user_avatar_url: string | null (denormalized)
 title: string (min 10 chars)
-category_id: string - one of CATEGORIES
+category_id: string
 frequency: "daily" | "weekly" | "monthly" | "rare" | null
-pain_level: int 1-5 | null
-willing_to_pay: "$0" | "$1-10" | "$10-50" | "$50+"
+pain_level: int (1-5) | null
+willing_to_pay: string (default "$0")
 when_happens: string | null
 who_affected: string | null
 what_tried: string | null
@@ -473,40 +453,40 @@ created_at: datetime
 relates_count: int (default 0)
 comments_count: int (default 0)
 unique_commenters: int (default 0)
-signal_score: float (calculated)
+signal_score: float (default 0.0)
 reports_count: int (default 0)
 is_hidden: boolean (default false)
 status: "active" | "hidden" | "removed"
 is_pinned: boolean (default false)
 needs_context: boolean (default false)
-merged_into: string | null - FK to problems.id
-is_local: boolean (default false)          # NEW - Local Communities
-community_id: string | null                # NEW - FK to communities.id
+merged_into: string | null (problem ID if duplicate)
+is_local: boolean (default false)
+community_id: string | null - FK to communities.id
 ```
 
 ### Collection: `comments`
 ```
-id: string (UUID) - primary key
+id: string (UUID)
 problem_id: string - FK to problems.id
 user_id: string - FK to users.id
 user_name: string (denormalized)
-content: string (min 10 chars; Optional when status="removed" for soft-delete display)
+content: string (min 10 chars)
 created_at: datetime
 edited_at: datetime | null
 helpful_count: int (default 0)
 is_pinned: boolean (default false)
 status: "active" | "hidden" | "removed"
 reports_count: int (default 0)
-parent_comment_id: string | null           # NEW - null for top-level, comment.id for replies
-reply_to_user_id: string | null            # NEW - user whose Reply button was tapped
-reply_to_user_name: string | null          # NEW - denormalized for UI display
+parent_comment_id: string | null (null = top-level, string = reply to this comment)
+reply_to_user_id: string | null (user whose Reply button was tapped)
+reply_to_user_name: string | null (denormalized)
 ```
 
 ### Collection: `communities`
 ```
-id: string (UUID) - primary key
+id: string (UUID)
 name: string
-active_code: string (invite code, case-insensitive matching)
+active_code: string (case-insensitive invite code)
 moderator_email: string
 created_at: datetime
 ```
@@ -518,7 +498,7 @@ user_id: string - FK to users.id
 community_id: string - FK to communities.id
 joined_at: datetime
 ```
-**Constraint:** One community per user (enforced at application level)
+**Constraint:** A user can only belong to 1 community at a time (enforced in application logic).
 
 ### Collection: `community_join_requests`
 ```
@@ -529,7 +509,7 @@ community_id: string - FK to communities.id
 message: string | null
 status: "pending" | "sent"
 created_at: datetime
-expires_at: datetime (default: 7 days from creation)
+expires_at: datetime (default: created_at + 7 days)
 ```
 
 ### Collection: `community_requests`
@@ -539,7 +519,7 @@ email: string
 community_name: string
 description: string | null
 created_at: datetime
-expires_at: datetime (default: 3 days from creation)
+expires_at: datetime (default: created_at + 3 days)
 ```
 
 ### Collection: `relates`
@@ -558,13 +538,14 @@ comment_id: string - FK to comments.id
 user_id: string - FK to users.id
 created_at: datetime
 ```
+**Unique constraint:** (comment_id, user_id)
 
 ### Collection: `notifications`
 ```
 id: string (UUID)
 user_id: string - FK to users.id
-type: "new_comment" | "new_relate" | "problem_trending" | "new_follower" | "badge_earned" | "admin_broadcast" | "new_reply"
-problem_id: string | null
+type: string ("new_comment" | "new_relate" | "comment_reply" | "new_follower" | "badge_earned" | "admin_broadcast" | "batched_relate_batch" | "batched_comment_batch")
+problem_id: string
 message: string
 is_read: boolean (default false)
 created_at: datetime
@@ -573,7 +554,7 @@ created_at: datetime
 ### Collection: `notification_settings`
 ```
 user_id: string - FK to users.id
-push_notifications: boolean (default true)
+push_notifications: boolean (default true) — master toggle
 new_comments: boolean (default true)
 new_relates: boolean (default true)
 trending: boolean (default true)
@@ -583,7 +564,7 @@ trending: boolean (default true)
 ```
 id: string (UUID)
 user_id: string - FK to users.id
-token: string - Expo push token
+token: string (Expo push token)
 created_at: datetime
 is_active: boolean (default true)
 ```
@@ -619,9 +600,9 @@ total_comments: int
 total_frikts_opened: int
 users_followed: int
 current_visit_streak: int
-last_visit_date: string | null
+last_visit_date: string | null (YYYY-MM-DD)
 streak_miss_count: int
-posts_per_category: dict {category_id: count}
+posts_per_category: dict ({category_id: count})
 max_relates_on_single_post: int
 ```
 
@@ -629,44 +610,48 @@ max_relates_on_single_post: int
 ```
 id: string (UUID)
 user_id: string - FK to users.id
-badge_id: string - key from BADGES dict
+badge_id: string
 unlocked_at: datetime
 ```
 
 ### Collection: `pending_badge_notifications`
 ```
-user_id: string
-badge: dict {badge_id, name, icon, description}
+user_id: string - FK to users.id
+badge: dict ({badge_id, name, icon, description, unlocked_at})
 created_at: datetime
 ```
 
-### Collection: `pending_notification_batch`
+### Collection: `pending_notification_batches`
 ```
+id: string (UUID)
+recipient_user_id: string - FK to users.id
 batch_type: "relate_batch" | "comment_batch"
-recipient_user_id: string
 target_id: string (problem_id)
 target_title: string
-actor_user_ids: string[]
-actor_user_names: string[]
-created_at: datetime
-last_updated: datetime
+user_ids: string[] (actors)
+user_names: string[] (actor names)
+first_action_at: datetime
+last_action_at: datetime
+notification_sent: boolean
 ```
 
 ### Collection: `password_reset_tokens`
 ```
 id: string (UUID)
-user_id: string
+user_id: string - FK to users.id
 token: string (6-digit code)
+email: string
+expires_at: datetime (1 hour from creation)
+used: boolean (default false)
 created_at: datetime
-expires_at: datetime
-used: boolean
 ```
 
 ### Collection: `feedback`
 ```
 id: string (UUID)
-user_id: string
+user_id: string - FK to users.id
 user_email: string
+user_name: string
 type: "bug" | "feature" | "other"
 message: string
 created_at: datetime
@@ -681,11 +666,11 @@ admin_email: string
 action: string
 target_type: string
 target_id: string
-details: string
+details: dict | null
 created_at: datetime
 ```
 
-### Collection: `follows` (user-to-user)
+### Collection: `user_follows`
 ```
 id: string (UUID)
 follower_id: string - FK to users.id
@@ -720,7 +705,7 @@ created_at: datetime
 **Gamification triggered:**
 - `increment_user_stat(user_id, "total_posts")`
 - `increment_category_posts(user_id, category_id)`
-- `check_and_award_badges(user_id, user, stats, "post")`
+- `check_and_award_badges(user_id, user, stats, "create")`
 
 ### Creating a Local Frikt
 
@@ -791,15 +776,14 @@ created_at: datetime
    - If replying to a reply (nested), **flattens** to the top-level parent: sets `parent_comment_id` to the root comment
    - Resolves `reply_to_user_name` from `reply_to_user_id`
    - Creates comment document with threading fields
-   - Increments parent comment's `reply_count`
-   - Same gamification as top-level comment
-   - Sends reply notification to parent comment author
+   - Same stats/gamification as top-level comment
+   - Sends reply notification to the user whose Reply was tapped (if different from problem owner and current user)
 
 ### Comment Deletion
 
-- **Hard delete:** Comment with no replies -> permanently removed from DB
-- **Soft delete:** Comment with replies -> `status="removed"`, `content="[deleted]"`, `user_name="[deleted]"`. Replies are preserved under it.
-- Deleting removes from `comments_count` if hard-deleted
+- **Hard delete:** Comment with no replies -> permanently removed from DB, decrements `comments_count`
+- **Soft delete:** Comment with replies -> `status="removed"`, `content="[deleted]"`, `user_name="[deleted]"`. Replies are preserved under it. Count not decremented.
+- Deleting also removes associated `helpfuls` records (hard delete only)
 
 ### Save Flow
 - `POST /api/problems/{id}/save` -> adds to `users.saved_problems[]`
@@ -946,8 +930,7 @@ else:  # trending (default)
       "content": "string",
       "parent_comment_id": "parent-uuid",
       "reply_to_user_name": "string",
-      "is_community_member": true,
-      ...
+      "is_community_member": true
     }
   ]
 }
@@ -1000,16 +983,17 @@ Tapping a quick reply pill prefills the comment input:
 |-------|------|-----------|---------|
 | Someone relates to your Frikt | new_relate | Frikt owner | "{name} related to your Frikt" |
 | Someone comments on your Frikt | new_comment | Frikt owner | "{name} commented on your Frikt" |
-| Someone replies to your comment | new_reply | Comment author | "{name} replied to your comment" |
+| Someone replies to your comment | comment_reply | Comment author | "{name} replied to your comment" |
 | Someone comments on followed Frikt | new_comment | Followers | "New comment on a Frikt you follow" |
 | Someone follows you | new_follower | Followed user | "{name} started following you" |
 | Badge earned | badge_earned | Badge earner | "You earned: {badge_name}" |
 | Admin broadcast | admin_broadcast | All/Admins | Custom message |
 
 ### Batching
-- Multiple relates within 5 minutes are batched
-- Multiple comments within 3 minutes are batched
-- Batched notification: "3 people related to your Frikt"
+- Multiple relates within 5 minutes are batched into a single notification
+- Multiple comments within 3 minutes are batched into a single notification
+- Batched notification example: "3 people related to your Frikt"
+- Background processor runs every 60 seconds to flush pending batches
 
 ### Delivery
 1. **In-app:** Stored in `notifications` collection, badge count on bell icon
@@ -1030,7 +1014,7 @@ A community is a location-based or code-gated group. Users can belong to one com
 
 ### Joining Flow
 1. User enters invite code on Home Local tab or knows the code
-2. `POST /api/communities/join` with `{code}` (case-insensitive matching)
+2. `POST /api/communities/join` with `{code}` (case-insensitive matching via regex)
 3. Outcomes:
    - **Success (200):** User joined, community data returned
    - **Already in same community (400):** "You are already a member"
@@ -1061,6 +1045,7 @@ A community is a location-based or code-gated group. Users can belong to one com
 6. **Expired requests** (older than 3 days) are automatically filtered out from admin views
 
 ### Request Expiration Rules
+
 | Request Type | Expires After | Filter Applied |
 |-------------|--------------|----------------|
 | Community creation request | 3 days | `expires_at > now()` on `GET /api/admin/community-requests` |
@@ -1138,7 +1123,7 @@ See Section 1.5 for full screen details and Section 8 for Communities tab specif
 
 ### Password Reset
 1. User enters email -> `POST /api/auth/forgot-password`
-2. Backend generates 6-digit code, stores in `password_reset_tokens`
+2. Backend generates 6-digit code, stores in `password_reset_tokens` (expires in 1 hour)
 3. Email sent via Resend
 4. User enters code -> `POST /api/auth/verify-reset-code`
 5. User enters new password -> `POST /api/auth/reset-password`
@@ -1166,7 +1151,34 @@ The "local" category is automatically assigned to local frikts. It cannot be man
 
 ---
 
-## 12. API STRUCTURE
+## 12. SIGNAL SCORE
+
+### Formula
+```
+base_score = (relates * 3) + (comments * 2) + (unique_commenters * 1) + pain_bonus
+recency_boost = linear decay from 2.0 to 0 over 72 hours
+final_score = base_score + recency_boost
+```
+
+### Weights
+| Component | Weight | Description |
+|-----------|--------|-------------|
+| relate | 3.0 | Most valuable — shows resonance |
+| comment | 2.0 | Engagement |
+| unique_commenter | 1.0 | Bonus per unique person |
+| pain_base | 0.5 | Multiplied by pain level (1-5) |
+| frequency_daily | 1.0 | Daily friction bonus |
+| frequency_weekly | 0.5 | Weekly friction bonus |
+| frequency_monthly | 0.25 | Monthly friction bonus |
+| recency_max_boost | 2.0 | Max boost for brand new posts |
+| recency_decay_hours | 72 | Hours until boost = 0 |
+
+### Key Principle
+Posts with interaction ALWAYS beat posts without (except very new posts with recency boost).
+
+---
+
+## 13. API STRUCTURE
 
 ### Public Endpoints (no auth required)
 - `POST /api/auth/register`
@@ -1210,7 +1222,7 @@ All other endpoints require valid JWT token.
 | POST | /api/problems/{id}/follow | Follow Frikt |
 | DELETE | /api/problems/{id}/follow | Unfollow |
 | GET | /api/problems/{id}/comments | Get threaded comments |
-| POST | /api/problems/{id}/report | Report Frikt |
+| POST | /api/problems/{id}/report | Report Frikt (legacy) |
 
 #### Comments
 | Method | Path | Description |
@@ -1238,7 +1250,7 @@ All other endpoints require valid JWT token.
 | GET | /api/users/me/gamification-stats | Get stats |
 | POST | /api/users/me/visit | Record daily visit |
 | PUT | /api/users/me/profile | Update profile |
-| POST | /api/users/me/avatar | Upload avatar |
+| POST | /api/users/me/avatar | Upload avatar (multipart) |
 | POST | /api/users/me/avatar-base64 | Upload avatar (base64) |
 | DELETE | /api/users/me | Delete account |
 | POST | /api/users/me/change-password | Change password |
@@ -1340,10 +1352,10 @@ All other endpoints require valid JWT token.
 | POST | /api/admin/communities | Create community |
 | PUT | /api/admin/communities/{id}/code | Change invite code |
 | GET | /api/admin/communities | List communities with stats |
-| GET | /api/admin/community-requests | Get community creation requests |
-| GET | /api/admin/communities/{id}/join-requests | Get join requests |
+| GET | /api/admin/community-requests | Get community creation requests (non-expired) |
+| GET | /api/admin/communities/{id}/join-requests | Get join requests (non-expired, pending) |
 | PUT | /api/admin/communities/{id}/join-requests/{id} | Update join request (mark sent) |
-| GET | /api/admin/communities/{id}/export | Export community data |
+| GET | /api/admin/communities/{id}/export | Export community data (anonymous) |
 
 #### Admin Feedback
 | Method | Path | Description |
@@ -1355,7 +1367,7 @@ All other endpoints require valid JWT token.
 
 ---
 
-## 13. SEARCH
+## 14. SEARCH
 
 ### Frikt Search
 - **Endpoint:** `GET /api/problems?search={query}`
@@ -1373,13 +1385,13 @@ query["$or"] = [
 ### User Search
 - **Endpoint:** `GET /api/users/search?q={query}`
 - **Type:** Case-insensitive regex
-- **Fields searched:** `name`, `displayName`
+- **Fields searched:** `name`, `normalizedDisplayName`
 ```python
 query = {
-    "status": {"$ne": "banned"},
+    "status": "active",
     "$or": [
-        {"name": {"$regex": q, "$options": "i"}},
-        {"displayName": {"$regex": q, "$options": "i"}}
+        {"normalizedDisplayName": {"$regex": q, "$options": "i"}},
+        {"name": {"$regex": q, "$options": "i"}}
     ]
 }
 ```
@@ -1392,7 +1404,7 @@ query = {
 
 ---
 
-## 14. PROFILE & BADGES
+## 15. PROFILE & BADGES
 
 ### Profile Fields (User-editable)
 - `displayName` - shown publicly
@@ -1460,18 +1472,26 @@ query = {
 - {Category} Master: 5 posts in category
 
 ### Badge Check Triggers
-- `"post"`: After creating a Frikt
+- `"create"`: After creating a Frikt
 - `"relate"`: After relating to a Frikt
 - `"comment"`: After commenting
 - `"impact"`: When receiving relates
 - `"viral"`: When a single post gets many relates
 - `"follow"`: After following users
 - `"visit"`: On daily app visit
+- `"explore"`: After opening a Frikt
+- `"special"`: Date-based badges (on visit)
 - `"all"`: Full recalculation (admin sync)
+
+### Visit Streak Logic
+- Consecutive days: streak increments
+- 1 day missed: grace window (up to 2 misses allowed), streak continues
+- 2+ days missed: streak resets to 1
+- Same day visit: no change
 
 ---
 
-## 15. TECH STACK
+## 16. TECH STACK
 
 | Layer | Technology |
 |-------|-----------|
@@ -1483,7 +1503,65 @@ query = {
 | Push Notifications | Expo Push Notifications + Firebase (FCM) for Android |
 | Email | Resend (password reset emails) |
 | Hosting | Railway (backend), EAS Build (mobile builds) |
-| Scheduling | APScheduler (notification batch processing) |
+| Background Tasks | asyncio (notification batch processing every 60s) |
+
+---
+
+## 17. MISSION OF THE DAY
+
+Rotates based on day of week (7 missions):
+
+| Day | Theme | Prompt | Category |
+|-----|-------|--------|----------|
+| Mon | Money | "What's one friction you hate about managing money?" | money |
+| Tue | Work | "What's annoying about your daily work routine?" | work |
+| Wed | Health | "What health-related friction do you face regularly?" | health |
+| Thu | Tech | "What tech problem keeps bugging you?" | tech |
+| Fri | Home | "What's frustrating about your home or living situation?" | home |
+| Sat | Travel | "What travel or transport friction do you encounter?" | travel |
+| Sun | Relationships | "What communication friction do you face with others?" | relationships |
+
+---
+
+## 18. RATE LIMITS & VALIDATION
+
+| Action | Limit |
+|--------|-------|
+| Create Frikt | Max 10 per day per user |
+| Title length | Min 10 chars |
+| Comment length | Min 10 chars |
+| Password | Min 6 chars |
+| Search query | Min 2 chars |
+| Self-relate | Blocked |
+| Self-follow | Blocked |
+| Duplicate relate | Blocked |
+| Duplicate helpful | Blocked |
+
+---
+
+## 19. BLOCKED USERS
+
+### Blocking Flow
+1. `POST /api/users/{id}/block`
+2. Creates `blocked_users` document
+3. Blocked user's content (frikts, comments) is filtered out from all queries for the blocker
+4. Blocked user's search results are filtered out
+
+### Unblocking
+- `DELETE /api/users/{id}/block`
+
+### Content Filtering
+- `get_blocked_user_ids(user_id)` returns list of all user IDs blocked by the current user
+- This list is applied as `{"user_id": {"$nin": blocked_ids}}` to all content queries
+
+---
+
+## 20. ACCOUNT DELETION
+
+1. `DELETE /api/users/me`
+2. Hard-deletes user document from `users` collection
+3. Deletes all associated data: problems, comments, relates, helpfuls, notifications, push tokens, notification settings, user stats, achievements, follows, feedback, pending badges
+4. Blocked users entries (both directions) are cleaned up
 
 ---
 
