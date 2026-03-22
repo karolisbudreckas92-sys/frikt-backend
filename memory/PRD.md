@@ -25,7 +25,10 @@ FRIKT is a mobile app (Expo/React Native + FastAPI + MongoDB) for sharing daily 
 - Export format: anonymous, no author/signal/pain/frequency. Single-line `RELATES | DATE | COMMENTS`
 
 ## Documentation
-- `FRIKT_COMPLETE_DOCUMENTATION.md` regenerated from scratch (1568 lines, 20 sections, March 2026)
+- `FRIKT_COMPLETE_DOCUMENTATION.md` regenerated from scratch (1586 lines, 20 sections, March 2026)
+- FIX 1: Soft-deleted parent no longer blocks replies (only admin-hidden does)
+- FIX 2: Shadowbanned user actions no longer generate notifications
+- FIX 3: Verified search includes local frikts alongside global
 
 ### Frontend
 - Home: Global/Local toggle with join code input

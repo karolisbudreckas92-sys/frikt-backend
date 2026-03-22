@@ -404,7 +404,9 @@
 ### Shadowbanned User (status: "shadowbanned")
 - Can still use the app normally
 - Their content (posts, comments) is hidden from other users
-- Notifications to them are suppressed
+- **No notifications are generated** from their actions (relates, comments, follows) — recipients never see evidence of the shadowbanned user's activity
+- They are not added to notification batches
+- Notifications to them from other users are also suppressed
 
 ---
 
@@ -940,6 +942,7 @@ else:  # trending (default)
 - `parent_comment_id`: null for top-level, top-level comment's ID for replies
 - `reply_to_user_id/reply_to_user_name`: identifies which user's reply button was tapped (can differ from parent comment author when replying within a thread)
 - **Flatten rule:** If a reply targets another reply (not a top-level comment), the backend resolves the chain and sets `parent_comment_id` to the root top-level comment
+- **Status validation:** Only `status='hidden'` (admin action) blocks new replies. `status='removed'` (user soft-delete) allows the thread to continue. This prevents entire threads from freezing when someone deletes their top-level comment.
 
 ### Soft Delete Behavior
 - When deleting a comment that has replies:
@@ -947,8 +950,10 @@ else:  # trending (default)
   - `content` set to "[deleted]"
   - `user_name` set to "[deleted]"
   - Replies are preserved
+  - **New replies can still be posted** in the thread — `status='removed'` does not block threading
   - In GET responses, soft-deleted comments show "[deleted]" for both content and user_name
 - When deleting a comment with no replies: permanently removed
+- **Admin-hidden comments** (`status='hidden'`) block all new replies to that thread
 
 ### `is_community_member` Field
 - Added to each comment when the parent problem is a local frikt
@@ -988,6 +993,8 @@ Tapping a quick reply pill prefills the comment input:
 | Someone follows you | new_follower | Followed user | "{name} started following you" |
 | Badge earned | badge_earned | Badge earner | "You earned: {badge_name}" |
 | Admin broadcast | admin_broadcast | All/Admins | Custom message |
+
+**Shadowban suppression:** If the actor (the person relating, commenting, or following) has `status='shadowbanned'`, no notification is created, no push is sent, and they are not added to notification batches. This ensures shadowbanned users are completely invisible to other users.
 
 ### Batching
 - Multiple relates within 5 minutes are batched into a single notification
@@ -1373,8 +1380,12 @@ All other endpoints require valid JWT token.
 - **Endpoint:** `GET /api/problems?search={query}`
 - **Type:** Case-insensitive regex
 - **Fields searched:** `title`, `when_happens`, `who_affected`
-- **Note:** Search results exclude local frikts (same as global feed)
+- **Includes local frikts:** Yes — when a search parameter is present, the `is_local` filter is NOT applied. Local and global frikts appear together in search results.
 ```python
+# Local frikts excluded from feeds, but NOT from search
+if feed in ("new", "trending", "foryou") and not search:
+    query["is_local"] = {"$ne": True}
+# When search is present, is_local filter is skipped
 query["$or"] = [
     {"title": {"$regex": search, "$options": "i"}},
     {"when_happens": {"$regex": search, "$options": "i"}},

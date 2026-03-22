@@ -2077,7 +2077,9 @@ async def relate_to_problem(problem_id: str, user: dict = Depends(require_auth))
                 })
     
     # Create notification for problem owner (if not self and not banned)
-    if problem["user_id"] != user["id"] and not owner_is_banned:
+    # Also skip if actor (current user) is shadowbanned — they should be invisible
+    actor_is_shadowbanned = user.get("status") == "shadowbanned"
+    if problem["user_id"] != user["id"] and not owner_is_banned and not actor_is_shadowbanned:
         # Check global push toggle first
         settings = await db.notification_settings.find_one({"user_id": problem["user_id"]})
         global_push_enabled = not settings or settings.get("push_notifications", True)
@@ -2202,11 +2204,12 @@ async def create_comment(comment_data: CommentCreate, user: dict = Depends(requi
     reply_to_user_name = None
     
     if parent_comment_id:
-        # Validate parent comment exists and is active
+        # Validate parent comment exists
         parent_comment = await db.comments.find_one({"id": parent_comment_id})
         if not parent_comment:
             raise HTTPException(status_code=400, detail="Parent comment not found")
-        if parent_comment.get("status") != "active":
+        # Block replies only to admin-hidden comments; allow replies under soft-deleted (removed) comments
+        if parent_comment.get("status") == "hidden":
             raise HTTPException(status_code=400, detail="This comment is no longer available")
         if parent_comment["problem_id"] != comment_data.problem_id:
             raise HTTPException(status_code=400, detail="Parent comment belongs to a different Frikt")
@@ -2214,6 +2217,10 @@ async def create_comment(comment_data: CommentCreate, user: dict = Depends(requi
         # FLATTEN: If parent is itself a reply, redirect to the top-level comment
         if parent_comment.get("parent_comment_id"):
             parent_comment_id = parent_comment["parent_comment_id"]
+            # Re-validate the root parent: only block if admin-hidden
+            root_comment = await db.comments.find_one({"id": parent_comment_id})
+            if root_comment and root_comment.get("status") == "hidden":
+                raise HTTPException(status_code=400, detail="This comment is no longer available")
     
     # Get reply_to_user_name if replying
     if reply_to_user_id:
@@ -2267,8 +2274,11 @@ async def create_comment(comment_data: CommentCreate, user: dict = Depends(requi
     problem_owner = await db.users.find_one({"id": problem["user_id"]})
     owner_is_banned = problem_owner and problem_owner.get("status") in ["banned", "shadowbanned"]
     
+    # Check if actor (commenter) is shadowbanned — they should be invisible to others
+    actor_is_shadowbanned = user.get("status") == "shadowbanned"
+    
     # Create notification for problem owner (with batching)
-    if problem["user_id"] != user["id"] and not owner_is_banned:
+    if problem["user_id"] != user["id"] and not owner_is_banned and not actor_is_shadowbanned:
         settings = await db.notification_settings.find_one({"user_id": problem["user_id"]})
         global_push_enabled = not settings or settings.get("push_notifications", True)
         comments_enabled = not settings or settings.get("new_comments", True)
@@ -2303,13 +2313,17 @@ async def create_comment(comment_data: CommentCreate, user: dict = Depends(requi
             # If not immediate, the batch processor will send later
     
     # Notify followers - optimized with projections and batch query
-    followers = await db.users.find(
-        {"followed_problems": comment_data.problem_id},
-        {"id": 1}
-    ).to_list(100)
-    
-    # Get all follower IDs to exclude current user and problem owner
-    follower_ids = [f["id"] for f in followers if f["id"] != user["id"] and f["id"] != problem["user_id"]]
+    # Skip entirely if actor is shadowbanned — they should be invisible
+    if not actor_is_shadowbanned:
+        followers = await db.users.find(
+            {"followed_problems": comment_data.problem_id},
+            {"id": 1}
+        ).to_list(100)
+        
+        # Get all follower IDs to exclude current user and problem owner
+        follower_ids = [f["id"] for f in followers if f["id"] != user["id"] and f["id"] != problem["user_id"]]
+    else:
+        follower_ids = []
     
     if follower_ids:
         # Batch query notification settings to avoid N+1
@@ -2352,7 +2366,8 @@ async def create_comment(comment_data: CommentCreate, user: dict = Depends(requi
                     )
     
     # NEW: Notify the person whose Reply button was tapped (comment_reply notification)
-    if reply_to_user_id and reply_to_user_id != user["id"] and reply_to_user_id != problem["user_id"]:
+    # Skip if actor is shadowbanned
+    if reply_to_user_id and reply_to_user_id != user["id"] and reply_to_user_id != problem["user_id"] and not actor_is_shadowbanned:
         # Check if target user has notifications enabled
         reply_target_settings = await db.notification_settings.find_one({"user_id": reply_to_user_id})
         reply_target_push_enabled = not reply_target_settings or reply_target_settings.get("push_notifications", True)
@@ -2856,9 +2871,10 @@ async def follow_user(user_id: str, user: dict = Depends(require_auth)):
     stats = await increment_user_stat(user["id"], "users_followed")
     newly_awarded = await check_and_award_badges(user["id"], user, stats, "follow")
     
-    # Send notification to the user being followed (if not banned)
+    # Send notification to the user being followed (if not banned and actor not shadowbanned)
     target_is_banned = target_user.get("status") in ["banned", "shadowbanned"]
-    if not target_is_banned:
+    actor_is_shadowbanned = user.get("status") == "shadowbanned"
+    if not target_is_banned and not actor_is_shadowbanned:
         # Create in-app notification
         notification = Notification(
             user_id=user_id,
