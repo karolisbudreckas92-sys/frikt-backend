@@ -2274,7 +2274,11 @@ async def get_comments(problem_id: str, user: dict = Depends(get_current_user)):
     replies_by_parent = {}
     
     for c in all_comments:
-        fresh_username = user_map.get(c["user_id"], c.get("user_name", "Unknown"))
+        # For soft-deleted comments, preserve "[deleted]" user_name
+        if c.get("status") == "removed":
+            fresh_username = "[deleted]"
+        else:
+            fresh_username = user_map.get(c["user_id"], c.get("user_name", "Unknown"))
         comment_data = {
             **c,
             "user_name": fresh_username,
