@@ -78,29 +78,40 @@ export default function Categories() {
 
   const renderCategory = ({ item }: { item: any }) => {
     const isFollowing = followedCategories.includes(item.id);
+    const isLocal = item.id === 'local';
     
     return (
       <TouchableOpacity
         style={styles.categoryCard}
-        onPress={() => router.push(`/category/${item.id}`)}
+        onPress={() => {
+          if (isLocal) {
+            router.push('/(tabs)/home');
+          } else {
+            router.push(`/category/${item.id}`);
+          }
+        }}
       >
         <View style={[styles.iconContainer, { backgroundColor: item.color + '20' }]}>
           <Ionicons name={item.icon as any} size={32} color={item.color} />
         </View>
         <View style={styles.categoryInfo}>
           <Text style={styles.categoryName}>{item.name}</Text>
-          <Text style={styles.categoryHint}>Tap to browse problems</Text>
+          <Text style={styles.categoryHint}>
+            {isLocal ? 'Tap to see local frikts' : 'Tap to browse problems'}
+          </Text>
         </View>
-        <TouchableOpacity
-          style={[styles.followButton, isFollowing && styles.followButtonActive]}
-          onPress={() => handleFollowCategory(item.id, isFollowing)}
-        >
-          <Ionicons
-            name={isFollowing ? 'checkmark' : 'add'}
-            size={18}
-            color={isFollowing ? colors.white : colors.primary}
-          />
-        </TouchableOpacity>
+        {!isLocal && (
+          <TouchableOpacity
+            style={[styles.followButton, isFollowing && styles.followButtonActive]}
+            onPress={() => handleFollowCategory(item.id, isFollowing)}
+          >
+            <Ionicons
+              name={isFollowing ? 'checkmark' : 'add'}
+              size={18}
+              color={isFollowing ? colors.white : colors.primary}
+            />
+          </TouchableOpacity>
+        )}
       </TouchableOpacity>
     );
   };

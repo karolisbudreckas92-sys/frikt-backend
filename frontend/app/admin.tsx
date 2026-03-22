@@ -372,6 +372,39 @@ export default function AdminPanel() {
             <Text style={styles.noDataText}>No top Frikts yet</Text>
           </View>
         )}
+
+        {/* LOCAL Stats */}
+        {analytics?.local && (
+          <>
+            <Text style={[styles.sectionTitle, { marginTop: 16 }]}>LOCAL Communities</Text>
+            <View style={styles.statsGrid}>
+              <View style={[styles.statCard, { borderLeftColor: '#E85D3A' }]}>
+                <Text style={styles.statValue}>{analytics.local.total_communities}</Text>
+                <Text style={styles.statLabel}>Communities</Text>
+              </View>
+              <View style={[styles.statCard, { borderLeftColor: '#E85D3A' }]}>
+                <Text style={styles.statValue}>{analytics.local.total_members}</Text>
+                <Text style={styles.statLabel}>Members</Text>
+              </View>
+              <View style={[styles.statCard, { borderLeftColor: '#E85D3A' }]}>
+                <Text style={styles.statValue}>{analytics.local.local_frikts_total}</Text>
+                <Text style={styles.statLabel}>Local Frikts</Text>
+              </View>
+              <View style={[styles.statCard, { borderLeftColor: '#E85D3A' }]}>
+                <Text style={styles.statValue}>{analytics.local.local_frikts_today}</Text>
+                <Text style={styles.statLabel}>Local Today</Text>
+              </View>
+              <View style={[styles.statCard, { borderLeftColor: '#E85D3A' }]}>
+                <Text style={styles.statValue}>{analytics.local.local_frikts_week}</Text>
+                <Text style={styles.statLabel}>Local This Week</Text>
+              </View>
+              <View style={[styles.statCard, { borderLeftColor: '#E85D3A' }]}>
+                <Text style={styles.statValue}>{analytics.local.pending_join_requests}</Text>
+                <Text style={styles.statLabel}>Pending Joins</Text>
+              </View>
+            </View>
+          </>
+        )}
       </ScrollView>
     );
   };

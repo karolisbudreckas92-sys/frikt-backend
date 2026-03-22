@@ -288,6 +288,12 @@ export default function UserProfile() {
             </View>
           )}
           <Text style={styles.displayName}>{profile.displayName}</Text>
+          {profile.community_name && (
+            <View style={styles.communityTag} data-testid="user-community-tag">
+              <Ionicons name="location" size={13} color="#E85D3A" />
+              <Text style={styles.communityTagText}>{profile.community_name}</Text>
+            </View>
+          )}
           {profile.bio ? (
             <Text style={styles.bio}>{profile.bio}</Text>
           ) : null}
@@ -455,6 +461,23 @@ const styles = StyleSheet.create({
     marginTop: 8,
     lineHeight: 20,
     paddingHorizontal: 24,
+  },
+  communityTag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginTop: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    backgroundColor: '#FFF3EF',
+    borderWidth: 1,
+    borderColor: '#E85D3A30',
+  },
+  communityTagText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#E85D3A',
   },
   statsRow: {
     flexDirection: 'row',

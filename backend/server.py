@@ -519,7 +519,6 @@ class CommunityJoinRequest(BaseModel):
     message: Optional[str] = None
     status: str = "pending"  # "pending" | "sent"
     created_at: datetime = Field(default_factory=datetime.utcnow)
-    expires_at: datetime = Field(default_factory=lambda: datetime.utcnow() + timedelta(days=7))
 
 class CommunityRequest(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
@@ -527,7 +526,6 @@ class CommunityRequest(BaseModel):
     community_name: str
     description: Optional[str] = None
     created_at: datetime = Field(default_factory=datetime.utcnow)
-    expires_at: datetime = Field(default_factory=lambda: datetime.utcnow() + timedelta(days=3))
 
 class CommunityJoinCode(BaseModel):
     code: str
@@ -1724,8 +1722,8 @@ async def get_problems(
     
     query = {"is_hidden": False, "status": "active"}
     
-    # Exclude local frikts from global feeds
-    if feed in ("new", "trending", "foryou"):
+    # Exclude local frikts from global feeds (but include in text search)
+    if feed in ("new", "trending", "foryou") and not search:
         query["is_local"] = {"$ne": True}
     
     # Filter out blocked users' content
@@ -2714,6 +2712,13 @@ async def get_user_profile(user_id: str):
     comments_count = await db.comments.count_documents({"user_id": user_id})
     relates_count = await db.relates.count_documents({"user_id": user_id})
     
+    # Get community info for the user
+    membership = await db.community_members.find_one({"user_id": user_id}, {"_id": 0})
+    community_name = None
+    if membership:
+        community = await db.communities.find_one({"id": membership["community_id"]}, {"_id": 0, "name": 1})
+        community_name = community["name"] if community else None
+    
     return {
         "id": user["id"],
         "displayName": user.get("displayName") or user.get("name"),
@@ -2723,6 +2728,7 @@ async def get_user_profile(user_id: str):
         "posts_count": posts_count,
         "comments_count": comments_count,
         "relates_count": relates_count,
+        "community_name": community_name,
     }
 
 @api_router.get("/users/{user_id}/posts")
@@ -2759,6 +2765,7 @@ async def get_user_posts(
             "comments_count": p.get("comments_count", 0),
             "created_at": p.get("created_at"),
             "signal_score": p.get("signal_score", 0),
+            "is_local": p.get("is_local", False),
         })
     
     return results
@@ -4083,7 +4090,16 @@ async def get_analytics(admin: dict = Depends(require_admin)):
             "weights": SIGNAL_WEIGHTS,
             "notes": "Recency boost decays to 0 over 72h. Posts with engagement always beat posts without (except very new)."
         },
-        "pending_reports": pending_reports
+        "pending_reports": pending_reports,
+        "local": {
+            "total_communities": await db.communities.count_documents({}),
+            "total_members": await db.community_members.count_documents({}),
+            "local_frikts_total": await db.problems.count_documents({"is_local": True, "status": "active"}),
+            "local_frikts_today": await db.problems.count_documents({"is_local": True, "created_at": {"$gte": today_start}}),
+            "local_frikts_week": await db.problems.count_documents({"is_local": True, "created_at": {"$gte": week_start}}),
+            "pending_community_requests": await db.community_requests.count_documents({}),
+            "pending_join_requests": await db.community_join_requests.count_documents({"status": "pending"}),
+        }
     }
 
 # --- Admin: Audit Log ---
@@ -4578,8 +4594,7 @@ async def get_community(community_id: str, user: dict = Depends(require_auth)):
     pending_request = await db.community_join_requests.find_one({
         "user_id": user["id"],
         "community_id": community_id,
-        "status": "pending",
-        "expires_at": {"$gte": datetime.utcnow()}
+        "status": "pending"
     })
     community["has_pending_request"] = pending_request is not None
     
@@ -4612,8 +4627,7 @@ async def request_join_community(community_id: str, data: CommunityJoinRequestCr
     existing_request = await db.community_join_requests.find_one({
         "user_id": user["id"],
         "community_id": community_id,
-        "status": "pending",
-        "expires_at": {"$gte": datetime.utcnow()}
+        "status": "pending"
     })
     if existing_request:
         raise HTTPException(status_code=400, detail="You already have a pending request for this community")
@@ -4682,8 +4696,7 @@ async def admin_list_communities(search: Optional[str] = None, limit: int = 50, 
         c["frikt_count"] = await db.problems.count_documents({"community_id": c["id"], "is_local": True, "status": "active"})
         c["pending_join_requests"] = await db.community_join_requests.count_documents({
             "community_id": c["id"],
-            "status": "pending",
-            "expires_at": {"$gte": datetime.utcnow()}
+            "status": "pending"
         })
     
     total = await db.communities.count_documents(query)
@@ -4693,7 +4706,7 @@ async def admin_list_communities(search: Optional[str] = None, limit: int = 50, 
 async def admin_get_community_requests(admin: dict = Depends(require_admin)):
     """Get pending community creation requests."""
     requests = await db.community_requests.find(
-        {"expires_at": {"$gte": datetime.utcnow()}},
+        {},
         {"_id": 0}
     ).sort("created_at", -1).to_list(100)
     return requests
@@ -4704,8 +4717,7 @@ async def admin_get_join_requests(community_id: str, admin: dict = Depends(requi
     requests = await db.community_join_requests.find(
         {
             "community_id": community_id,
-            "status": "pending",
-            "expires_at": {"$gte": datetime.utcnow()}
+            "status": "pending"
         },
         {"_id": 0}
     ).sort("created_at", -1).to_list(100)
@@ -4739,21 +4751,54 @@ async def admin_export_community_data(community_id: str, period: str = "all", ad
     
     problems = await db.problems.find(query, {"_id": 0}).sort("created_at", -1).to_list(500)
     
-    lines = [f"COMMUNITY EXPORT: {community['name']}", f"Period: {period}", f"Total frikts: {len(problems)}", "=" * 50, ""]
+    # Count total members
+    member_count = await db.community_members.count_documents({"community_id": community_id})
     
-    for p in problems:
-        lines.append(f"FRIKT: {p['title']}")
-        lines.append(f"  By: {p.get('user_name', 'Unknown')} | {p.get('created_at', '')}")
-        lines.append(f"  Relates: {p.get('relates_count', 0)} | Comments: {p.get('comments_count', 0)}")
+    # Header
+    period_label = {"all": "All time", "7d": "Last 7 days", "30d": "Last 30 days", "90d": "Last 90 days"}.get(period, period)
+    lines = [
+        f"COMMUNITY EXPORT: {community['name']}",
+        f"Period: {period_label}",
+        f"Members: {member_count}",
+        f"Total frikts: {len(problems)}",
+        "",
+        "=" * 60,
+    ]
+    
+    for i, p in enumerate(problems, 1):
+        created = p.get('created_at', '')
+        if hasattr(created, 'strftime'):
+            created = created.strftime('%Y-%m-%d %H:%M')
+        lines.append("")
+        lines.append(f"[{i}] {p['title']}")
+        lines.append(f"    Author: {p.get('user_name', 'Unknown')}")
+        lines.append(f"    Posted: {created}")
+        lines.append(f"    Relates: {p.get('relates_count', 0)} | Comments: {p.get('comments_count', 0)} | Signal: {p.get('signal_score', 0):.1f}")
+        if p.get('frequency'):
+            lines.append(f"    Frequency: {p.get('frequency')}")
+        if p.get('pain_level'):
+            lines.append(f"    Pain level: {p.get('pain_level')}/5")
+        if p.get('when_happens'):
+            lines.append(f"    When: {p.get('when_happens')}")
+        if p.get('who_affected'):
+            lines.append(f"    Who: {p.get('who_affected')}")
+        if p.get('what_tried'):
+            lines.append(f"    Tried: {p.get('what_tried')}")
         
         # Get comments with threading
         comments = await db.comments.find({"problem_id": p["id"], "status": "active"}, {"_id": 0}).sort("created_at", 1).to_list(100)
         if comments:
-            lines.append("  Comments:")
+            lines.append("    ---")
             for c in comments:
-                prefix = "    > " if c.get("parent_comment_id") else "    - "
-                lines.append(f"{prefix}{c.get('user_name', 'Unknown')}: {c.get('content', '')}")
-        lines.append("")
+                prefix = "      > " if c.get("parent_comment_id") else "    - "
+                c_time = c.get('created_at', '')
+                if hasattr(c_time, 'strftime'):
+                    c_time = c_time.strftime('%Y-%m-%d %H:%M')
+                lines.append(f"{prefix}{c.get('user_name', 'Unknown')} ({c_time}): {c.get('content', '')}")
+        lines.append("    " + "-" * 56)
+    
+    lines.append("")
+    lines.append(f"END OF EXPORT - {community['name']} - {period_label}")
     
     return {"content": "\n".join(lines), "filename": f"{community['name']}_export_{period}.txt"}
 
