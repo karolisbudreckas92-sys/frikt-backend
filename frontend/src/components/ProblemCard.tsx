@@ -16,6 +16,7 @@ interface Problem {
   when_happens?: string | null;
   created_at: string;
   user_has_related: boolean;
+  is_local?: boolean;
 }
 
 interface ProblemCardProps {
@@ -41,6 +42,12 @@ export default function ProblemCard({ problem, onPress, onRelate }: ProblemCardP
             {problem.category_name || categoryStyle.name}
           </Text>
         </View>
+        {problem.is_local && (
+          <View style={styles.localTag} data-testid={`local-tag-${problem.id}`}>
+            <Ionicons name="location" size={11} color="#E85D3A" />
+            <Text style={styles.localTagText}>Local</Text>
+          </View>
+        )}
       </View>
 
       <Text style={styles.title} numberOfLines={2}>{problem.title}</Text>
@@ -109,6 +116,23 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '600',
     color: colors.primary,
+  },
+  localTag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: radius.sm,
+    backgroundColor: '#FFF3EF',
+    borderWidth: 1,
+    borderColor: '#E85D3A30',
+    marginLeft: 6,
+  },
+  localTagText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#E85D3A',
   },
   title: {
     fontSize: 16,

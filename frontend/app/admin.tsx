@@ -10,6 +10,8 @@ import {
   Alert,
   TextInput,
   Platform,
+  Linking,
+  Share,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -20,7 +22,7 @@ import { useAuth } from '@/src/context/AuthContext';
 import { formatDistanceToNow } from 'date-fns';
 import Toast from 'react-native-root-toast';
 
-type Tab = 'overview' | 'feedback' | 'reports' | 'broadcast' | 'users' | 'audit';
+type Tab = 'overview' | 'feedback' | 'reports' | 'broadcast' | 'users' | 'audit' | 'communities';
 
 export default function AdminPanel() {
   const router = useRouter();
@@ -55,6 +57,22 @@ export default function AdminPanel() {
   const [broadcastStats, setBroadcastStats] = useState<any>(null);
   const [isSendingBroadcast, setIsSendingBroadcast] = useState(false);
   const [totalUsers, setTotalUsers] = useState(0);
+
+  // Communities data
+  const [commRequests, setCommRequests] = useState<any[]>([]);
+  const [commList, setCommList] = useState<any[]>([]);
+  const [commTotal, setCommTotal] = useState(0);
+  const [commSearch, setCommSearch] = useState('');
+  const [expandedComm, setExpandedComm] = useState<string | null>(null);
+  const [commJoinReqs, setCommJoinReqs] = useState<Record<string, any[]>>({});
+  const [newCommName, setNewCommName] = useState('');
+  const [newCommCode, setNewCommCode] = useState('');
+  const [newCommEmail, setNewCommEmail] = useState('');
+  const [isCreatingComm, setIsCreatingComm] = useState(false);
+  const [changeCodeId, setChangeCodeId] = useState<string | null>(null);
+  const [newCode, setNewCode] = useState('');
+  const [exportPeriod, setExportPeriod] = useState<Record<string, string>>({});
+  const [selectedRequest, setSelectedRequest] = useState<any>(null);
 
   useEffect(() => {
     if (!isAdmin) {
@@ -112,6 +130,15 @@ export default function AdminPanel() {
         case 'audit':
           const auditData = await api.getAuditLog();
           setAuditLogs(auditData.logs || []);
+          break;
+        case 'communities':
+          const [commReqs, commListData] = await Promise.all([
+            api.adminGetCommunityRequests(),
+            api.adminGetCommunities(commSearch || undefined)
+          ]);
+          setCommRequests(commReqs || []);
+          setCommList(commListData.communities || []);
+          setCommTotal(commListData.total || 0);
           break;
       }
     } catch (error) {
@@ -889,6 +916,279 @@ export default function AdminPanel() {
     return action.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
   };
 
+  const loadJoinRequests = async (communityId: string) => {
+    try {
+      const data = await api.adminGetJoinRequests(communityId);
+      setCommJoinReqs(prev => ({ ...prev, [communityId]: data }));
+    } catch (e) {}
+  };
+
+  const handleCreateCommunity = async () => {
+    if (!newCommName.trim() || !newCommCode.trim() || !newCommEmail.trim()) return;
+    setIsCreatingComm(true);
+    try {
+      await api.adminCreateCommunity(newCommName.trim(), newCommCode.trim(), newCommEmail.trim());
+      setNewCommName(''); setNewCommCode(''); setNewCommEmail('');
+      Alert.alert('Success', 'Community created');
+      loadData();
+    } catch (error: any) {
+      Alert.alert('Error', error.response?.data?.detail || 'Failed to create community');
+    } finally {
+      setIsCreatingComm(false);
+    }
+  };
+
+  const handleChangeCode = async (communityId: string) => {
+    if (!newCode.trim()) return;
+    try {
+      await api.adminUpdateCommunityCode(communityId, newCode.trim());
+      setChangeCodeId(null); setNewCode('');
+      Alert.alert('Success', 'Code updated');
+      loadData();
+    } catch (error: any) {
+      Alert.alert('Error', error.response?.data?.detail || 'Failed to update code');
+    }
+  };
+
+  const handleSendCode = (email: string, code: string, commName: string) => {
+    const subject = encodeURIComponent(`Your invite code for ${commName}`);
+    const body = encodeURIComponent(`Hi!\n\nHere's your invite code to join ${commName} on Frikt:\n\n${code}\n\nOpen the app, tap the Local tab, and enter this code.\n\nSee you there!`);
+    Linking.openURL(`mailto:${email}?subject=${subject}&body=${body}`);
+  };
+
+  const handleExport = async (communityId: string) => {
+    const period = exportPeriod[communityId] || 'all';
+    try {
+      const data = await api.adminExportCommunityData(communityId, period);
+      await Share.share({ message: data.content, title: data.filename });
+    } catch (error) {
+      Alert.alert('Error', 'Failed to export');
+    }
+  };
+
+  const toggleExpandComm = (communityId: string) => {
+    if (expandedComm === communityId) {
+      setExpandedComm(null);
+    } else {
+      setExpandedComm(communityId);
+      loadJoinRequests(communityId);
+    }
+  };
+
+  const CORAL = '#E85D3A';
+
+  const renderCommunities = () => (
+    <ScrollView
+      style={styles.tabContent}
+      refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={() => loadData(true)} tintColor={CORAL} />}
+    >
+      {/* Community Requests */}
+      <Text style={styles.sectionTitle}>Community Requests ({commRequests.length})</Text>
+      {commRequests.length === 0 ? (
+        <Text style={{ color: colors.textMuted, paddingHorizontal: 16, marginBottom: 16 }}>No pending requests</Text>
+      ) : (
+        commRequests.map((req) => (
+          <View key={req.id} style={[styles.card, { borderLeftWidth: 3, borderLeftColor: CORAL }]}>
+            <Text style={{ fontSize: 15, fontWeight: '600', color: colors.text }}>{req.community_name}</Text>
+            <Text style={{ fontSize: 13, color: colors.textMuted, marginTop: 2 }}>{req.email}</Text>
+            {req.description && <Text style={{ fontSize: 13, color: colors.textSecondary, marginTop: 4 }}>{req.description}</Text>}
+          </View>
+        ))
+      )}
+
+      {/* Create Community */}
+      <Text style={styles.sectionTitle}>Create Community</Text>
+      <View style={[styles.card, { gap: 10 }]}>
+        <TextInput
+          style={styles.input}
+          placeholder="Community name"
+          placeholderTextColor={colors.textMuted}
+          value={newCommName}
+          onChangeText={setNewCommName}
+          data-testid="admin-comm-name"
+        />
+        <TextInput
+          style={styles.input}
+          placeholder="Invite code (e.g. MELB-CBD)"
+          placeholderTextColor={colors.textMuted}
+          value={newCommCode}
+          onChangeText={setNewCommCode}
+          autoCapitalize="characters"
+          data-testid="admin-comm-code"
+        />
+        <TextInput
+          style={styles.input}
+          placeholder="Moderator email"
+          placeholderTextColor={colors.textMuted}
+          value={newCommEmail}
+          onChangeText={setNewCommEmail}
+          keyboardType="email-address"
+          autoCapitalize="none"
+          data-testid="admin-comm-email"
+        />
+        <TouchableOpacity
+          style={[styles.primaryButton, { backgroundColor: CORAL }, (!newCommName.trim() || !newCommCode.trim() || !newCommEmail.trim()) && { opacity: 0.5 }]}
+          onPress={handleCreateCommunity}
+          disabled={!newCommName.trim() || !newCommCode.trim() || !newCommEmail.trim() || isCreatingComm}
+          data-testid="admin-create-comm-btn"
+        >
+          {isCreatingComm ? (
+            <ActivityIndicator size="small" color="#fff" />
+          ) : (
+            <Text style={styles.primaryButtonText}>Create Community</Text>
+          )}
+        </TouchableOpacity>
+      </View>
+
+      {/* Active Communities */}
+      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 8 }}>
+        <Text style={styles.sectionTitle}>Active Communities ({commTotal})</Text>
+      </View>
+      <View style={{ paddingHorizontal: 16, marginBottom: 12 }}>
+        <TextInput
+          style={styles.input}
+          placeholder="Search communities..."
+          placeholderTextColor={colors.textMuted}
+          value={commSearch}
+          onChangeText={(text) => { setCommSearch(text); }}
+          onSubmitEditing={() => loadData()}
+          returnKeyType="search"
+          data-testid="admin-comm-search"
+        />
+      </View>
+
+      {commList.map((comm) => {
+        const isExpanded = expandedComm === comm.id;
+        const joinReqs = commJoinReqs[comm.id] || [];
+        const period = exportPeriod[comm.id] || 'all';
+
+        return (
+          <View key={comm.id} style={[styles.card, { marginBottom: 8 }]}>
+            {/* Collapsible header */}
+            <TouchableOpacity
+              style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}
+              onPress={() => toggleExpandComm(comm.id)}
+              data-testid={`comm-row-${comm.id}`}
+            >
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontSize: 15, fontWeight: '600', color: colors.text }}>{comm.name}</Text>
+                <Text style={{ fontSize: 12, color: colors.textMuted, marginTop: 2 }}>
+                  Code: {comm.active_code} | {comm.member_count} members | {comm.frikt_count} frikts
+                  {comm.pending_join_requests > 0 && ` | ${comm.pending_join_requests} pending`}
+                </Text>
+              </View>
+              <Ionicons name={isExpanded ? 'chevron-up' : 'chevron-down'} size={20} color={colors.textMuted} />
+            </TouchableOpacity>
+
+            {/* Expanded content */}
+            {isExpanded && (
+              <View style={{ marginTop: 12, borderTopWidth: 1, borderTopColor: colors.border, paddingTop: 12 }}>
+                {/* Change Code */}
+                <View style={{ marginBottom: 12 }}>
+                  <Text style={{ fontSize: 13, fontWeight: '600', color: colors.text, marginBottom: 6 }}>Change Code</Text>
+                  {changeCodeId === comm.id ? (
+                    <View style={{ flexDirection: 'row', gap: 8 }}>
+                      <TextInput
+                        style={[styles.input, { flex: 1 }]}
+                        placeholder="New code"
+                        value={newCode}
+                        onChangeText={setNewCode}
+                        autoCapitalize="characters"
+                      />
+                      <TouchableOpacity
+                        style={[styles.primaryButton, { backgroundColor: CORAL, paddingHorizontal: 16 }]}
+                        onPress={() => handleChangeCode(comm.id)}
+                      >
+                        <Text style={styles.primaryButtonText}>Save</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={{ justifyContent: 'center' }}
+                        onPress={() => { setChangeCodeId(null); setNewCode(''); }}
+                      >
+                        <Ionicons name="close" size={20} color={colors.textMuted} />
+                      </TouchableOpacity>
+                    </View>
+                  ) : (
+                    <TouchableOpacity
+                      style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}
+                      onPress={() => { setChangeCodeId(comm.id); setNewCode(comm.active_code); }}
+                    >
+                      <Text style={{ fontSize: 15, fontWeight: '700', color: CORAL }}>{comm.active_code}</Text>
+                      <Ionicons name="pencil" size={14} color={CORAL} />
+                    </TouchableOpacity>
+                  )}
+                </View>
+
+                {/* Join Requests */}
+                <Text style={{ fontSize: 13, fontWeight: '600', color: colors.text, marginBottom: 6 }}>
+                  Join Requests ({joinReqs.length})
+                </Text>
+                {joinReqs.length === 0 ? (
+                  <Text style={{ fontSize: 12, color: colors.textMuted, marginBottom: 12 }}>No pending join requests</Text>
+                ) : (
+                  joinReqs.map((jr) => (
+                    <View key={jr.id} style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: colors.border }}>
+                      <View style={{ flex: 1 }}>
+                        <Text style={{ fontSize: 13, color: colors.text }}>{jr.user_email}</Text>
+                        {jr.message && <Text style={{ fontSize: 12, color: colors.textMuted }}>{jr.message}</Text>}
+                      </View>
+                      <TouchableOpacity
+                        style={{
+                          flexDirection: 'row', alignItems: 'center', gap: 4,
+                          backgroundColor: CORAL, paddingVertical: 6, paddingHorizontal: 12, borderRadius: 8,
+                        }}
+                        onPress={() => {
+                          handleSendCode(jr.user_email, comm.active_code, comm.name);
+                          api.adminUpdateJoinRequest(comm.id, jr.id, 'sent').then(() => loadJoinRequests(comm.id));
+                        }}
+                        data-testid={`send-code-${jr.id}`}
+                      >
+                        <Ionicons name="mail" size={14} color="#fff" />
+                        <Text style={{ color: '#fff', fontSize: 12, fontWeight: '600' }}>Send Code</Text>
+                      </TouchableOpacity>
+                    </View>
+                  ))
+                )}
+
+                {/* Export */}
+                <View style={{ marginTop: 12 }}>
+                  <Text style={{ fontSize: 13, fontWeight: '600', color: colors.text, marginBottom: 6 }}>Export Data</Text>
+                  <View style={{ flexDirection: 'row', gap: 6, marginBottom: 8, flexWrap: 'wrap' }}>
+                    {['all', '7d', '30d', '90d'].map((p) => (
+                      <TouchableOpacity
+                        key={p}
+                        style={{
+                          paddingVertical: 6, paddingHorizontal: 12, borderRadius: 16,
+                          backgroundColor: period === p ? CORAL : colors.background,
+                          borderWidth: 1, borderColor: period === p ? CORAL : colors.border,
+                        }}
+                        onPress={() => setExportPeriod(prev => ({ ...prev, [comm.id]: p }))}
+                      >
+                        <Text style={{ fontSize: 12, color: period === p ? '#fff' : colors.textSecondary, fontWeight: '500' }}>
+                          {p === 'all' ? 'All time' : p === '7d' ? '7 days' : p === '30d' ? '30 days' : '90 days'}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                  <TouchableOpacity
+                    style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}
+                    onPress={() => handleExport(comm.id)}
+                    data-testid={`export-${comm.id}`}
+                  >
+                    <Ionicons name="download-outline" size={16} color={CORAL} />
+                    <Text style={{ fontSize: 13, color: CORAL, fontWeight: '600' }}>Export {period === 'all' ? 'All' : period}</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            )}
+          </View>
+        );
+      })}
+
+      <View style={{ height: 40 }} />
+    </ScrollView>
+  );
+
   if (!isAdmin) {
     return null;
   }
@@ -913,6 +1213,7 @@ export default function AdminPanel() {
           { key: 'broadcast', label: 'Broadcast', icon: 'megaphone' },
           { key: 'users', label: 'Users', icon: 'people' },
           { key: 'audit', label: 'Audit', icon: 'list' },
+          { key: 'communities', label: 'Local', icon: 'location' },
         ].map((tab) => (
           <TouchableOpacity
             key={tab.key}
@@ -952,6 +1253,7 @@ export default function AdminPanel() {
           {activeTab === 'broadcast' && renderBroadcast()}
           {activeTab === 'users' && renderUsers()}
           {activeTab === 'audit' && renderAudit()}
+          {activeTab === 'communities' && renderCommunities()}
         </View>
       )}
     </SafeAreaView>
@@ -1782,5 +2084,35 @@ const styles = StyleSheet.create({
   historyTime: {
     fontSize: 11,
     color: colors.textMuted,
+  },
+  card: {
+    marginHorizontal: 16,
+    marginBottom: 8,
+    padding: 14,
+    backgroundColor: colors.surface,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  input: {
+    backgroundColor: colors.background,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radius.md,
+    padding: 12,
+    fontSize: 14,
+    color: colors.text,
+  },
+  primaryButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    borderRadius: radius.md,
+  },
+  primaryButtonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
   },
 });
