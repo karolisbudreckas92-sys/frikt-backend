@@ -8,7 +8,7 @@ import os
 import uuid
 
 # Use preview URL for testing
-BASE_URL = os.environ.get('EXPO_PUBLIC_BACKEND_URL', 'https://local-hub-14.preview.emergentagent.com').rstrip('/')
+BASE_URL = os.environ.get('EXPO_PUBLIC_BACKEND_URL', 'https://frikt-community-fix.preview.emergentagent.com').rstrip('/')
 
 # Test credentials
 ADMIN_EMAIL = "karolisbudreckas92@gmail.com"

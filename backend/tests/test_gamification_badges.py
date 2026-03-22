@@ -23,7 +23,7 @@ import time
 import uuid
 
 # Get base URL from environment
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://local-hub-14.preview.emergentagent.com')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://frikt-community-fix.preview.emergentagent.com')
 
 # Test accounts that should be excluded from OG badges
 TEST_ACCOUNTS = ["velvetcrumb", "noxloop", "graydrizzle", "toastedblip", "cuatropatas", "eleclerk", "driftmoss"]

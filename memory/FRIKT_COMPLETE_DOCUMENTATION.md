@@ -1048,20 +1048,59 @@ A community is a location-based or code-gated group. Users can belong to one com
 3. If not a member, sees "Request to Join" banner
 4. Fills optional message + taps "Request to Join"
 5. `POST /api/communities/{id}/request-join`
-6. Admin sees request in Communities tab, clicks "Send Code" which opens mailto with invite code
+6. Creates a join request with `expires_at = created_at + 7 days`
+7. Admin sees request in Communities tab, clicks "Send Code" which opens mailto with invite code
+8. **Expired requests** (older than 7 days) are automatically filtered out from admin views
 
 ### Request New Community Flow
 1. User taps "Request one here" on Home Local tab or empty state in Search Communities
 2. `/request-community` screen: fills email, community name, optional description
 3. `POST /api/community-requests`
-4. Admin sees in Communities tab -> Community Requests section
+4. Creates a community request with `expires_at = created_at + 3 days`
+5. Admin sees in Communities tab -> Community Requests section
+6. **Expired requests** (older than 3 days) are automatically filtered out from admin views
+
+### Request Expiration Rules
+| Request Type | Expires After | Filter Applied |
+|-------------|--------------|----------------|
+| Community creation request | 3 days | `expires_at > now()` on `GET /api/admin/community-requests` |
+| Community join request | 7 days | `expires_at > now()` on `GET /api/admin/communities/{id}/join-requests` |
+
+Expired requests remain in the database but are excluded from all admin API responses.
 
 ### Admin Community Management
 - **Create:** Name + code + moderator email
 - **Change Code:** Update active invite code (old codes stop working)
-- **View Join Requests:** See pending requests, send code via mailto
-- **Export:** Download community frikt data as structured text (filterable by period)
+- **View Join Requests:** See pending, non-expired requests; send code via mailto
+- **Export:** Download community frikt data as anonymous structured text (filterable by period)
 - All admin actions logged in `admin_audit_logs`
+
+### Export Format (`GET /api/admin/communities/{id}/export`)
+
+The export is fully **anonymous** — no author names, no signal scores, no pain levels, no frequency data. Output format:
+
+```
+COMMUNITY EXPORT: {community_name}
+Period: {period_label}
+Members: {member_count}
+Total frikts: {frikt_count}
+
+============================================================
+
+FRIKT: {frikt_text}
+RELATES: {count} | DATE: {YYYY-MM-DD} | COMMENTS: {count}
+COM1: {comment_text}
+COM1.1: {reply_text}
+COM2: {comment_text}
+
+FRIKT: {frikt_text}
+RELATES: {count} | DATE: {YYYY-MM-DD} | COMMENTS: {count}
+
+============================================================
+END OF EXPORT
+```
+
+**Period options:** `all` (default), `7d`, `30d`, `90d`
 
 ---
 

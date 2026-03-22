@@ -17,11 +17,12 @@ FRIKT is a mobile app (Expo/React Native + FastAPI + MongoDB) for sharing daily 
 ### Backend
 - 16 community endpoints (user + admin)
 - Modified 6 existing endpoints for local/global awareness
-- No expiration on community/join requests
+- Community creation requests expire after 3 days (`expires_at` filter)
+- Join requests expire after 7 days (`expires_at` filter)
 - Analytics includes LOCAL stats section
 - User profile includes community_name
 - Search includes local frikts
-- Export format: numbered entries with all metadata
+- Export format: anonymous, no author/signal/pain/frequency. Single-line `RELATES | DATE | COMMENTS`
 
 ### Frontend
 - Home: Global/Local toggle with join code input
