@@ -68,17 +68,22 @@ export default function Search() {
   // Load communities on mount (no search needed)
   useEffect(() => {
     if (searchType === 'communities') {
-      loadCommunities();
+      loadCommunitiesSearch();
     }
   }, [searchType]);
 
-  const loadCommunities = async (search?: string) => {
+  const loadCommunitiesSearch = async (search?: string) => {
     setIsLoading(true);
     try {
       const data = await api.getCommunities(search || undefined);
-      setCommunitiesResults(data);
+      if (Array.isArray(data)) {
+        setCommunitiesResults(data);
+      } else {
+        setCommunitiesResults([]);
+      }
     } catch (error) {
       console.error('Error loading communities:', error);
+      setCommunitiesResults([]);
     } finally {
       setIsLoading(false);
     }
@@ -86,7 +91,7 @@ export default function Search() {
 
   const handleSearch = useCallback(async () => {
     if (searchType === 'communities') {
-      loadCommunities(query.trim() || undefined);
+      await loadCommunitiesSearch(query.trim() || undefined);
       return;
     }
     if (!query.trim()) return;
@@ -116,11 +121,11 @@ export default function Search() {
     // Clear results when switching type
     if (type === 'frikts') {
       setUsersResults([]);
-    } else {
+    } else if (type === 'users') {
       setFriktsResults([]);
     }
-    // Re-search if there's a query
-    if (query.trim() && hasSearched) {
+    // Re-search if there's a query and we've searched before
+    if (type !== 'communities' && query.trim() && hasSearched) {
       setTimeout(() => {
         handleSearchWithType(type);
       }, 100);
@@ -128,6 +133,7 @@ export default function Search() {
   };
 
   const handleSearchWithType = async (type: SearchType) => {
+    if (type === 'communities') return;
     if (!query.trim()) return;
     
     setIsLoading(true);
@@ -321,9 +327,9 @@ export default function Search() {
           )}
         </View>
         <TouchableOpacity 
-          style={[styles.searchButton, !query.trim() && styles.searchButtonDisabled]} 
+          style={[styles.searchButton, (searchType !== 'communities' && !query.trim()) && styles.searchButtonDisabled]} 
           onPress={handleSearch}
-          disabled={!query.trim()}
+          disabled={searchType !== 'communities' && !query.trim()}
           activeOpacity={0.7}
           data-testid="search-submit-btn"
         >
