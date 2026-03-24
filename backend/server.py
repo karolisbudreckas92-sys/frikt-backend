@@ -4727,18 +4727,31 @@ async def admin_list_communities(search: Optional[str] = None, limit: int = 50, 
 async def admin_get_community_requests(admin: dict = Depends(require_admin)):
     """Get pending community creation requests."""
     requests = await db.community_requests.find(
-        {"expires_at": {"$gte": datetime.utcnow()}},
+        {"expires_at": {"$gte": datetime.utcnow()}, "status": {"$ne": "dismissed"}},
         {"_id": 0}
     ).sort("created_at", -1).to_list(100)
     return requests
 
+@api_router.put("/admin/community-requests/{request_id}")
+async def admin_update_community_request(request_id: str, data: dict, admin: dict = Depends(require_admin)):
+    """Update a community creation request (dismiss/archive)."""
+    status = data.get("status", "dismissed")
+    result = await db.community_requests.update_one(
+        {"id": request_id},
+        {"$set": {"status": status}}
+    )
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Request not found")
+    await log_admin_action(admin, f"update_community_request_{status}", "community_request", request_id)
+    return {"success": True}
+
 @api_router.get("/admin/communities/{community_id}/join-requests")
 async def admin_get_join_requests(community_id: str, admin: dict = Depends(require_admin)):
-    """Get join requests for a specific community."""
+    """Get join requests for a specific community (pending + sent, non-expired)."""
     requests = await db.community_join_requests.find(
         {
             "community_id": community_id,
-            "status": "pending",
+            "status": {"$in": ["pending", "sent"]},
             "expires_at": {"$gte": datetime.utcnow()}
         },
         {"_id": 0}

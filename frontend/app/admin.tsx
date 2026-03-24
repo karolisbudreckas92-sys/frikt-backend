@@ -1025,6 +1025,35 @@ export default function AdminPanel() {
             <Text style={{ fontSize: 15, fontWeight: '600', color: colors.text }}>{req.community_name}</Text>
             <Text style={{ fontSize: 13, color: colors.textMuted, marginTop: 2 }}>{req.email}</Text>
             {req.description && <Text style={{ fontSize: 13, color: colors.textSecondary, marginTop: 4 }}>{req.description}</Text>}
+            <View style={{ flexDirection: 'row', gap: 8, marginTop: 10 }}>
+              <TouchableOpacity
+                style={{ flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: CORAL, paddingVertical: 6, paddingHorizontal: 12, borderRadius: 8 }}
+                onPress={() => {
+                  const subject = encodeURIComponent(`Re: Community request - ${req.community_name}`);
+                  const body = encodeURIComponent(`Hi!\n\nRegarding your request to create the community "${req.community_name}" on Frikt:\n\n`);
+                  Linking.openURL(`mailto:${req.email}?subject=${subject}&body=${body}`);
+                }}
+                data-testid={`contact-request-${req.id}`}
+              >
+                <Ionicons name="mail" size={14} color="#fff" />
+                <Text style={{ color: '#fff', fontSize: 12, fontWeight: '600' }}>Contact</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={{ flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: colors.border, paddingVertical: 6, paddingHorizontal: 12, borderRadius: 8 }}
+                onPress={async () => {
+                  try {
+                    await api.adminDismissCommunityRequest(req.id);
+                    loadData();
+                  } catch (error) {
+                    Alert.alert('Error', 'Failed to dismiss request');
+                  }
+                }}
+                data-testid={`dismiss-request-${req.id}`}
+              >
+                <Ionicons name="close-circle" size={14} color={colors.textMuted} />
+                <Text style={{ color: colors.textMuted, fontSize: 12, fontWeight: '600' }}>Dismiss</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         ))
       )}
@@ -1160,25 +1189,32 @@ export default function AdminPanel() {
                   <Text style={{ fontSize: 12, color: colors.textMuted, marginBottom: 12 }}>No pending join requests</Text>
                 ) : (
                   joinReqs.map((jr) => (
-                    <View key={jr.id} style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: colors.border }}>
+                    <View key={jr.id} style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: colors.border, opacity: jr.status === 'sent' ? 0.5 : 1 }}>
                       <View style={{ flex: 1 }}>
                         <Text style={{ fontSize: 13, color: colors.text }}>{jr.user_email}</Text>
                         {jr.message && <Text style={{ fontSize: 12, color: colors.textMuted }}>{jr.message}</Text>}
                       </View>
-                      <TouchableOpacity
-                        style={{
-                          flexDirection: 'row', alignItems: 'center', gap: 4,
-                          backgroundColor: CORAL, paddingVertical: 6, paddingHorizontal: 12, borderRadius: 8,
-                        }}
-                        onPress={() => {
-                          handleSendCode(jr.user_email, comm.active_code, comm.name);
-                          api.adminUpdateJoinRequest(comm.id, jr.id, 'sent').then(() => loadJoinRequests(comm.id));
-                        }}
-                        data-testid={`send-code-${jr.id}`}
-                      >
-                        <Ionicons name="mail" size={14} color="#fff" />
-                        <Text style={{ color: '#fff', fontSize: 12, fontWeight: '600' }}>Send Code</Text>
-                      </TouchableOpacity>
+                      {jr.status === 'sent' ? (
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: colors.border, paddingVertical: 6, paddingHorizontal: 12, borderRadius: 8 }}>
+                          <Ionicons name="checkmark-circle" size={14} color={colors.textMuted} />
+                          <Text style={{ color: colors.textMuted, fontSize: 12, fontWeight: '600' }}>Sent</Text>
+                        </View>
+                      ) : (
+                        <TouchableOpacity
+                          style={{
+                            flexDirection: 'row', alignItems: 'center', gap: 4,
+                            backgroundColor: CORAL, paddingVertical: 6, paddingHorizontal: 12, borderRadius: 8,
+                          }}
+                          onPress={() => {
+                            handleSendCode(jr.user_email, comm.active_code, comm.name);
+                            api.adminUpdateJoinRequest(comm.id, jr.id, 'sent').then(() => loadJoinRequests(comm.id));
+                          }}
+                          data-testid={`send-code-${jr.id}`}
+                        >
+                          <Ionicons name="mail" size={14} color="#fff" />
+                          <Text style={{ color: '#fff', fontSize: 12, fontWeight: '600' }}>Send Code</Text>
+                        </TouchableOpacity>
+                      )}
                     </View>
                   ))
                 )}

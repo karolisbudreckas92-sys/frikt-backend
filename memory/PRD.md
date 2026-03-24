@@ -28,7 +28,9 @@ FRIKT is a mobile app (Expo/React Native + FastAPI + MongoDB) for sharing daily 
 - `FRIKT_COMPLETE_DOCUMENTATION.md` regenerated from scratch (1586 lines, 20 sections, March 2026)
 - FIX 1: Soft-deleted parent no longer blocks replies (only admin-hidden does)
 - FIX 2: Shadowbanned user actions no longer generate notifications
-- FIX 3: Verified search includes local frikts alongside global
+- FIX BUG2: Admin join requests stay visible after Send Code (status=sent, grayed out)
+- FIX BUG3: Admin community creation requests now have Contact + Dismiss action buttons
+- New endpoint: PUT /api/admin/community-requests/{id} (dismiss/archive)
 
 ### Frontend
 - Home: Global/Local toggle with join code input

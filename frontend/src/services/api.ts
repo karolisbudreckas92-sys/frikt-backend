@@ -696,6 +696,11 @@ class ApiService {
     return response.data;
   }
 
+  async adminDismissCommunityRequest(requestId: string) {
+    const response = await this.client.put(`/admin/community-requests/${requestId}`, { status: 'dismissed' });
+    return response.data;
+  }
+
   async adminExportCommunityData(communityId: string, period: string = 'all') {
     const response = await this.client.get(`/admin/communities/${communityId}/export`, {
       params: { period }
