@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
   TextInput,
   Alert,
+  ScrollView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -386,12 +387,8 @@ export default function Home() {
       </View>
 
       {viewMode === 'local' && !myCommunity && communityLoaded ? (
-        <FlatList
-          data={[]}
-          keyExtractor={() => 'empty'}
-          renderItem={() => null}
-          ListHeaderComponent={renderHeader}
-          ListEmptyComponent={renderLocalNoComm}
+        <ScrollView
+          contentContainerStyle={styles.listContent}
           refreshControl={
             <RefreshControl
               refreshing={isRefreshing}
@@ -399,8 +396,10 @@ export default function Home() {
               tintColor={colors.primary}
             />
           }
-          contentContainerStyle={styles.listContent}
-        />
+        >
+          {renderHeader()}
+          {renderLocalNoComm()}
+        </ScrollView>
       ) : (
         <FlatList
           data={problems}

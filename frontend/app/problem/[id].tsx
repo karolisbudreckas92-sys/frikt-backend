@@ -703,7 +703,14 @@ export default function ProblemDetail() {
                       </Text>
                     </TouchableOpacity>
                     <View style={styles.commentMeta}>
-                      <Text style={styles.commentAuthor}>{comment.user_name}</Text>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                        <Text style={styles.commentAuthor}>{comment.user_name}</Text>
+                        {problem.is_local && comment.is_community_member === false && comment.content !== '[deleted]' && (
+                          <View style={{ backgroundColor: colors.border, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 }}>
+                            <Text style={{ fontSize: 10, color: colors.textMuted }}>visitor</Text>
+                          </View>
+                        )}
+                      </View>
                       <Text style={styles.commentTime}>
                         {formatTimeAgo(comment.created_at)}
                         {comment.edited_at && ' (edited)'}
@@ -845,6 +852,11 @@ export default function ProblemDetail() {
                             <View style={styles.replyMeta}>
                               <View style={styles.replyNameRow}>
                                 <Text style={styles.replyAuthor}>{reply.user_name}</Text>
+                                {problem.is_local && reply.is_community_member === false && reply.content !== '[deleted]' && (
+                                  <View style={{ backgroundColor: colors.border, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 }}>
+                                    <Text style={{ fontSize: 10, color: colors.textMuted }}>visitor</Text>
+                                  </View>
+                                )}
                                 {reply.reply_to_user_name && (
                                   <Text style={styles.replyToIndicator}>
                                     ↩ @{reply.reply_to_user_name}
