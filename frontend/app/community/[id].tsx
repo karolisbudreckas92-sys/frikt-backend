@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
   TextInput,
   Alert,
+  ScrollView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
@@ -224,26 +225,7 @@ export default function CommunityDetail() {
         <View style={{ width: 32 }} />
       </View>
 
-      <FlatList
-        data={problems}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-          <ProblemCard
-            problem={item}
-            onPress={() => router.push(`/problem/${item.id}`)}
-            onRelate={() => handleRelate(item.id, item.user_has_related)}
-          />
-        )}
-        ListHeaderComponent={renderHeader}
-        ListEmptyComponent={() => (
-          <View style={styles.emptyContainer}>
-            <Ionicons name="chatbubble-ellipses-outline" size={48} color={colors.textMuted} />
-            <Text style={styles.emptyTitle}>No frikts yet</Text>
-            <Text style={styles.emptyText}>
-              {community?.is_member ? 'Be the first to share a local friction!' : 'This community has no posts yet.'}
-            </Text>
-          </View>
-        )}
+      <ScrollView
         refreshControl={
           <RefreshControl
             refreshing={isRefreshing}
@@ -252,7 +234,27 @@ export default function CommunityDetail() {
           />
         }
         contentContainerStyle={styles.listContent}
-      />
+      >
+        {renderHeader()}
+        {problems.length > 0 ? (
+          problems.map((item) => (
+            <ProblemCard
+              key={item.id}
+              problem={item}
+              onPress={() => router.push(`/problem/${item.id}`)}
+              onRelate={() => handleRelate(item.id, item.user_has_related)}
+            />
+          ))
+        ) : (
+          <View style={styles.emptyContainer}>
+            <Ionicons name="chatbubble-ellipses-outline" size={48} color={colors.textMuted} />
+            <Text style={styles.emptyTitle}>No frikts yet</Text>
+            <Text style={styles.emptyText}>
+              {community?.is_member ? 'Be the first to share a local friction!' : 'This community has no posts yet.'}
+            </Text>
+          </View>
+        )}
+      </ScrollView>
     </SafeAreaView>
   );
 }
