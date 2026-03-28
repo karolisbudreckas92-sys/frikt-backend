@@ -73,6 +73,8 @@ export default function AdminPanel() {
   const [newCode, setNewCode] = useState('');
   const [exportPeriod, setExportPeriod] = useState<Record<string, string>>({});
   const [selectedRequest, setSelectedRequest] = useState<any>(null);
+  const [commMembers, setCommMembers] = useState<Record<string, { members: any[]; total: number }>>({});
+  const [commMemberSearch, setCommMemberSearch] = useState<Record<string, string>>({});
 
   useEffect(() => {
     if (!isAdmin) {
@@ -956,6 +958,13 @@ export default function AdminPanel() {
     } catch (e) {}
   };
 
+  const loadMembers = async (communityId: string, search: string = '') => {
+    try {
+      const data = await api.adminGetCommunityMembers(communityId, search);
+      setCommMembers(prev => ({ ...prev, [communityId]: data }));
+    } catch (e) {}
+  };
+
   const handleCreateCommunity = async () => {
     if (!newCommName.trim() || !newCommCode.trim() || !newCommEmail.trim()) return;
     setIsCreatingComm(true);
@@ -1005,6 +1014,7 @@ export default function AdminPanel() {
     } else {
       setExpandedComm(communityId);
       loadJoinRequests(communityId);
+      loadMembers(communityId);
     }
   };
 
@@ -1218,6 +1228,40 @@ export default function AdminPanel() {
                     </View>
                   ))
                 )}
+
+                {/* Members */}
+                <View style={{ marginTop: 12 }}>
+                  <Text style={{ fontSize: 13, fontWeight: '600', color: colors.text, marginBottom: 6 }}>
+                    Members ({commMembers[comm.id]?.total || 0})
+                  </Text>
+                  <TextInput
+                    style={[styles.input, { marginBottom: 8 }]}
+                    placeholder="Search by name or email..."
+                    placeholderTextColor={colors.textMuted}
+                    value={commMemberSearch[comm.id] || ''}
+                    onChangeText={(text) => {
+                      setCommMemberSearch(prev => ({ ...prev, [comm.id]: text }));
+                      loadMembers(comm.id, text);
+                    }}
+                    autoCapitalize="none"
+                    data-testid={`member-search-${comm.id}`}
+                  />
+                  {(commMembers[comm.id]?.members || []).length === 0 ? (
+                    <Text style={{ fontSize: 12, color: colors.textMuted, marginBottom: 12 }}>No members found</Text>
+                  ) : (
+                    (commMembers[comm.id]?.members || []).map((member: any) => (
+                      <View key={member.user_id} style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: colors.border }}>
+                        <View style={{ flex: 1 }}>
+                          <Text style={{ fontSize: 13, fontWeight: '500', color: colors.text }}>{member.username}</Text>
+                          <Text style={{ fontSize: 11, color: colors.textMuted }}>{member.email}</Text>
+                        </View>
+                        <Text style={{ fontSize: 11, color: colors.textMuted }}>
+                          {member.joined_at ? new Date(member.joined_at).toLocaleDateString() : ''}
+                        </Text>
+                      </View>
+                    ))
+                  )}
+                </View>
 
                 {/* Export */}
                 <View style={{ marginTop: 12 }}>

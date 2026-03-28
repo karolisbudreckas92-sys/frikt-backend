@@ -4771,6 +4771,41 @@ async def admin_update_join_request(community_id: str, request_id: str, data: Ad
     await log_admin_action(admin, "update_join_request", "community_join_request", request_id, {"status": data.status})
     return {"success": True}
 
+@api_router.get("/admin/communities/{community_id}/members")
+async def admin_get_community_members(community_id: str, search: str = "", skip: int = 0, limit: int = 50, admin: dict = Depends(require_admin)):
+    """Get members of a specific community with user details."""
+    members = await db.community_members.find({"community_id": community_id}, {"_id": 0}).to_list(1000)
+    if not members:
+        return {"members": [], "total": 0}
+    
+    user_ids = [m["user_id"] for m in members]
+    user_query = {"id": {"$in": user_ids}}
+    if search:
+        user_query["$or"] = [
+            {"name": {"$regex": search, "$options": "i"}},
+            {"email": {"$regex": search, "$options": "i"}},
+            {"displayName": {"$regex": search, "$options": "i"}},
+        ]
+    
+    users = await db.users.find(user_query, {"_id": 0, "id": 1, "name": 1, "email": 1, "displayName": 1}).to_list(1000)
+    user_map = {u["id"]: u for u in users}
+    
+    result = []
+    for m in members:
+        user = user_map.get(m["user_id"])
+        if user:
+            result.append({
+                "user_id": m["user_id"],
+                "username": user.get("displayName") or user.get("name", "Unknown"),
+                "email": user.get("email", ""),
+                "joined_at": m.get("joined_at", m.get("created_at", "")),
+            })
+    
+    result.sort(key=lambda x: str(x.get("joined_at", "")), reverse=True)
+    total = len(result)
+    result = result[skip:skip + limit]
+    return {"members": result, "total": total}
+
 @api_router.get("/admin/communities/{community_id}/export")
 async def admin_export_community_data(community_id: str, period: str = "all", admin: dict = Depends(require_admin)):
     """Export community frikt data as structured text."""

@@ -701,6 +701,11 @@ class ApiService {
     return response.data;
   }
 
+  async adminGetCommunityMembers(communityId: string, search: string = '', skip: number = 0, limit: number = 50) {
+    const response = await this.client.get(`/admin/communities/${communityId}/members`, { params: { search, skip, limit } });
+    return response.data;
+  }
+
   async adminExportCommunityData(communityId: string, period: string = 'all') {
     const response = await this.client.get(`/admin/communities/${communityId}/export`, {
       params: { period }

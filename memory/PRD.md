@@ -31,6 +31,7 @@ FRIKT is a mobile app (Expo/React Native + FastAPI + MongoDB) for sharing daily 
 - FIX BUG2: Admin join requests stay visible after Send Code (status=sent, grayed out)
 - FIX BUG3: Admin community creation requests now have Contact + Dismiss action buttons
 - New endpoint: PUT /api/admin/community-requests/{id} (dismiss/archive)
+- New endpoint: GET /api/admin/communities/{id}/members (members list with search)
 
 ### Frontend
 - Home: Global/Local toggle with join code input
