@@ -16,6 +16,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '@/src/context/AuthContext';
 import { colors } from '@/src/theme/colors';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Custom Logo Mark Component - exact brand specs
 // Icon height: 60px (doubled), matches wordmark height
@@ -93,6 +94,7 @@ export default function Login() {
     setIsLoading(true);
     try {
       await login(email.trim(), password);
+      await AsyncStorage.setItem('onboarding_complete', 'true');
       router.replace('/(tabs)/home');
     } catch (error: any) {
       console.log('Login error:', JSON.stringify(error, null, 2));

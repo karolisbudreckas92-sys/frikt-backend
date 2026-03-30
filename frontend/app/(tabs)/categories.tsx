@@ -140,6 +140,7 @@ export default function Categories() {
         data={categories}
         keyExtractor={(item) => item.id}
         renderItem={renderCategory}
+        extraData={followedCategories}
         contentContainerStyle={styles.listContent}
         refreshControl={
           <RefreshControl

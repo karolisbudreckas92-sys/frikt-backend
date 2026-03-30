@@ -3,6 +3,7 @@ import { View, ActivityIndicator, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuth } from '@/src/context/AuthContext';
 import { colors } from '@/src/theme/colors';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function Index() {
   const router = useRouter();
@@ -11,7 +12,13 @@ export default function Index() {
   useEffect(() => {
     if (!isLoading) {
       if (user) {
-        router.replace('/(tabs)/home');
+        AsyncStorage.getItem('onboarding_complete').then((value) => {
+          if (value === 'true') {
+            router.replace('/(tabs)/home');
+          } else {
+            router.replace('/onboarding');
+          }
+        });
       } else {
         router.replace('/(auth)/login');
       }
