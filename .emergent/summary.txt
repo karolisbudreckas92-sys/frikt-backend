@@ -1,231 +1,152 @@
-<analysis>**original_problem_statement**: The user's initial goal was to add UGC compliance, gamification, and an admin panel to their FRIKT app. This session's scope expanded to:
-1.  Resolving a critical security vulnerability involving an exposed API key.
-2.  Testing and fixing bugs in the previously implemented Comment Replies feature.
-3.  Implementing a major new feature: Local Communities, based on a detailed user-provided specification.
-4.  Generating complete, up-to-date technical documentation for the entire application.
-5.  Implementing a list of 8 specific fixes and corrections for the Local Communities feature.
-6.  A final user request to correct two of the implemented fixes (FIX 2 and FIX 10) which were done incorrectly.
+<analysis>**original_problem_statement**: The user required a series of bug fixes, logic corrections, and UI enhancements following the implementation of a major Local Communities feature for their app FRIKT. The scope expanded heavily into guiding the user through iOS (TestFlight) and Android (Google Play) deployments, resolving critical React Native rendering crashes, building new Admin Panel features (Community Members list), and finally, implementing a 4-screen first-time onboarding flow for newly registered users. 
 
-**User's preferred language**: The user is bilingual and communicates fluently in both **Spanish** and **English**. The next agent MUST be able to understand and respond in both languages.
+**PRODUCT REQUIREMENTS**:
+- Fix backend logic for community request expiration and anonymous data exports.
+- Fix UI crashes on the Search screen (missing imports,  unmount bugs).
+- Fix keyboard dismissing on community code inputs ( re-render issues).
+- Ensure shadowbanned users are completely invisible in notifications.
+- Admin Panel: Add ability to mark join requests as sent, dismiss community creation requests, and view/search a community's member list.
+- Deploy to iOS and Android (maintaining the legacy  package name for Android updates).
+- Build a persistent, 4-screen horizontal swipeable onboarding flow for new user registrations using .
 
-**what currently exists?**
-The FRIKT app is a full-stack application with an Expo (React Native) frontend and a monolithic FastAPI backend using MongoDB.
+**User's preferred language**: **Spanish**. (Note: The user communicates frequently in Spanish, especially when dealing with terminal commands, deployments, and confirmation of tasks. INSTRUCT next agent to respond in **Spanish**).
 
-In this session, the following was accomplished:
-- **Security Vulnerability Patched**: A publicly exposed Firebase API key was successfully regenerated. The user was guided through the process, and  was added to  to prevent future exposure.
-- **Comment Replies Feature Hardened**: The backend for comment threading was tested via curl, and a bug concerning the display of soft-deleted usernames was identified and fixed.
-- **Local Communities Feature Implemented**: A large-scale feature allowing for location-based/gated communities was built. This involved:
-    - **Backend**: New data models (, , etc.), a full suite of API endpoints for joining, switching, and managing communities (), and modifications to existing endpoints (, ) to make them community-aware. The backend was tested with extensive curl scripts.
-    - **Frontend**: The UI was updated across the app, including a local/global feed toggle on the Home screen, a post to local option, community details on user profiles, a Communities tab in search, and a comprehensive management tab in the Admin Panel. New screens like  were also created.
-- **Spec-Based Fixes**: 8 specific fixes requested by the user in  were implemented.
-- **Documentation Overhaul**: A new, comprehensive  (1451 lines) was generated, documenting all existing and new features.
+**what currently exists?** 
+A robust, full-stack application (React Native/Expo + FastAPI + MongoDB). In this session, the agent stabilized the Local Communities feature, fixed multiple severe React Native rendering bugs (Search screen crashes, keyboard dismissals), enhanced the Admin panel with member management and request handling, successfully guided the user through production deployments to Apple TestFlight and Google Play, and built a new first-time User Onboarding flow.
 
 **Last working item**:
-    - Last item agent was working: Correcting two previously implemented fixes (FIX 2 and FIX 10) that were done incorrectly.
-        - **FIX 2 Correction**: Re-implementing expiration logic for community join requests, so they are filtered out from API responses after 3 or 7 days.
-        - **FIX 10 Correction**: Re-writing the community data export format to be anonymous and match the user's precise specification (removing author, signal, pain, etc.).
-    - Status: IN PROGRESS
-    - Agent Testing Done: N
-    - Which testing method agent to use? backend testing agent
+    - Last item agent was working: Implementing the first-time User Onboarding Flow () and hooking it into the registration success handler.
+    - Status: USER VERIFICATION PENDING
+    - Agent Testing Done: N (The files were created and linked, but end-to-end testing of the horizontal swipe UI and  persistence was not explicitly documented before context end).
+    - Which testing method agent to use? screenshot tool / manual testing (to verify the UI looks correct and navigation works).
     - User Testing Done: N
 
 **All Pending/In progress Issue list**:
-  - Issue 1:  (P0) Verify Corrections for FIX 2 and FIX 10
-  - Issue 2:  (P1) Unverified Comment Replies Feature
-  - Issue 3:  (P2) Unfollow Category UI Bug
-  - Issue 4:  (P3) Recurring ESLint/TypeScript Errors
+  - Issue 1: (P0) Verify First-Time Onboarding Flow
+  - Issue 2: (P1) Unfollow Category UI Bug
   
   Issues Detail:
   - Issue 1: 
-     - **Issue:** The agent is in the middle of correcting two bugs. The code has been modified, but the fixes have not been tested or verified.
-     - Attempted fixes: The agent used  to re-add expiration filters and rewrite the export logic in .
-     - Next debug checklist: 
-        1. Run a  script or use the testing agent to verify that the  and  endpoints now correctly filter out expired requests.
-        2. Run a  script to call the  endpoint and confirm the output format is now anonymous and matches the user's latest spec exactly.
-     - Why fix this issue and what will be achieved with the fix?: To complete the user's direct request and ensure the Local Communities feature behaves exactly as specified.
-     - Status:  IN PROGRESS
-     - Is recurring issue? Y (The agent fixed this incorrectly the first time).
-     - Should Test frontend/backend/both after fix? backend
+     - Attempted fixes: Agent just created  and updated  and .
+     - Next debug checklist: Launch the frontend. Register a new mock user. Verify the app navigates to the 4-screen onboarding flow instead of Home. Verify horizontal scrolling works. Verify Get Started stores the  flag in  and navigates to .
+     - Why fix this issue and what will be achieved with the fix? Ensures new users understand the app's core concepts before dropping into the feed.
+     - Status: TESTING PENDING
+     - Is recurring issue? N
+     - Should Test frontend/backend/both after fix? Frontend
      - Blocked on other issue: None
   - Issue 2: 
-     - **Issue:** The Comment Replies feature was tested with backend  commands but never underwent a full end-to-end (E2E) test as recommended in the initial handoff.
-     - Attempted fixes: Agent performed backend-only testing.
-     - Next debug checklist: Call the  to perform a full E2E test of comment threading, including posting replies from the UI, viewing them, and checking notifications.
-     - Why fix this issue and what will be achieved with the fix?: To ensure a major, user-facing feature is stable before moving on.
-     - Status:  TESTING PENDING
-     - Is recurring issue? N
-     - Should Test frontend/backend/both after fix? Both.
-     - Blocked on other issue: None.
-  - Issue 3: 
-     - **Issue:** On the Categories screen, tapping unfollow does not update the button's UI state without a manual refresh.
-     - Attempted fixes: The user previously deferred a fix for this.
-     - Next debug checklist: Re-implement the fix using optimistic UI updates on the client-side state for the specific category toggled.
-     - Why fix this issue and what will be achieved with the fix?: Improves user experience with immediate visual feedback.
-     - Status:  NOT STARTED
+     - Attempted fixes: None in this session. Carried over from previous backlog.
+     - Next debug checklist: Check  screen. Implement optimistic UI updates on the client-side state so tapping unfollow updates the button state immediately without needing a manual refresh.
+     - Why fix this issue and what will be achieved with the fix? Improves UX and visual feedback.
+     - Status: NOT STARTED
      - Is recurring issue? Y
-     - Should Test frontend/backend/both after fix? Frontend.
-     - Blocked on other issue: None.
-  - Issue 4: 
-     - **Issue:** Persistent ESLint, TypeScript, and  errors that have been ignored throughout the session, leading to technical debt.
-     - Attempted fixes: None in this session.
-     - Next debug checklist: Run env: load .env
-env: export EXPO_TUNNEL_SUBDOMAIN EXPO_PACKAGER_HOSTNAME EXPO_PACKAGER_PROXY_URL EXPO_PUBLIC_BACKEND_URL EXPO_USE_FAST_RESOLVER METRO_CACHE_ROOT
-Dependencies are up to date and env: load .env
-env: export EXPO_PACKAGER_HOSTNAME EXPO_PACKAGER_PROXY_URL EXPO_PUBLIC_BACKEND_URL EXPO_TUNNEL_SUBDOMAIN EXPO_USE_FAST_RESOLVER METRO_CACHE_ROOT
-Running 17 checks on your project...
-15/17 checks passed. 2 checks failed. Possible issues detected:
-Use the --verbose flag to see more details about passed checks.
-
-✖ Check for lock file
-Multiple lock files detected (yarn.lock, package-lock.json). This may result in unexpected behavior in CI environments, such as EAS Build, which infer the package manager from the lock file.
-Advice:
-Remove any lock files for package managers you are not using.
-
-✖ Check Expo config (app.json/ app.config.js) schema
-Error validating fields in /app/frontend/app.json:
- Field: android - should NOT have additional property 'useNextNotificationsApi'.
-Error validating asset fields in /app/frontend/app.json:
- Field: notification.icon - the file extension should match the content, but the file extension is .png while the file content at './assets/images/notification-icon.png' is of type jpg.
- Field: notification.icon - field 'notification.icon' should point to .png image but the file at './assets/images/notification-icon.png' has type jpg.
- Field: notification.icon - image should be square, but the file at './assets/images/notification-icon.png' has dimensions 1290x437.
-Advice:
-Resolve schema errors in your app config. Learn more: https://docs.expo.dev/workflow/configuration/ and systematically address all reported errors and warnings.
-     - Why fix this issue and what will be achieved with the fix?: Ensures project health, reliable builds, and prevents future obscure bugs.
-     - Status:  NOT STARTED
-     - Is recurring issue? Y
-     - Should Test frontend/backend/both after fix? Frontend.
-     - Blocked on other issue: None.
+     - Should Test frontend/backend/both after fix? Frontend
+     - Blocked on other issue: None
 
 **In progress Task List**:
-  - None
+  None.
 
 **Upcoming and Future Tasks**
     Upcoming Tasks:
-    - (P1) Run a full device regression test on the latest iOS and Android builds once all pending issues are resolved.
+    - (P1) Regenerate  to include the new Admin Members endpoint and the new Onboarding Flow.
     Future Tasks:
-    - (CRITICAL) Refactor the monolithic  (now ~4800 lines) into smaller FastAPI routers.
-    - (HIGH) Refactor the monolithic  (now ~2100 lines) into smaller components.
-    - Refactor  (~1600 lines).
-    - Implement Deep Linking.
-    - Address low-priority notification edge cases.
+    - (P2) **DO NOT DO THIS YET**: Refactor the monolithic  (~4900 lines) into smaller FastAPI routers. *(User explicitly requested to wait on this until AFTER the District 9 local launch is stable for 2-3 weeks).*
+    - (P2) **DO NOT DO THIS YET**: Refactor the monolithic  (~2200 lines) into smaller components. *(Deferred alongside backend refactor).*
+    - (P3) Address ESLint, TypeScript, and  warnings.
 
 **Completed work in this session**
-- **Security**: Patched an exposed API key by guiding the user to regenerate it and updating .
-- **Backend**:
-    - Tested and fixed a bug in the Comment Replies feature.
-    - Implemented the entire backend for the Local Communities feature.
-    - Implemented and then corrected a series of 8 spec-based fixes for the new feature.
-- **Frontend**:
-    - Implemented the full UI for the Local Communities feature, touching the Home, Post, Profile, Search, and Admin screens.
-    - Created new screens:  and .
-    - Added a Local tag to .
-- **Documentation**: Generated a new, comprehensive .
+- Community requests filter by  (DONE)
+- Community export formatted anonymously without pain/frequency (DONE)
+- Allowed replies to soft-deleted comments (DONE)
+- Shadowbanned users fully muted in notifications (DONE)
+- Search screen crash fixed ( import) (DONE)
+- Keyboard dismissal bugs fixed on  and  by replacing  with  (DONE)
+- Admin Panel: Join requests show Sent status instead of disappearing (DONE)
+- Admin Panel: Community creation requests got Contact and Dismiss buttons (DONE)
+- Admin Panel: Added Members section inside expanded communities with Search (DONE)
+- UI: Added visitor tag to comments from non-members on local frikts (DONE)
+- Deployment: Guided user through TestFlight and Google Play submissions (DONE)
+- Onboarding Flow: Created 4-screen swipeable component for new users (DONE - code written)
 
 **Earlier issues found/mentioned but not fixed**
-   - Issue 1: **Unfollow Category UI Bug**: UI doesn't update on unfollow without a refresh. Status: NOT STARTED.
-   - Issue 2: **ESLint/TypeScript Errors**: Numerous linting and dependency mismatch errors persist. Status: NOT STARTED.
+   - Issue 1: Unfollow Category UI Bug (Button UI doesn't update without refresh). Status: NOT STARTED.
 
 **Known issue recurrence from previous fork**
-  - Issue recurrence in previous fork: ESLint parsing errors.
-  - Recurrence count: High
-  - Status: NOT STARTED
+  - Issue recurrence in previous fork: React Native  unmounting .
+  - Recurrence count: 2
+  - Status: RESOLVED
+  - Note: Using inline functions for  or  containing a  caused the keyboard to close on every keystroke because state updates triggered remounts. The agent fixed this by swapping  for . Keep this in mind for future React Native UI work.
+  - Deployment sync issues: The user frequently tests locally using their Mac. Ensure the user runs  and  before running --platform is required when building in non-interactive mode, as they previously built old, broken code due to local Git divergence.
 
 **Code Architecture**
 
 
 **Key Technical Concepts**
-- **Backend:** FastAPI, Python, MongoDB
-- **Frontend:** Expo (React Native), TypeScript
-- **Local Communities**: A new content layer where posts () are scoped to a specific . This affects all data retrieval ( feed), creation (), and interaction () endpoints.
-- **Request Expiration**: Using  fields in MongoDB documents and  queries to filter out expired community join/creation requests.
+- React Native / Expo (Frontend)
+- FastAPI / Python (Backend)
+- MongoDB (Database)
+- AsyncStorage (Used for onboarding persistence flag: )
 
 **key DB schema**
-  - **users**:
-    - 
-    - 
-  - **problems**:
-    - 
-    - 
-  - **communities**: (NEW)
-    - 
-  - **community_members**: (NEW)
-    - 
-  - **community_join_requests**: (NEW)
-    - 
-  - **community_requests**: (NEW)
-    - 
+  - : 
+  - : Added  (pending, dismissed)
 
 **changes in tech stack**
-  - None.
+  - None
 
 **All files of reference**
-- **Backend Logic**: 
-- **Frontend Screens**: , , , 
-- **Frontend Components**: , 
-- **API Service**: 
-- **Documentation**: 
-- **User Specs**: , 
+-  (Newly created)
+- 
+- 
+- 
+- 
 
 **Areas that need refactoring**:
-- ****: Now at a critical size (~4800 lines). It is extremely difficult to maintain and must be broken into FastAPI routers.
-- ****: Now a 2100-line monster component. The logic for each tab should be extracted into its own component file.
+-  and . **NOTE:** The user explicitly requested to pause on refactoring until after their upcoming real-world launch. Do not initiate this refactor unless prompted.
 
 **key api endpoints**
-- : Join a community with a code.
-- : Switch active community.
-- : Request creation of a new community.
-- : Get all communities for admin panel.
-- : Get pending community creation requests.
-- : Approve/reject a creation request.
-- : Export community data to a  file.
-- : Modified to handle  and .
-- : Modified to return user's community info.
+- : New endpoint for viewing community members.
+- : New endpoint to dismiss requests.
 
 **Critical Info for New Agent**
-- **Your first task is to verify the last set of corrections.** The previous agent modified the code for FIX 2 (request expiration) and FIX 10 (export format) but did not test the changes. You must start by creating and running tests for these two backend logic changes.
-- **The codebase has significant technical debt.** The main backend file () and the frontend admin panel () are now extremely large and fragile. Propose refactoring these as a high-priority task after the current issues are resolved.
-- The user provides highly detailed markdown files with specifications. Read them carefully, as the previous agent made errors by misinterpreting them.
+- **Language**: Respond in Spanish.
+- **Android Package Name**: To ensure Google Play updates work correctly, the Android package name in  MUST remain . Do not change it to .
+- **Onboarding State**: The agent just finished writing the Onboarding screen. Your first action should be verifying that it visually works and correctly saves  to .
+- **Refactoring Hold**: Do not offer or start refactoring the monolithic files right now. Prioritize user-facing stability.
 
 **documents and test reports created in this job**
   - 
   - 
-  - 
-  - 
+  -  (100% Pass rate on E2E flows prior to Onboarding feature).
 
 **Last 10 User Messages and any pending HUMAN messages** 
- 1. User provides  with a list of bugs. (COMPLETE)
- 2. Agent acknowledges and starts implementing fixes. (COMPLETE)
- 3. Agent completes all 8 fixes and finishes. (COMPLETE)
- 4. **User points out that FIX 2 (request expiration) and FIX 10 (export format) were implemented incorrectly and provides specific correction instructions.** (PENDING)
- 5. Agent acknowledges the mistake and starts correcting the two fixes. (IN PROGRESS)
+ - User reports Bug 1 (Missing visitor tag) and Bug 4 (Keyboard closing on community detail screen).
+ - Agent fixes Bug 1 (ProblemCard.tsx) and Bug 4 (ScrollView swap).
+ - User requests new feature: 'Members' list inside the Admin Panel.
+ - Agent implements backend endpoint and frontend UI for Members list.
+ - User asks for help deploying to Android Google Play.
+ - Agent guides user through  generation, EAS secrets, and package name resolution ().
+ - User requests 4-screen swipeable onboarding flow for new registrations.
+ - Agent implements  and integrates it into registration flow. (PENDING VERIFICATION).
 
 **Project Health Check:**
-- **Broken**: The last two fixes (FIX 2, FIX 10) are unverified. The Unfollow UI is buggy.
-- **Mocked**: None.
-- **Vulnerable**: The primary API key vulnerability was fixed, but the large, unwieldy codebase is a major risk for introducing new bugs.
+- Broken: None currently known.
+- Mocked: None.
 
 **3rd Party Integrations**
- - **Railway:** Hosts the production FastAPI backend.
- - **MongoDB Atlas:** Hosts the production database.
- - **Expo Application Services (EAS):** Used for building and submitting mobile apps.
- - **Resend:** For password reset emails.
- - **Firebase:** Configured for Android push notifications (FCM).
+- Expo EAS (Build and Submit)
+- Google Play Console / App Store Connect
+- Firebase (Auth/Notifications)
 
 **Testing status**
-  - Testing agent used after significant changes: YES, but only for backend verification. The Comment Replies feature still needs a full E2E test.
+  - Testing agent used after significant changes: YES (iteration 8 showed 100% pass rate before onboarding feature).
   - Troubleshoot agent used after agent stuck in loop: NO
-  - Test files created: []
-  - Known regressions: None, but the last fixes are unverified.
+  - Test files created: None
+  - Known regressions: None currently.
 
 **Credentials to test flow:**
-- **Admin User**:
-  - Email: 
-  - Password: 
-- **Test User**:
-  - Email: 
-  - Password: 
+- Admin:  / 
+- Test User: Register a new test user to test the Onboarding flow.
 
 **What agent forgot to execute**
-- The agent initially implemented FIX 2 and FIX 10 incorrectly, doing the opposite of what the user's specification requested. This required rework.
-- The agent never performed the full E2E test of the Comment Replies feature that was recommended in the initial handoff.
-- The long-standing issues of the Unfollow UI bug and ESLint/TypeScript errors were not addressed.</analysis>
+- The agent wrote the code for the Onboarding screen but did not capture a screenshot or run the frontend to verify that the  paging works properly or that the layout looks correct on screen.</analysis>

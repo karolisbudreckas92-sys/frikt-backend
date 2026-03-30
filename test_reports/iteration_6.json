@@ -40,7 +40,7 @@
   "test_credentials": {
     "admin_email": "karolisbudreckas92@gmail.com",
     "admin_password": "Admin123!",
-    "preview_api_url": "https://frikt-community-fix.preview.emergentagent.com"
+    "preview_api_url": "https://frikt-bug-fixes.preview.emergentagent.com"
   },
   "seed_data_creation": "Test communities created during tests with prefixes: TEST-, DUP-, OLD-, NEW-, USER-, SEC-, SWT-, LOC-, REL-. These can be cleaned up via admin panel.",
   "retest_needed": false,
