@@ -18,24 +18,22 @@ import { useAuth } from '@/src/context/AuthContext';
 import { colors } from '@/src/theme/colors';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-// Custom Logo Mark Component - exact brand specs
-// Icon height: 60px (doubled), matches wordmark height
+// Custom Logo Mark Component - exact brand specs from SVG
+// SVG proportions: top=358, middle=336 (94%), bottom=214 (60%), dot r=50
 const LogoMark = () => {
-  const iconHeight = 60; // Doubled from 30
-  const barThickness = 14; // Doubled from 7
-  const barGap = 9; // Adjusted gap
-  const barRadius = 7; // Doubled from 3.5
-  const barColor = '#2B2F36';
-  const dotColor = '#E4572E';
-  const dotSize = 20; // Doubled from 10
-  const iconWidth = 64; // Doubled from 32
-  const dotSpacing = 12; // Doubled from 6
+  const iconHeight = 60;
+  const barThickness = 16;
+  const barRadius = 3;
+  const barColor = '#383C41';
+  const dotColor = '#EE4943';
+  const dotSize = 18;
+  const iconWidth = 66;
+  const dotSpacing = 4;
   
   return (
     <View style={{ 
       height: iconHeight, 
       flexDirection: 'row',
-      alignItems: 'center',
     }}>
       {/* Bars container */}
       <View style={{ 
@@ -50,28 +48,29 @@ const LogoMark = () => {
           backgroundColor: barColor, 
           borderRadius: barRadius,
         }} />
-        {/* Middle bar - 80% */}
+        {/* Middle bar - 94% */}
         <View style={{ 
-          width: iconWidth * 0.80, 
+          width: iconWidth * 0.94, 
           height: barThickness, 
           backgroundColor: barColor, 
           borderRadius: barRadius,
         }} />
-        {/* Bottom bar - 55% */}
+        {/* Bottom bar - 60% */}
         <View style={{ 
-          width: iconWidth * 0.55, 
+          width: iconWidth * 0.60, 
           height: barThickness, 
           backgroundColor: barColor, 
           borderRadius: barRadius,
         }} />
       </View>
-      {/* Red dot - vertically centered, spaced from bars */}
+      {/* Red dot - positioned between top and middle bars */}
       <View style={{ 
         width: dotSize, 
         height: dotSize, 
         backgroundColor: dotColor, 
         borderRadius: dotSize / 2,
         marginLeft: dotSpacing,
+        marginTop: 16,
       }} />
     </View>
   );
