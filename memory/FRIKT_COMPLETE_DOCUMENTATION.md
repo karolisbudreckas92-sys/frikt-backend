@@ -200,6 +200,18 @@
 - **API Call:** `POST /api/community-requests`
 - **Outcome:** Request created with `expires_at = created_at + 3 days`
 
+#### Onboarding Screen (`/app/onboarding.tsx`)
+- **How to get there:** Automatically after new user registration (router.replace from register.tsx)
+- **Persistence:** Uses `AsyncStorage` key `onboarding_complete`. If not set on app launch, authenticated users are redirected here from `index.tsx`.
+- **Elements:** 4 horizontal swipeable screens via `FlatList` with `pagingEnabled`:
+  1. "What's bothering you today?" — megaphone icon, explains posting frikts
+  2. "What rises can't be ignored" — trending icon, explains the relate/ranking system
+  3. "Go local" — location icon, explains community invite codes
+  4. "You're ready" — frikt logo, CTA "Get Started" button
+- **Navigation:** "Skip" button (top-right, screens 1-3), "Next" button per slide, "Get Started" on last slide
+- **Completion:** Stores `onboarding_complete = 'true'` in AsyncStorage, navigates to `/(tabs)/home`
+- **Login behavior:** `login.tsx` sets `onboarding_complete = 'true'` so existing users never see onboarding
+
 ---
 
 ### 1.4 Settings & User Screens
@@ -1181,6 +1193,8 @@ GET  /api/
 | GET | /api/admin/communities/{id}/join-requests | Get join requests (non-expired) |
 | PUT | /api/admin/communities/{id}/join-requests/{rid} | Update join request status |
 | GET | /api/admin/communities/{id}/export | Export data (anonymous) |
+| GET | /api/admin/communities/{id}/members | List community members (with ?search= query) |
+| PUT | /api/admin/community-requests/{id} | Dismiss/archive community creation request |
 
 #### Admin — Feedback
 | Method | Path | Description |

@@ -24,6 +24,17 @@ FRIKT is a mobile app (Expo/React Native + FastAPI + MongoDB) for sharing daily 
 - Search includes local frikts
 - Export format: anonymous, no author/signal/pain/frequency. Single-line `RELATES | DATE | COMMENTS`
 
+## Onboarding Flow (Complete - March 2026)
+- 4-screen horizontal swipeable onboarding for new user registrations
+- Persistence via AsyncStorage key `onboarding_complete`
+- index.tsx checks flag before routing authenticated users
+- login.tsx sets flag for existing users (skip onboarding)
+- register.tsx routes to /onboarding after successful registration
+
+## Category Follow/Unfollow Fix (Complete - March 2026)
+- Added `extraData={followedCategories}` to FlatList in categories.tsx
+- Ensures optimistic UI updates render immediately without manual refresh
+
 ## Documentation
 - `FRIKT_COMPLETE_DOCUMENTATION.md` regenerated from scratch (1586 lines, 20 sections, March 2026)
 - FIX 1: Soft-deleted parent no longer blocks replies (only admin-hidden does)
@@ -51,7 +62,6 @@ FRIKT is a mobile app (Expo/React Native + FastAPI + MongoDB) for sharing daily 
 - Manual curl: All 8 spec fixes verified
 
 ## Pending Issues
-- P2: Unfollow Category UI Bug (deferred)
 - P3: ESLint/TypeScript errors (backlog)
 
 ## Backlog
