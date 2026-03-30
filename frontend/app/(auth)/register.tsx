@@ -52,7 +52,7 @@ export default function Register() {
     setIsLoading(true);
     try {
       await register(name.trim(), email.trim(), password);
-      router.replace('/(tabs)/home');
+      router.replace('/onboarding');
     } catch (error: any) {
       Alert.alert('Error', error.response?.data?.detail || 'Registration failed. Please try again.');
     } finally {
