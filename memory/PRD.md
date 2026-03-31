@@ -52,6 +52,15 @@ FRIKT is a mobile app (Expo/React Native + FastAPI + MongoDB) for sharing daily 
 - FIX 4: All admin endpoints verified with require_admin, denied access logged to admin_audit_logs
 - FIX 5: Shadowban content filtering — cached helper (60s), feeds/comments exclude shadowbanned content, users see own content, cache invalidated on admin actions
 
+## Data Integrity Fixes (Complete - March 2026)
+- FIX 6: Avatar URL propagated to problems collection on profile/avatar update
+- FIX 7: Unique index on community_members.user_id (prevents multi-community)
+- FIX 8: Community codes normalized to uppercase + unique index on communities.active_code
+- FIX 9: Unique compound index on blocked_users (blocker_user_id, blocked_user_id)
+- FIX 10: Bidirectional block filtering — blocked users can't relate/comment/follow in either direction (403)
+- FIX 11: Notification.problem_id nullable for new_follower, badge_earned, admin_broadcast types
+- FIX 12: POST /api/admin/sync-problem-stats — recalculates relates_count, comments_count, unique_commenters
+
 ## Documentation
 - `FRIKT_COMPLETE_DOCUMENTATION.md` regenerated from scratch (1586 lines, 20 sections, March 2026)
 - FIX 1: Soft-deleted parent no longer blocks replies (only admin-hidden does)
