@@ -238,12 +238,9 @@ class User(UserBase):
     bio: Optional[str] = None
     city: Optional[str] = None
     showCity: bool = False
-    rocket10_completed: bool = False
-    rocket10_day: int = 0
-    rocket10_start_date: Optional[datetime] = None
     posts_today: int = 0
     last_post_date: Optional[str] = None
-    streak_days: int = 0
+    onboarding_completed: bool = False
     followed_categories: List[str] = []
     followed_problems: List[str] = []
     saved_problems: List[str] = []
@@ -260,16 +257,16 @@ class UserResponse(BaseModel):
     created_at: datetime
     role: str = "user"
     status: str = "active"
-    rocket10_completed: bool
-    streak_days: int
+    onboarding_completed: bool = False
     followed_categories: List[str]
 
 class ProfileUpdate(BaseModel):
-    displayName: str
+    displayName: Optional[str] = None
     bio: Optional[str] = None
     city: Optional[str] = None
     showCity: Optional[bool] = False
     avatarUrl: Optional[str] = None
+    onboarding_completed: Optional[bool] = None
 
 class TokenResponse(BaseModel):
     access_token: str
@@ -282,7 +279,6 @@ class ProblemCreate(BaseModel):
     category_id: str = "other"
     frequency: Optional[str] = None
     pain_level: Optional[int] = Field(None, ge=1, le=5)
-    willing_to_pay: Optional[str] = "$0"
     when_happens: Optional[str] = None
     who_affected: Optional[str] = None
     what_tried: Optional[str] = None
@@ -299,7 +295,6 @@ class Problem(BaseModel):
     category_id: str
     frequency: Optional[str] = None
     pain_level: Optional[int] = None
-    willing_to_pay: str = "$0"
     when_happens: Optional[str] = None
     who_affected: Optional[str] = None
     what_tried: Optional[str] = None
@@ -342,7 +337,6 @@ class Comment(BaseModel):
     created_at: datetime = Field(default_factory=datetime.utcnow)
     edited_at: Optional[datetime] = None
     helpful_count: int = 0
-    is_pinned: bool = False
     status: str = "active"  # "active" | "hidden" | "removed"
     reports_count: int = 0
     # Reply threading fields
@@ -502,6 +496,10 @@ COMMENT_BATCH_WINDOW_MINUTES = 3
 
 # ===================== COMMUNITY MODELS =====================
 
+# Community Models
+# NOTE (FIX 17): Communities with 0 members remain active, joinable, and searchable.
+# There is no auto-archive or cleanup for empty communities. They persist until
+# manually removed by an admin.
 class Community(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     name: str
@@ -1670,7 +1668,6 @@ async def create_problem(problem_data: ProblemCreate, user: dict = Depends(requi
         category_id=category_id,
         frequency=frequency,
         pain_level=pain_level,
-        willing_to_pay=problem_data.willing_to_pay or "$0",
         when_happens=problem_data.when_happens,
         who_affected=problem_data.who_affected,
         what_tried=problem_data.what_tried,
@@ -1822,11 +1819,7 @@ async def get_problems(
         query["category_id"] = category_id
     
     if search:
-        query["$or"] = [
-            {"title": {"$regex": search, "$options": "i"}},
-            {"when_happens": {"$regex": search, "$options": "i"}},
-            {"who_affected": {"$regex": search, "$options": "i"}},
-        ]
+        query["title"] = {"$regex": search, "$options": "i"}
     
     # NEW feed: simply sort by created_at desc (latest first)
     if feed == "new":
@@ -3048,7 +3041,7 @@ async def get_badge_definitions():
     return {"badges": definitions}
 
 @api_router.get("/users/{user_id}/stats")
-async def get_user_stats(user_id: str):
+async def get_user_stats_endpoint(user_id: str):
     user = await db.users.find_one({"id": user_id})
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
@@ -3057,12 +3050,13 @@ async def get_user_stats(user_id: str):
     comments_count = await db.comments.count_documents({"user_id": user_id})
     relates_count = await db.relates.count_documents({"user_id": user_id})
     
+    # FIX 14: Get streak_days from user_stats collection (not embedded in user doc)
+    stats = await get_or_create_user_stats(user_id)
     return {
         "posts_count": posts_count,
         "comments_count": comments_count,
         "relates_count": relates_count,
         "streak_days": stats.get("current_visit_streak", 0) if stats else 0,
-        "rocket10_completed": user.get("rocket10_completed", False)
     }
 
 @api_router.put("/users/me/profile")
@@ -3070,34 +3064,40 @@ async def update_profile(profile: ProfileUpdate, user: dict = Depends(require_au
     """Update user profile"""
     import re
     
-    # Validate display name
-    display_name = profile.displayName.strip()
-    if len(display_name) < 2 or len(display_name) > 20:
-        raise HTTPException(status_code=400, detail="Name must be 2-20 characters")
+    update_data = {}
     
-    # Check for at least one alphanumeric character
-    if not re.search(r'[a-zA-Z0-9]', display_name):
-        raise HTTPException(status_code=400, detail="Name must contain at least one letter or number")
+    # Handle onboarding_completed flag (can be set independently)
+    if profile.onboarding_completed is not None:
+        update_data["onboarding_completed"] = profile.onboarding_completed
     
-    # Create normalized display name for uniqueness check (lowercase, trimmed)
-    normalized_name = display_name.lower().strip()
+    # Handle displayName update (with validation)
+    if profile.displayName is not None:
+        display_name = profile.displayName.strip()
+        if len(display_name) < 2 or len(display_name) > 20:
+            raise HTTPException(status_code=400, detail="Name must be 2-20 characters")
+        
+        if not re.search(r'[a-zA-Z0-9]', display_name):
+            raise HTTPException(status_code=400, detail="Name must contain at least one letter or number")
+        
+        normalized_name = display_name.lower().strip()
+        
+        existing_user = await db.users.find_one({
+            "normalizedDisplayName": normalized_name,
+            "id": {"$ne": user["id"]}
+        })
+        if existing_user:
+            raise HTTPException(status_code=409, detail="Name already taken")
+        
+        update_data["displayName"] = display_name
+        update_data["normalizedDisplayName"] = normalized_name
     
-    # Check if this normalized name is already taken by another user
-    existing_user = await db.users.find_one({
-        "normalizedDisplayName": normalized_name,
-        "id": {"$ne": user["id"]}  # Exclude current user
-    })
-    if existing_user:
-        raise HTTPException(status_code=409, detail="Name already taken")
-    
-    update_data = {
-        "displayName": display_name,
-        "normalizedDisplayName": normalized_name,  # Store normalized version
-        "bio": (profile.bio or "").strip()[:80],
-        "city": (profile.city or "").strip()[:50],
-        "showCity": profile.showCity or False,
-    }
-    
+    # Handle other profile fields
+    if profile.bio is not None:
+        update_data["bio"] = profile.bio.strip()[:80]
+    if profile.city is not None:
+        update_data["city"] = profile.city.strip()[:50]
+    if profile.showCity is not None:
+        update_data["showCity"] = profile.showCity
     if profile.avatarUrl is not None:
         update_data["avatarUrl"] = profile.avatarUrl
     
@@ -3106,32 +3106,32 @@ async def update_profile(profile: ProfileUpdate, user: dict = Depends(require_au
         {"$set": update_data}
     )
     
-    # Propagate displayName change to all denormalized collections
-    new_display_name = display_name
-    avatar_url = update_data.get("avatarUrl", user.get("avatarUrl"))
-    propagation_set = {"user_name": new_display_name}
-    if "avatarUrl" in update_data:
-        propagation_set["user_avatar_url"] = update_data["avatarUrl"]
+    # Propagate displayName/avatar changes to denormalized collections
+    if "displayName" in update_data or "avatarUrl" in update_data:
+        new_display_name = update_data.get("displayName", user.get("displayName") or user["name"])
+        propagation_set = {"user_name": new_display_name}
+        if "avatarUrl" in update_data:
+            propagation_set["user_avatar_url"] = update_data["avatarUrl"]
     
-    await db.problems.update_many(
-        {"user_id": user["id"]},
-        {"$set": propagation_set}
-    )
-    comment_propagation = {"user_name": new_display_name}
-    if "avatarUrl" in update_data:
-        comment_propagation["user_avatar_url"] = update_data["avatarUrl"]
-    await db.comments.update_many(
-        {"user_id": user["id"]},
-        {"$set": comment_propagation}
-    )
-    await db.comments.update_many(
-        {"reply_to_user_id": user["id"]},
-        {"$set": {"reply_to_user_name": new_display_name}}
-    )
-    await db.feedback.update_many(
-        {"user_id": user["id"]},
-        {"$set": {"user_name": new_display_name}}
-    )
+        await db.problems.update_many(
+            {"user_id": user["id"]},
+            {"$set": propagation_set}
+        )
+        comment_propagation = {"user_name": new_display_name}
+        if "avatarUrl" in update_data:
+            comment_propagation["user_avatar_url"] = update_data["avatarUrl"]
+        await db.comments.update_many(
+            {"user_id": user["id"]},
+            {"$set": comment_propagation}
+        )
+        await db.comments.update_many(
+            {"reply_to_user_id": user["id"]},
+            {"$set": {"reply_to_user_name": new_display_name}}
+        )
+        await db.feedback.update_many(
+            {"user_id": user["id"]},
+            {"$set": {"user_name": new_display_name}}
+        )
     
     # Return updated user
     updated_user = await db.users.find_one({"id": user["id"]})
@@ -3147,8 +3147,7 @@ async def update_profile(profile: ProfileUpdate, user: dict = Depends(require_au
         created_at=updated_user["created_at"],
         role=updated_user.get("role", "user"),
         status=updated_user.get("status", "active"),
-        rocket10_completed=updated_user.get("rocket10_completed", False),
-        streak_days=updated_user.get("streak_days", 0),
+        onboarding_completed=updated_user.get("onboarding_completed", False),
         followed_categories=updated_user.get("followed_categories", [])
     )
 
@@ -5191,6 +5190,18 @@ async def startup_event():
         logger.info("Database indexes created successfully")
     except Exception as e:
         logger.warning(f"Index creation warning (may already exist): {e}")
+    
+    # FIX 16: Mark all existing users without onboarding_completed as completed
+    try:
+        result = await db.users.update_many(
+            {"onboarding_completed": {"$exists": False}},
+            {"$set": {"onboarding_completed": True}}
+        )
+        if result.modified_count > 0:
+            logger.info(f"Marked {result.modified_count} existing users as onboarding_completed")
+    except Exception as e:
+        logger.warning(f"Onboarding migration warning: {e}")
+    
     logger.info("Notification batch processor started")
 
 @app.on_event("shutdown")
