@@ -45,6 +45,13 @@ FRIKT is a mobile app (Expo/React Native + FastAPI + MongoDB) for sharing daily 
 - Removed context section and 'Add details' card entirely from problem/[id].tsx
 - Edit screen shows all detail fields directly (no collapsible toggle)
 
+## Security Fixes (Complete - March 2026)
+- FIX 1: Banned users get 403 on all authenticated requests (require_auth + require_admin check)
+- FIX 2: Password reset brute force protection — max 5 attempts per token (with email tracking), max 3 requests/email/hour, generic error messages
+- FIX 3: Account deletion preserves community content — anonymizes problems/comments to '[deleted user]', cleans up community data, recalculates counts
+- FIX 4: All admin endpoints verified with require_admin, denied access logged to admin_audit_logs
+- FIX 5: Shadowban content filtering — cached helper (60s), feeds/comments exclude shadowbanned content, users see own content, cache invalidated on admin actions
+
 ## Documentation
 - `FRIKT_COMPLETE_DOCUMENTATION.md` regenerated from scratch (1586 lines, 20 sections, March 2026)
 - FIX 1: Soft-deleted parent no longer blocks replies (only admin-hidden does)
