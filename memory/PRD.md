@@ -6,7 +6,7 @@ FRIKT is a mobile app (Expo/React Native + FastAPI + MongoDB) for sharing daily 
 ## Core Features Implemented
 - **Auth**: JWT-based authentication with expo-secure-store
 - **Posts (Frikts)**: Create, relate, comment, save, follow, report
-- **Gamification**: Badges, streaks, leaderboard, Rocket 10 challenge
+- **Gamification**: Badges, streaks, leaderboard
 - **Admin Panel**: User management, content moderation, broadcast, audit, communities
 - **Push Notifications**: Expo + Firebase (FCM) for Android
 - **Comment Threading**: Nested replies with soft-delete support
@@ -17,58 +17,11 @@ FRIKT is a mobile app (Expo/React Native + FastAPI + MongoDB) for sharing daily 
 ### Backend
 - 16 community endpoints (user + admin)
 - Modified 6 existing endpoints for local/global awareness
-- Community creation requests expire after 3 days (`expires_at` filter)
-- Join requests expire after 7 days (`expires_at` filter)
+- Community creation requests expire after 3 days
+- Join requests expire after 7 days
 - Analytics includes LOCAL stats section
 - User profile includes community_name
 - Search includes local frikts
-- Export format: anonymous, no author/signal/pain/frequency. Single-line `RELATES | DATE | COMMENTS`
-
-## Onboarding Flow (Complete - March 2026)
-- 4-screen horizontal swipeable onboarding for new user registrations
-- Persistence via AsyncStorage key `onboarding_complete`
-- index.tsx checks flag before routing authenticated users
-- login.tsx sets flag for existing users (skip onboarding)
-- register.tsx routes to /onboarding after successful registration
-
-## Category Follow/Unfollow Fix (Complete - March 2026)
-- Added `extraData={followedCategories}` to FlatList in categories.tsx
-- Ensures optimistic UI updates render immediately without manual refresh
-
-## DisplayName Propagation Fix (Complete - March 2026)
-- PUT /api/users/me/profile now propagates displayName to: problems.user_name, comments.user_name, comments.reply_to_user_name, feedback.user_name
-- Fixed comment creation to use displayName instead of registration name
-
-## Add Details Fields Relocation (Complete - March 2026)
-- Moved 'Add details' (when_happens, who_affected, what_tried) from frikt detail view to Step 2 of PostWizard
-- Collapsible section below Severity in creation flow, collapsed by default
-- Removed context section and 'Add details' card entirely from problem/[id].tsx
-- Edit screen shows all detail fields directly (no collapsible toggle)
-
-## Security Fixes (Complete - March 2026)
-- FIX 1: Banned users get 403 on all authenticated requests (require_auth + require_admin check)
-- FIX 2: Password reset brute force protection — max 5 attempts per token (with email tracking), max 3 requests/email/hour, generic error messages
-- FIX 3: Account deletion preserves community content — anonymizes problems/comments to '[deleted user]', cleans up community data, recalculates counts
-- FIX 4: All admin endpoints verified with require_admin, denied access logged to admin_audit_logs
-- FIX 5: Shadowban content filtering — cached helper (60s), feeds/comments exclude shadowbanned content, users see own content, cache invalidated on admin actions
-
-## Data Integrity Fixes (Complete - March 2026)
-- FIX 6: Avatar URL propagated to problems collection on profile/avatar update
-- FIX 7: Unique index on community_members.user_id (prevents multi-community)
-- FIX 8: Community codes normalized to uppercase + unique index on communities.active_code
-- FIX 9: Unique compound index on blocked_users (blocker_user_id, blocked_user_id)
-- FIX 10: Bidirectional block filtering — blocked users can't relate/comment/follow in either direction (403)
-- FIX 11: Notification.problem_id nullable for new_follower, badge_earned, admin_broadcast types
-- FIX 12: POST /api/admin/sync-problem-stats — recalculates relates_count, comments_count, unique_commenters
-
-## Documentation
-- `FRIKT_COMPLETE_DOCUMENTATION.md` regenerated from scratch (1586 lines, 20 sections, March 2026)
-- FIX 1: Soft-deleted parent no longer blocks replies (only admin-hidden does)
-- FIX 2: Shadowbanned user actions no longer generate notifications
-- FIX BUG2: Admin join requests stay visible after Send Code (status=sent, grayed out)
-- FIX BUG3: Admin community creation requests now have Contact + Dismiss action buttons
-- New endpoint: PUT /api/admin/community-requests/{id} (dismiss/archive)
-- New endpoint: GET /api/admin/communities/{id}/members (members list with search)
 
 ### Frontend
 - Home: Global/Local toggle with join code input
@@ -76,23 +29,63 @@ FRIKT is a mobile app (Expo/React Native + FastAPI + MongoDB) for sharing daily 
 - ProblemCard: Local tag (coral pin + "Local")
 - Profile: CommunityCard with leave
 - Search: Communities tab
-- Categories: Local card -> Home (no follow button)
+- Categories: Local card -> Home
 - Community Detail: `/community/[id].tsx` with Request to Join
 - Request Community: `/request-community.tsx`
 - Admin: Communities tab (requests, create, active list, join requests, export)
-- User Profile: Community tag below name
 
-### Testing
+## Onboarding Flow (Complete - March 2026)
+- 4-screen horizontal swipeable onboarding for new user registrations
+- Persistence via AsyncStorage key `onboarding_complete` + server-side `onboarding_completed` field
+- index.tsx checks flag before routing authenticated users
+- login.tsx sets flag for existing users (skip onboarding)
+- register.tsx routes to /onboarding after successful registration
+
+## DisplayName Propagation Fix (Complete - March 2026)
+- PUT /api/users/me/profile propagates displayName to: problems.user_name, comments.user_name, comments.reply_to_user_name, feedback.user_name
+
+## Add Details Fields Relocation (Complete - March 2026)
+- Moved 'Add details' (when_happens, who_affected, what_tried) from detail view to Step 2 of PostWizard (collapsible)
+- Edit screen shows all detail fields directly
+
+## Security Fixes (Complete - March 2026)
+- FIX 1: Banned users get 403 on all authenticated requests
+- FIX 2: Password reset brute force protection (max 5 attempts per token, max 3 requests/email/hour)
+- FIX 3: Account deletion preserves community content (soft-delete, anonymizes to '[deleted user]')
+- FIX 4: All admin endpoints verified with require_admin + audit logging
+- FIX 5: Shadowban content filtering in feeds/comments
+
+## Data Integrity Fixes (Complete - March 2026)
+- FIX 6: Avatar URL propagated to problems/comments on profile update
+- FIX 7: Unique index on community_members.user_id
+- FIX 8: Community codes normalized to uppercase + unique index
+- FIX 9: Unique compound index on blocked_users
+- FIX 10: Bidirectional block filtering (403 on relate/comment/follow)
+- FIX 11: Notification.problem_id nullable for follower/badge/broadcast types
+- FIX 12: POST /api/admin/sync-problem-stats counter reconciliation
+
+## Cleanup Fixes (Complete - March 2026)
+- FIX 13: Added comment_replies and follows to Notification settings + Frontend UI
+- FIX 14: Consolidated visit streak — removed `streak_days` from User model, use `user_stats.current_visit_streak` collection only
+- FIX 15: Removed dead fields — `willing_to_pay` from Problem, `rocket10_completed/rocket10_day/rocket10_start_date` from User, `is_pinned` from Comment
+- FIX 16: Server-side onboarding — added `onboarding_completed` bool to User/UserResponse/ProfileUpdate, startup migration marks existing users
+- FIX 17: Empty community behavior documented — 0-member communities remain active, joinable, searchable
+- FIX 18: Search only matches on `title` — removed `when_happens` and `who_affected` from search query
+
+## Testing
 - iteration_6.json: 33/33 PASS
 - iteration_7.json: 42/46 PASS (4 rate-limit)
-- Manual curl: All 8 spec fixes verified
+- iteration_10-11: Manual verification passed
+- iteration_12.json: Security fixes - 100% pass
+- iteration_13.json: Data integrity fixes - 100% pass
+- iteration_14.json: Cleanup fixes - 14/14 PASS (100%)
 
 ## Pending Issues
-- P3: ESLint/TypeScript errors (backlog)
+- P3: ESLint/TypeScript warnings (backlog)
 
 ## Backlog
-- Refactor server.py into FastAPI routers
-- Refactor problem/[id].tsx (1600+ lines)
+- Refactor server.py into FastAPI routers (post-launch)
+- Refactor admin.tsx into smaller components
 - Deep Linking
 - Device regression testing
 
