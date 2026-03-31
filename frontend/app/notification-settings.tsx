@@ -24,6 +24,8 @@ export default function NotificationSettings() {
     pushNotifications: true,
     newComments: true,
     newRelates: true,
+    commentReplies: true,
+    follows: true,
     trending: true,
   });
   const [pushEnabled, setPushEnabled] = useState(false);
@@ -40,6 +42,8 @@ export default function NotificationSettings() {
         pushNotifications: data.push_notifications,
         newComments: data.new_comments,
         newRelates: data.new_relates,
+        commentReplies: data.comment_replies ?? true,
+        follows: data.follows ?? true,
         trending: data.trending,
       });
     } catch (error) {
@@ -66,6 +70,8 @@ export default function NotificationSettings() {
         push_notifications: newSettings.pushNotifications,
         new_comments: newSettings.newComments,
         new_relates: newSettings.newRelates,
+        comment_replies: newSettings.commentReplies,
+        follows: newSettings.follows,
         trending: newSettings.trending,
       });
     } catch (error) {
@@ -184,6 +190,44 @@ export default function NotificationSettings() {
           <Switch
             value={settings.newRelates}
             onValueChange={(value) => handleToggle('newRelates', value)}
+            trackColor={{ false: colors.border, true: colors.primary }}
+            thumbColor={colors.white}
+            disabled={!settings.pushNotifications}
+          />
+        </View>
+
+        <View style={[styles.settingCard, !settings.pushNotifications && styles.settingDisabled]}>
+          <View style={styles.settingInfo}>
+            <View style={[styles.settingIcon, { backgroundColor: colors.primary + '20' }]}>
+              <Ionicons name="return-down-forward" size={20} color={colors.primary} />
+            </View>
+            <View style={styles.settingText}>
+              <Text style={styles.settingTitle}>Comment Replies</Text>
+              <Text style={styles.settingDesc}>When someone replies to your comment</Text>
+            </View>
+          </View>
+          <Switch
+            value={settings.commentReplies}
+            onValueChange={(value) => handleToggle('commentReplies', value)}
+            trackColor={{ false: colors.border, true: colors.primary }}
+            thumbColor={colors.white}
+            disabled={!settings.pushNotifications}
+          />
+        </View>
+
+        <View style={[styles.settingCard, !settings.pushNotifications && styles.settingDisabled]}>
+          <View style={styles.settingInfo}>
+            <View style={[styles.settingIcon, { backgroundColor: colors.accent + '20' }]}>
+              <Ionicons name="person-add" size={20} color={colors.accent} />
+            </View>
+            <View style={styles.settingText}>
+              <Text style={styles.settingTitle}>New Followers</Text>
+              <Text style={styles.settingDesc}>When someone follows you</Text>
+            </View>
+          </View>
+          <Switch
+            value={settings.follows}
+            onValueChange={(value) => handleToggle('follows', value)}
             trackColor={{ false: colors.border, true: colors.primary }}
             thumbColor={colors.white}
             disabled={!settings.pushNotifications}

@@ -10,7 +10,7 @@ import uuid
 import os
 from datetime import datetime
 
-BASE_URL = os.environ.get('EXPO_PUBLIC_BACKEND_URL', 'https://frikt-bug-fixes.preview.emergentagent.com')
+BASE_URL = os.environ.get('EXPO_PUBLIC_BACKEND_URL', 'https://schema-removal.preview.emergentagent.com')
 print(f"[TEST] Using BASE_URL: {BASE_URL}")
 
 # ===================== FIXTURES =====================

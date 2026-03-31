@@ -12,7 +12,7 @@ from datetime import datetime
 import uuid
 
 # Backend URL from frontend/.env
-BACKEND_URL = "https://frikt-bug-fixes.preview.emergentagent.com/api"
+BACKEND_URL = "https://schema-removal.preview.emergentagent.com/api"
 
 class FRIKTTester:
     def __init__(self):

@@ -1,46 +1,43 @@
-<analysis>**original_problem_statement**: The user required a series of bug fixes, logic corrections, and UI enhancements following the implementation of a major Local Communities feature for their app FRIKT. The scope expanded heavily into guiding the user through iOS (TestFlight) and Android (Google Play) deployments, resolving critical React Native rendering crashes, building new Admin Panel features (Community Members list), and finally, implementing a 4-screen first-time onboarding flow for newly registered users. 
+<analysis>**original_problem_statement**: The user requested a comprehensive series of fixes and enhancements across multiple domains:
+1. Verify and fix the first-time Onboarding flow persistence.
+2. Fix a UI bug with unfollowing categories (optimistic update UI).
+3. Update the app's Logo and Splash screens using newly provided SVG/PNG assets.
+4. **Data Propagation**: Propagate denormalized  to existing problems and comments when updated.
+5. **UI Flow**: Move the Add details fields (, , ) from the detail view to the creation flow (Step 2, collapsible) and the edit screen.
+6. **5 Critical Security Fixes**: Check banned status on all requests, brute-force protection for password reset, soft-delete for account deletion (preserving community content), verify admin roles on all admin endpoints, and filter shadowbanned content from feeds.
+7. **7 Data Integrity Fixes**: Propagate avatar changes, add unique indexes (, , ), bidirectional block filtering, allow nullable  in notifications, and create a counter reconciliation endpoint.
+8. **6 Cleanup Fixes**: Expand notification settings toggles, consolidate visit streak logic, remove dead fields from schemas, store onboarding completion server-side, define empty community behavior, and remove detail fields from search indexing.
 
-**PRODUCT REQUIREMENTS**:
-- Fix backend logic for community request expiration and anonymous data exports.
-- Fix UI crashes on the Search screen (missing imports,  unmount bugs).
-- Fix keyboard dismissing on community code inputs ( re-render issues).
-- Ensure shadowbanned users are completely invisible in notifications.
-- Admin Panel: Add ability to mark join requests as sent, dismiss community creation requests, and view/search a community's member list.
-- Deploy to iOS and Android (maintaining the legacy  package name for Android updates).
-- Build a persistent, 4-screen horizontal swipeable onboarding flow for new user registrations using .
+**PRODUCT REQUIREMENTS**: Complete all the stated bug fixes, data integrity improvements, and security patches without breaking existing functionality, heavily utilizing the  after each major batch.
 
-**User's preferred language**: **Spanish**. (Note: The user communicates frequently in Spanish, especially when dealing with terminal commands, deployments, and confirmation of tasks. INSTRUCT next agent to respond in **Spanish**).
+**User's preferred language**: **Spanish** (INSTRUCT next agent to respond and communicate with the user in **Spanish** only).
 
 **what currently exists?** 
-A robust, full-stack application (React Native/Expo + FastAPI + MongoDB). In this session, the agent stabilized the Local Communities feature, fixed multiple severe React Native rendering bugs (Search screen crashes, keyboard dismissals), enhanced the Admin panel with member management and request handling, successfully guided the user through production deployments to Apple TestFlight and Google Play, and built a new first-time User Onboarding flow.
+A stable, feature-rich full-stack application (React Native/Expo + FastAPI + MongoDB). The application has just undergone massive security, data integrity, and UI stabilization updates. Almost all the requested batches of fixes (Security, Data Propagation, Data Integrity) have been successfully implemented and verified with a 100% pass rate using the testing agent. The app includes complex features like local communities, shadowbanning, gamification, and notification batching.
 
 **Last working item**:
-    - Last item agent was working: Implementing the first-time User Onboarding Flow () and hooking it into the registration success handler.
-    - Status: USER VERIFICATION PENDING
-    - Agent Testing Done: N (The files were created and linked, but end-to-end testing of the horizontal swipe UI and  persistence was not explicitly documented before context end).
-    - Which testing method agent to use? screenshot tool / manual testing (to verify the UI looks correct and navigation works).
+    - Last item agent was working: The agent was midway through the **6 CLEANUP FIXES** batch requested by the user. Specifically, the agent had just finished FIX 13 (Notification settings) and was in the middle of executing a  for **FIX 14 (Consolidate visit streak to one source)** to replace  with .
+    - Status: IN PROGRESS
+    - Agent Testing Done: N (for the current cleanup batch)
+    - Which testing method agent to use? testing_agent_v3_fork (Backend API testing is highly recommended once all cleanup fixes are complete).
     - User Testing Done: N
 
 **All Pending/In progress Issue list**:
-  - Issue 1: (P0) Verify First-Time Onboarding Flow
-  - Issue 2: (P1) Unfollow Category UI Bug
+  Issue 1: (P0) Complete the remaining CLEANUP FIXES (Fixes 14 through 18)
   
   Issues Detail:
-  - Issue 1: 
-     - Attempted fixes: Agent just created  and updated  and .
-     - Next debug checklist: Launch the frontend. Register a new mock user. Verify the app navigates to the 4-screen onboarding flow instead of Home. Verify horizontal scrolling works. Verify Get Started stores the  flag in  and navigates to .
-     - Why fix this issue and what will be achieved with the fix? Ensures new users understand the app's core concepts before dropping into the feed.
-     - Status: TESTING PENDING
+  - Issue 1: Complete CLEANUP FIXES
+     - Attempted fixes: Fix 13 (Notification toggles) is done. Fix 14 (Visit streak consolidation) had one  executed just before the session ended.
+     - Next debug checklist: 
+        - **FIX 14**: Verify  is completely removed from the  collection logic and only  is used in .
+        - **FIX 15**: Remove  from  schema. Remove , ,  from  schema. Remove  from  schema (in ).
+        - **FIX 16**: Add  (bool, default false) to user models. Update  to accept it. Add logic (maybe in the startup event) to set  for users created before today. Update frontend to check server-side state on launch.
+        - **FIX 17**: Add a code comment explicitly defining that communities with 0 members remain active, joinable, and searchable.
+        - **FIX 18**: In , remove  and  from the  regex query. Only search on .
+     - Why fix this issue and what will be achieved with the fix? Completes the user's final batch of application cleanup tasks before their next production release.
+     - Status: IN PROGRESS
      - Is recurring issue? N
-     - Should Test frontend/backend/both after fix? Frontend
-     - Blocked on other issue: None
-  - Issue 2: 
-     - Attempted fixes: None in this session. Carried over from previous backlog.
-     - Next debug checklist: Check  screen. Implement optimistic UI updates on the client-side state so tapping unfollow updates the button state immediately without needing a manual refresh.
-     - Why fix this issue and what will be achieved with the fix? Improves UX and visual feedback.
-     - Status: NOT STARTED
-     - Is recurring issue? Y
-     - Should Test frontend/backend/both after fix? Frontend
+     - Should Test frontend/backend/both after fix? Both (Backend API via testing agent, Frontend via screenshot/manual logic check).
      - Blocked on other issue: None
 
 **In progress Task List**:
@@ -48,35 +45,39 @@ A robust, full-stack application (React Native/Expo + FastAPI + MongoDB). In thi
 
 **Upcoming and Future Tasks**
     Upcoming Tasks:
-    - (P1) Regenerate  to include the new Admin Members endpoint and the new Onboarding Flow.
+    - (P1) Run  once Fixes 14-18 are implemented to verify no regressions occurred during schema cleanup.
+    - (P1) Update  to reflect the final schema changes from the cleanup fixes.
     Future Tasks:
-    - (P2) **DO NOT DO THIS YET**: Refactor the monolithic  (~4900 lines) into smaller FastAPI routers. *(User explicitly requested to wait on this until AFTER the District 9 local launch is stable for 2-3 weeks).*
-    - (P2) **DO NOT DO THIS YET**: Refactor the monolithic  (~2200 lines) into smaller components. *(Deferred alongside backend refactor).*
+    - (P2) Refactor the monolithic  into smaller FastAPI routers. *(User explicitly requested to wait on this until after their upcoming District 9 local launch).*
+    - (P2) Refactor the monolithic  into smaller components.
     - (P3) Address ESLint, TypeScript, and  warnings.
 
 **Completed work in this session**
-- Community requests filter by  (DONE)
-- Community export formatted anonymously without pain/frequency (DONE)
-- Allowed replies to soft-deleted comments (DONE)
-- Shadowbanned users fully muted in notifications (DONE)
-- Search screen crash fixed ( import) (DONE)
-- Keyboard dismissal bugs fixed on  and  by replacing  with  (DONE)
-- Admin Panel: Join requests show Sent status instead of disappearing (DONE)
-- Admin Panel: Community creation requests got Contact and Dismiss buttons (DONE)
-- Admin Panel: Added Members section inside expanded communities with Search (DONE)
-- UI: Added visitor tag to comments from non-members on local frikts (DONE)
-- Deployment: Guided user through TestFlight and Google Play submissions (DONE)
-- Onboarding Flow: Created 4-screen swipeable component for new users (DONE - code written)
+- Onboarding Flow persistence bugs fixed ( checks AsyncStorage) (DONE)
+- Unfollow Category UI bug fixed (added  to ) (DONE)
+- App Logo Updated (PNGs generated and EAS configured, LogoMark in  updated to exact SVG proportions) (DONE)
+- Propagate  changes to , ,  (DONE)
+- Move Add details fields to PostWizard Step 2 (collapsible) and Edit Screen; removed from detail view (DONE)
+- **Security Fixes:** 
+  - Banned user 403 checks added to  (DONE)
+  - Password reset brute-force protection (max 5 attempts) + rate limiting (DONE)
+  - Account deletion changed to soft-delete () to preserve community content (DONE)
+  - Admin endpoints audited for role checks & logging (DONE)
+  - Shadowban content filtering added to feeds and comments (DONE)
+- **Data Integrity Fixes:**
+  - Propagate avatar changes to  and  (DONE)
+  - Unique indexes added for , , and  (DONE)
+  - Bidirectional block filtering added to queries, comments, relates, and follows (DONE)
+  - Notifications  made nullable (DONE)
+  - Admin endpoint  created for counter reconciliation (DONE)
+- **Cleanup Fixes (Partial):**
+  - FIX 13: Added  and  to Notification settings + Frontend UI (DONE)
 
 **Earlier issues found/mentioned but not fixed**
-   - Issue 1: Unfollow Category UI Bug (Button UI doesn't update without refresh). Status: NOT STARTED.
+  None.
 
 **Known issue recurrence from previous fork**
-  - Issue recurrence in previous fork: React Native  unmounting .
-  - Recurrence count: 2
-  - Status: RESOLVED
-  - Note: Using inline functions for  or  containing a  caused the keyboard to close on every keystroke because state updates triggered remounts. The agent fixed this by swapping  for . Keep this in mind for future React Native UI work.
-  - Deployment sync issues: The user frequently tests locally using their Mac. Ensure the user runs  and  before running --platform is required when building in non-interactive mode, as they previously built old, broken code due to local Git divergence.
+  - None applicable currently. Keep in mind the user builds locally, so always remind them to run  before running --platform is required when building in non-interactive mode.
 
 **Code Architecture**
 
@@ -85,68 +86,68 @@ A robust, full-stack application (React Native/Expo + FastAPI + MongoDB). In thi
 - React Native / Expo (Frontend)
 - FastAPI / Python (Backend)
 - MongoDB (Database)
-- AsyncStorage (Used for onboarding persistence flag: )
+- Soft Deletes & Data Denormalization (Updates cascade via  to maintain read performance).
 
 **key DB schema**
-  - : 
-  - : Added  (pending, dismissed)
+  - : Uses  (migrating away from ), added  (pending).
+  - : ,  (denormalized). , ,  (detail fields).
+  - : , ,  (denormalized).
+  - : Expanded with , , , , .
 
 **changes in tech stack**
   - None
 
 **All files of reference**
--  (Newly created)
-- 
-- 
-- 
-- 
+-  (Core backend file where all schema/logic fixes must happen).
+-  (Recently updated).
+-  (Contains details implementation).
 
 **Areas that need refactoring**:
--  and . **NOTE:** The user explicitly requested to pause on refactoring until after their upcoming real-world launch. Do not initiate this refactor unless prompted.
+-  and . (On hold per user request until post-launch).
 
 **key api endpoints**
-- : New endpoint for viewing community members.
-- : New endpoint to dismiss requests.
+- : Needs to handle .
+- : Search query needs  and  removed.
 
 **Critical Info for New Agent**
-- **Language**: Respond in Spanish.
-- **Android Package Name**: To ensure Google Play updates work correctly, the Android package name in  MUST remain . Do not change it to .
-- **Onboarding State**: The agent just finished writing the Onboarding screen. Your first action should be verifying that it visually works and correctly saves  to .
-- **Refactoring Hold**: Do not offer or start refactoring the monolithic files right now. Prioritize user-facing stability.
+- **LANGUAGE**: Respond entirely in **Spanish**.
+- The user is extremely thorough and provides numbered lists of fixes (e.g., CLEANUP FIXES - 6 issues). The previous agent finished Fix 13 and started Fix 14. You must pick up exactly from Fix 14 to Fix 18.
+- The  file was just fully regenerated. After you finish Fixes 14-18, you should update it slightly to reflect the schema removals (Fix 15) and onboarding field addition (Fix 16).
 
 **documents and test reports created in this job**
   - 
   - 
-  -  (100% Pass rate on E2E flows prior to Onboarding feature).
+  -  (Security fixes tests)
+  -  (Data integrity fixes tests)
 
 **Last 10 User Messages and any pending HUMAN messages** 
- - User reports Bug 1 (Missing visitor tag) and Bug 4 (Keyboard closing on community detail screen).
- - Agent fixes Bug 1 (ProblemCard.tsx) and Bug 4 (ScrollView swap).
- - User requests new feature: 'Members' list inside the Admin Panel.
- - Agent implements backend endpoint and frontend UI for Members list.
- - User asks for help deploying to Android Google Play.
- - Agent guides user through  generation, EAS secrets, and package name resolution ().
- - User requests 4-screen swipeable onboarding flow for new registrations.
- - Agent implements  and integrates it into registration flow. (PENDING VERIFICATION).
+ - User requested Complete Documentation generation.
+ - Agent provided documentation.
+ - User asked how to download the document.
+ - Agent explained VS Code/GitHub options and printed the content in chat.
+ - User submitted 5 Critical Security Fixes.
+ - Agent implemented and tested all 5.
+ - User submitted 7 Data Integrity Fixes.
+ - Agent implemented and tested all 7.
+ - User submitted 6 Cleanup Fixes (Fix 13 to Fix 18).
+ - Agent started implementing Cleanup Fixes (session ended after starting Fix 14).
 
 **Project Health Check:**
-- Broken: None currently known.
+- Broken: None.
 - Mocked: None.
 
 **3rd Party Integrations**
 - Expo EAS (Build and Submit)
-- Google Play Console / App Store Connect
-- Firebase (Auth/Notifications)
+- Google Play / App Store
 
 **Testing status**
-  - Testing agent used after significant changes: YES (iteration 8 showed 100% pass rate before onboarding feature).
+  - Testing agent used after significant changes: YES (iterations 10, 11, 12, 13 all showed 100% pass rates for massive logic refactors).
   - Troubleshoot agent used after agent stuck in loop: NO
   - Test files created: None
-  - Known regressions: None currently.
+  - Known regressions: None.
 
 **Credentials to test flow:**
-- Admin:  / 
-- Test User: Register a new test user to test the Onboarding flow.
+- Check  (Usually admin is  / ).
 
 **What agent forgot to execute**
-- The agent wrote the code for the Onboarding screen but did not capture a screenshot or run the frontend to verify that the  paging works properly or that the layout looks correct on screen.</analysis>
+- The agent was cut off by the context limit before finishing the user's latest prompt (CLEANUP FIXES - 6 issues). It only completed Fix 13 and began Fix 14. You must complete Fixes 14, 15, 16, 17, and 18.</analysis>

@@ -34,7 +34,7 @@
   "test_credentials": {
     "admin_email": "karolisbudreckas92@gmail.com",
     "admin_password": "Admin123!",
-    "preview_api_url": "https://frikt-bug-fixes.preview.emergentagent.com"
+    "preview_api_url": "https://schema-removal.preview.emergentagent.com"
   },
   "seed_data_creation": "Test users created with prefix 'test_iter9_', 'test_me_', 'test_follow_', 'test_persist_', 'test_regular_'. Test communities created with prefix 'MEMB'.",
   "retest_needed": false,

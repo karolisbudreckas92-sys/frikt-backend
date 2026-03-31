@@ -43,7 +43,7 @@
   "test_credentials": {
     "admin_email": "karolisbudreckas92@gmail.com",
     "admin_password": "Admin123!",
-    "preview_api_url": "https://frikt-bug-fixes.preview.emergentagent.com"
+    "preview_api_url": "https://schema-removal.preview.emergentagent.com"
   },
   "seed_data_creation": "Test users created with prefix 'test_security_' for each test, cleaned up after each test. No persistent test data.",
   "retest_needed": false,

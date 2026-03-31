@@ -412,12 +412,16 @@ class NotificationSettings(BaseModel):
     push_notifications: bool = True  # Global toggle
     new_comments: bool = True
     new_relates: bool = True
+    comment_replies: bool = True
+    follows: bool = True
     trending: bool = True
 
 class NotificationSettingsUpdate(BaseModel):
     push_notifications: Optional[bool] = None  # Global toggle
     new_comments: Optional[bool] = None
     new_relates: Optional[bool] = None
+    comment_replies: Optional[bool] = None
+    follows: Optional[bool] = None
     trending: Optional[bool] = None
 
 # Report Model (for posts and comments)
@@ -2460,12 +2464,12 @@ async def create_comment(comment_data: CommentCreate, user: dict = Depends(requi
     # NEW: Notify the person whose Reply button was tapped (comment_reply notification)
     # Skip if actor is shadowbanned
     if reply_to_user_id and reply_to_user_id != user["id"] and reply_to_user_id != problem["user_id"] and not actor_is_shadowbanned:
-        # Check if target user has notifications enabled
+        # Check if target user has comment_replies notifications enabled
         reply_target_settings = await db.notification_settings.find_one({"user_id": reply_to_user_id})
         reply_target_push_enabled = not reply_target_settings or reply_target_settings.get("push_notifications", True)
-        reply_target_comments_enabled = not reply_target_settings or reply_target_settings.get("new_comments", True)
+        reply_target_replies_enabled = not reply_target_settings or reply_target_settings.get("comment_replies", True)
         
-        if reply_target_push_enabled and reply_target_comments_enabled:
+        if reply_target_push_enabled and reply_target_replies_enabled:
             # Use batching for replies too
             should_send_reply_notif = await add_to_notification_batch(
                 recipient_user_id=reply_to_user_id,
@@ -2994,7 +2998,8 @@ async def follow_user(user_id: str, user: dict = Depends(require_auth)):
         # Check settings and send push
         settings = await db.notification_settings.find_one({"user_id": user_id})
         global_push = not settings or settings.get("push_notifications", True)
-        if global_push:
+        follows_enabled = not settings or settings.get("follows", True)
+        if global_push and follows_enabled:
             await send_notification_to_user(
                 user_id,
                 "New follower!",
@@ -3056,7 +3061,7 @@ async def get_user_stats(user_id: str):
         "posts_count": posts_count,
         "comments_count": comments_count,
         "relates_count": relates_count,
-        "streak_days": user.get("streak_days", 0),
+        "streak_days": stats.get("current_visit_streak", 0) if stats else 0,
         "rocket10_completed": user.get("rocket10_completed", False)
     }
 
