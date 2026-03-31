@@ -74,6 +74,10 @@ export default function Notifications() {
       } else if (item.type === 'broadcast') {
         // Broadcasts go to home
         router.push('/(tabs)/home');
+      if (item.type === 'new_follower') {
+        router.push(`/user/${item.related_user_id || ''}`);
+      } else if (item.type === 'badge_earned') {
+        router.push('/(tabs)/profile');
       } else if (item.problem_id) {
         router.push(`/problem/${item.problem_id}`);
       }

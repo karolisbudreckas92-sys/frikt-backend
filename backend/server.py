@@ -373,8 +373,8 @@ class Helpful(BaseModel):
 class Notification(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     user_id: str
-    type: str  # "new_comment", "new_relate", "problem_trending"
-    problem_id: str
+    type: str  # "new_comment", "new_relate", "problem_trending", "new_follower", "badge_earned", "admin_broadcast"
+    problem_id: Optional[str] = None
     message: str
     is_read: bool = False
     created_at: datetime = Field(default_factory=datetime.utcnow)
@@ -2089,6 +2089,12 @@ async def relate_to_problem(problem_id: str, user: dict = Depends(require_auth))
     if not problem:
         raise HTTPException(status_code=404, detail="Problem not found")
     
+    # Block check: prevent interaction between blocked users
+    if problem["user_id"] and problem["user_id"] != "deleted_user":
+        blocked_ids = await get_blocked_user_ids(user["id"])
+        if problem["user_id"] in blocked_ids:
+            raise HTTPException(status_code=403, detail="Cannot interact with this user")
+    
     # Prevent self-relates
     if problem["user_id"] == user["id"]:
         raise HTTPException(status_code=400, detail="Cannot relate to your own post")
@@ -2277,6 +2283,12 @@ async def create_comment(comment_data: CommentCreate, user: dict = Depends(requi
     problem = await db.problems.find_one({"id": comment_data.problem_id})
     if not problem:
         raise HTTPException(status_code=404, detail="Problem not found")
+    
+    # Block check: prevent commenting on blocked user's post
+    if problem.get("user_id") and problem["user_id"] != "deleted_user":
+        blocked_ids = await get_blocked_user_ids(user["id"])
+        if problem["user_id"] in blocked_ids:
+            raise HTTPException(status_code=403, detail="Cannot interact with this user")
     
     # Handle reply threading
     parent_comment_id = comment_data.parent_comment_id
@@ -2940,6 +2952,11 @@ async def follow_user(user_id: str, user: dict = Depends(require_auth)):
     if not target_user:
         raise HTTPException(status_code=404, detail="User not found")
     
+    # Block check: prevent following blocked users
+    blocked_ids = await get_blocked_user_ids(user["id"])
+    if user_id in blocked_ids:
+        raise HTTPException(status_code=403, detail="Cannot interact with this user")
+    
     # Check if already following (using a user_follows collection)
     existing = await db.user_follows.find_one({
         "follower_id": user["id"],
@@ -3086,13 +3103,21 @@ async def update_profile(profile: ProfileUpdate, user: dict = Depends(require_au
     
     # Propagate displayName change to all denormalized collections
     new_display_name = display_name
+    avatar_url = update_data.get("avatarUrl", user.get("avatarUrl"))
+    propagation_set = {"user_name": new_display_name}
+    if "avatarUrl" in update_data:
+        propagation_set["user_avatar_url"] = update_data["avatarUrl"]
+    
     await db.problems.update_many(
         {"user_id": user["id"]},
-        {"$set": {"user_name": new_display_name}}
+        {"$set": propagation_set}
     )
+    comment_propagation = {"user_name": new_display_name}
+    if "avatarUrl" in update_data:
+        comment_propagation["user_avatar_url"] = update_data["avatarUrl"]
     await db.comments.update_many(
         {"user_id": user["id"]},
-        {"$set": {"user_name": new_display_name}}
+        {"$set": comment_propagation}
     )
     await db.comments.update_many(
         {"reply_to_user_id": user["id"]},
@@ -3161,6 +3186,12 @@ async def upload_avatar(file: UploadFile = FastAPIFile(...), user: dict = Depend
         {"$set": {"avatarUrl": avatar_url}}
     )
     
+    # Propagate avatar change to denormalized collections
+    await db.problems.update_many(
+        {"user_id": user["id"]},
+        {"$set": {"user_avatar_url": avatar_url}}
+    )
+    
     return {"url": avatar_url, "message": "Avatar uploaded successfully"}
 
 class AvatarBase64Upload(BaseModel):
@@ -3211,6 +3242,12 @@ async def upload_avatar_base64(data: AvatarBase64Upload, user: dict = Depends(re
     await db.users.update_one(
         {"id": user["id"]},
         {"$set": {"avatarUrl": avatar_url}}
+    )
+    
+    # Propagate avatar change to denormalized collections
+    await db.problems.update_many(
+        {"user_id": user["id"]},
+        {"$set": {"user_avatar_url": avatar_url}}
     )
     
     return {"url": avatar_url, "message": "Avatar uploaded successfully"}
@@ -4707,8 +4744,9 @@ async def delete_feedback(feedback_id: str, admin: dict = Depends(require_admin)
 @api_router.post("/communities/join")
 async def join_community(data: CommunityJoinCode, user: dict = Depends(require_auth)):
     """Join a community using an invite code."""
+    normalized_code = data.code.strip().upper()
     community = await db.communities.find_one(
-        {"active_code": {"$regex": f"^{re.escape(data.code)}$", "$options": "i"}},
+        {"active_code": normalized_code},
         {"_id": 0}
     )
     if not community:
@@ -4736,8 +4774,9 @@ async def join_community(data: CommunityJoinCode, user: dict = Depends(require_a
 @api_router.post("/communities/switch")
 async def switch_community(data: CommunityJoinCode, user: dict = Depends(require_auth)):
     """Switch to a new community (leaves old one)."""
+    normalized_code = data.code.strip().upper()
     community = await db.communities.find_one(
-        {"active_code": {"$regex": f"^{re.escape(data.code)}$", "$options": "i"}},
+        {"active_code": normalized_code},
         {"_id": 0}
     )
     if not community:
@@ -4865,35 +4904,37 @@ async def request_join_community(community_id: str, data: CommunityJoinRequestCr
 @api_router.post("/admin/communities")
 async def admin_create_community(data: AdminCommunityCreate, admin: dict = Depends(require_admin)):
     """Create a new community."""
-    # Check code uniqueness (case-insensitive)
+    normalized_code = data.code.strip().upper()
+    # Check code uniqueness
     existing = await db.communities.find_one(
-        {"active_code": {"$regex": f"^{re.escape(data.code)}$", "$options": "i"}}
+        {"active_code": normalized_code}
     )
     if existing:
         raise HTTPException(status_code=400, detail="A community with this code already exists")
     
     community = Community(
         name=data.name,
-        active_code=data.code,
+        active_code=normalized_code,
         moderator_email=data.moderator_email
     )
     await db.communities.insert_one(community.dict())
-    await log_admin_action(admin, "create_community", "community", community.id, {"name": data.name, "code": data.code})
+    await log_admin_action(admin, "create_community", "community", community.id, {"name": data.name, "code": normalized_code})
     return {"success": True, "community": community.dict()}
 
 @api_router.put("/admin/communities/{community_id}/code")
 async def admin_update_community_code(community_id: str, data: AdminCodeUpdate, admin: dict = Depends(require_admin)):
     """Change a community's active invite code."""
+    normalized_code = data.new_code.strip().upper()
     # Check code uniqueness
     existing = await db.communities.find_one(
-        {"active_code": {"$regex": f"^{re.escape(data.new_code)}$", "$options": "i"}, "id": {"$ne": community_id}}
+        {"active_code": normalized_code, "id": {"$ne": community_id}}
     )
     if existing:
         raise HTTPException(status_code=400, detail="This code is already in use by another community")
     
     result = await db.communities.update_one(
         {"id": community_id},
-        {"$set": {"active_code": data.new_code}}
+        {"$set": {"active_code": normalized_code}}
     )
     if result.modified_count == 0:
         raise HTTPException(status_code=404, detail="Community not found")
@@ -5074,6 +5115,50 @@ async def root():
 async def health():
     return {"status": "healthy"}
 
+@api_router.post("/admin/sync-problem-stats")
+async def sync_problem_stats(admin: dict = Depends(require_admin)):
+    """Recalculate relates_count, comments_count, and unique_commenters for all problems."""
+    corrections = 0
+    problems = await db.problems.find({}, {"id": 1, "relates_count": 1, "comments_count": 1, "unique_commenters": 1}).to_list(50000)
+    
+    for problem in problems:
+        pid = problem["id"]
+        
+        # Count relates
+        actual_relates = await db.relates.count_documents({"problem_id": pid})
+        
+        # Count non-removed/hidden comments
+        actual_comments = await db.comments.count_documents({
+            "problem_id": pid,
+            "status": {"$nin": ["removed", "hidden"]}
+        })
+        
+        # Count unique commenters
+        commenter_ids = await db.comments.distinct("user_id", {
+            "problem_id": pid,
+            "status": {"$nin": ["removed", "hidden"]}
+        })
+        actual_unique = len(commenter_ids)
+        
+        old_relates = problem.get("relates_count", 0)
+        old_comments = problem.get("comments_count", 0)
+        old_unique = problem.get("unique_commenters", 0)
+        
+        if old_relates != actual_relates or old_comments != actual_comments or old_unique != actual_unique:
+            await db.problems.update_one(
+                {"id": pid},
+                {"$set": {
+                    "relates_count": actual_relates,
+                    "comments_count": actual_comments,
+                    "unique_commenters": actual_unique
+                }}
+            )
+            corrections += 1
+    
+    await log_admin_action(admin, "sync_problem_stats", "system", "", {"corrections": corrections, "total_problems": len(problems)})
+    logger.info(f"Problem stats sync complete: {corrections} corrections out of {len(problems)} problems")
+    return {"success": True, "corrections": corrections, "total_problems": len(problems)}
+
 # Include router
 app.include_router(api_router)
 
@@ -5085,10 +5170,22 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
 @app.on_event("startup")
 async def startup_event():
     """Start background tasks on app startup."""
     asyncio.create_task(notification_batch_processor())
+    
+    # Create unique indexes for data integrity
+    try:
+        await db.community_members.create_index("user_id", unique=True)
+        await db.communities.create_index("active_code", unique=True)
+        await db.blocked_users.create_index(
+            [("blocker_user_id", 1), ("blocked_user_id", 1)], unique=True
+        )
+        logger.info("Database indexes created successfully")
+    except Exception as e:
+        logger.warning(f"Index creation warning (may already exist): {e}")
     logger.info("Notification batch processor started")
 
 @app.on_event("shutdown")
