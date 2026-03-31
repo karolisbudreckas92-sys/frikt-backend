@@ -375,16 +375,14 @@ showCity: boolean (default false)
 role: "user" | "admin"
 status: "active" | "banned" | "shadowbanned"
 created_at: datetime
-rocket10_completed: boolean
-rocket10_day: int
-rocket10_start_date: datetime | null
+onboarding_completed: boolean (default false, migrated to true for existing users)
 posts_today: int
 last_post_date: string | null (YYYY-MM-DD)
-streak_days: int
 followed_categories: string[] (category IDs)
 followed_problems: string[] (problem IDs)
 saved_problems: string[] (problem IDs)
 ```
+**Removed fields (Cleanup FIX 15):** `rocket10_completed`, `rocket10_day`, `rocket10_start_date`, `streak_days` — visit streak is tracked exclusively in the `user_stats` collection via `current_visit_streak`.
 
 ### Collection: `problems`
 ```
@@ -396,7 +394,6 @@ title: string (min 10 chars)
 category_id: string
 frequency: "daily" | "weekly" | "monthly" | "rare" | null
 pain_level: int (1-5) | null
-willing_to_pay: string (default "$0")
 when_happens: string | null
 who_affected: string | null
 what_tried: string | null
@@ -425,7 +422,6 @@ content: string (min 10 chars)
 created_at: datetime
 edited_at: datetime | null
 helpful_count: int (default 0)
-is_pinned: boolean (default false)
 status: "active" | "hidden" | "removed"
 reports_count: int (default 0)
 parent_comment_id: string | null (null = top-level, string = reply to this comment)
@@ -508,6 +504,8 @@ user_id: string → users.id
 push_notifications: boolean (default true) — master toggle
 new_comments: boolean (default true)
 new_relates: boolean (default true)
+comment_replies: boolean (default true)
+follows: boolean (default true)
 trending: boolean (default true)
 ```
 
@@ -665,7 +663,7 @@ created_at: datetime
 | Local (Trending) | `is_local=true, community_id={id}, created_at >= 7 days` | `hot_score DESC` | Only local |
 | Local (New) | `is_local=true, community_id={id}` | `created_at DESC` | Only local |
 | Local (Top) | `is_local=true, community_id={id}` | `relates_count DESC` | Only local |
-| **Search** | `title/when/who REGEX match` | `created_at DESC` | **Yes — both** |
+| **Search** | `title REGEX match` | `created_at DESC` | **Yes — both** |
 
 **Hot score:** `(relates_count * 3) + (comments_count * 2) + unique_commenters`
 **Engagement score:** `(relates_count * 2) + (comments_count * 1.5)`
@@ -862,6 +860,8 @@ query["community_id"] = community_id
 - `push_notifications`: master toggle
 - `new_comments`: receive comment notifications
 - `new_relates`: receive relate notifications
+- `comment_replies`: receive reply notifications
+- `follows`: receive follower notifications
 - `trending`: receive trending alerts
 
 ---
@@ -870,6 +870,8 @@ query["community_id"] = community_id
 
 ### Community Model
 A community is a location-based or code-gated group. Users can belong to one community at a time and post local-only frikts visible within their community.
+
+**Empty community behavior (FIX 17):** Communities with 0 members remain active, joinable, and searchable. There is no auto-archive or cleanup for empty communities — they persist until manually removed by an admin.
 
 ### Joining Flow
 1. User enters invite code on Home Local tab
@@ -1031,7 +1033,7 @@ Posts with interaction ALWAYS beat posts without (except very new posts with rec
 ### Frikt Search
 - **Endpoint:** `GET /api/problems?search={query}`
 - **Type:** Case-insensitive regex
-- **Fields:** `title`, `when_happens`, `who_affected`
+- **Fields:** `title` only (Cleanup FIX 18: `when_happens` and `who_affected` removed from search indexing)
 - **Includes local frikts:** Yes — when a search parameter is present, the `is_local` filter is NOT applied. Local and global frikts appear together.
 ```python
 # Local frikts excluded from feeds, but NOT from search
@@ -1247,7 +1249,7 @@ GET  /api/
 - `displayName`, `bio`, `city`, `showCity`, `avatarUrl`
 
 ### Profile Fields (System-managed)
-- `email`, `name`, `created_at`, `role`, `status`, `followed_categories`, `followed_problems`, `saved_problems`, `streak_days`, `posts_today`
+- `email`, `name`, `created_at`, `role`, `status`, `followed_categories`, `followed_problems`, `saved_problems`, `onboarding_completed`, `posts_today`
 
 ### Badge System — 45 total badges
 
@@ -1369,12 +1371,17 @@ Rotates based on day of week:
 
 ---
 
-## 18. ACCOUNT DELETION
+## 18. ACCOUNT DELETION (Soft Delete)
 
 1. `DELETE /api/users/me`
-2. Hard-deletes user from `users` collection
-3. Deletes all associated data: problems, comments, relates, helpfuls, notifications, push tokens, notification settings, user stats, achievements, follows, feedback, pending badges
-4. Blocked users entries (both directions) cleaned up
+2. **Preserves community content** — user's problems and comments are anonymized:
+   - `user_name` → `"[deleted user]"`
+   - `user_avatar_url` → `null`
+   - `user_id` → preserved for data integrity
+3. Deletes user from `users` collection
+4. Deletes personal data: relates, helpfuls, notifications, push tokens, notification settings, user stats, achievements, follows, feedback, pending badges
+5. Community membership removed, member counts recalculated
+6. Blocked users entries (both directions) cleaned up
 
 ---
 
@@ -1428,3 +1435,10 @@ Rotates based on day of week:
 - *Updated Admin Communities: members list, dismiss requests, sent status*
 - *Added Onboarding Screen documentation*
 - *Updated API Reference: admin members, community request dismiss endpoints*
+- *Cleanup FIX 14: Removed `streak_days` from users schema, visit streak now exclusively in `user_stats.current_visit_streak`*
+- *Cleanup FIX 15: Removed dead fields — `willing_to_pay` from problems, `rocket10_*` from users, `is_pinned` from comments*
+- *Cleanup FIX 16: Added `onboarding_completed` to users schema with server-side migration*
+- *Cleanup FIX 17: Documented empty community behavior (0-member communities stay active)*
+- *Cleanup FIX 18: Search now only matches on `title` field (removed `when_happens`, `who_affected`)*
+- *Updated notification_settings schema: added `comment_replies` and `follows` toggles*
+- *Updated account deletion to reflect soft-delete/anonymization behavior*
