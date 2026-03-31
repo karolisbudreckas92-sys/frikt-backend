@@ -57,8 +57,7 @@ export default function EditProblem() {
   const [frequency, setFrequency] = useState<string | null>(null);
   const [painLevel, setPainLevel] = useState<number | null>(null);
   
-  // Optional details (collapsed by default)
-  const [showDetails, setShowDetails] = useState(false);
+  // Optional details (always shown in edit mode)
   const [whenHappens, setWhenHappens] = useState('');
   const [whoAffected, setWhoAffected] = useState('');
   const [whatTried, setWhatTried] = useState('');
@@ -82,9 +81,7 @@ export default function EditProblem() {
       setWhatTried(data.what_tried || '');
       
       // Show details section if any context is filled
-      if (data.when_happens || data.who_affected || data.what_tried) {
-        setShowDetails(true);
-      }
+      // (no longer needed - always visible in edit mode)
     } catch (error) {
       console.error('Error loading problem:', error);
       showToast('Failed to load problem', true);
@@ -285,67 +282,50 @@ export default function EditProblem() {
             </View>
           </View>
 
-          {/* Optional Details Toggle */}
-          <TouchableOpacity 
-            style={styles.detailsToggle}
-            onPress={() => setShowDetails(!showDetails)}
-          >
-            <View style={styles.detailsToggleLeft}>
-              <Ionicons 
-                name={showDetails ? "chevron-down" : "chevron-forward"} 
-                size={20} 
-                color={colors.textSecondary} 
+          {/* Details Section - Always visible in edit mode */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Details (optional)</Text>
+            <Text style={styles.detailHint}>Helps others relate faster</Text>
+
+            <View style={styles.detailField}>
+              <Text style={styles.detailLabel}>When does this happen?</Text>
+              <TextInput
+                style={styles.detailInput}
+                value={whenHappens}
+                onChangeText={setWhenHappens}
+                placeholder="Describe the situation..."
+                placeholderTextColor={colors.textMuted}
+                multiline
+                maxLength={500}
               />
-              <View>
-                <Text style={styles.detailsToggleTitle}>Add details (optional)</Text>
-                <Text style={styles.detailsToggleSubtitle}>Helps others relate faster</Text>
-              </View>
             </View>
-          </TouchableOpacity>
 
-          {/* Optional Details Fields */}
-          {showDetails && (
-            <View style={styles.detailsSection}>
-              <View style={styles.detailField}>
-                <Text style={styles.detailLabel}>When does this happen?</Text>
-                <TextInput
-                  style={styles.detailInput}
-                  value={whenHappens}
-                  onChangeText={setWhenHappens}
-                  placeholder="Describe the situation..."
-                  placeholderTextColor={colors.textMuted}
-                  multiline
-                  maxLength={500}
-                />
-              </View>
-
-              <View style={styles.detailField}>
-                <Text style={styles.detailLabel}>Who does it affect?</Text>
-                <TextInput
-                  style={styles.detailInput}
-                  value={whoAffected}
-                  onChangeText={setWhoAffected}
-                  placeholder="Who else experiences this?"
-                  placeholderTextColor={colors.textMuted}
-                  multiline
-                  maxLength={500}
-                />
-              </View>
-
-              <View style={styles.detailField}>
-                <Text style={styles.detailLabel}>What have you tried?</Text>
-                <TextInput
-                  style={styles.detailInput}
-                  value={whatTried}
-                  onChangeText={setWhatTried}
-                  placeholder="Any solutions you've attempted?"
-                  placeholderTextColor={colors.textMuted}
-                  multiline
-                  maxLength={500}
-                />
-              </View>
+            <View style={styles.detailField}>
+              <Text style={styles.detailLabel}>Who does it affect?</Text>
+              <TextInput
+                style={styles.detailInput}
+                value={whoAffected}
+                onChangeText={setWhoAffected}
+                placeholder="Who else experiences this?"
+                placeholderTextColor={colors.textMuted}
+                multiline
+                maxLength={500}
+              />
             </View>
-          )}
+
+            <View style={styles.detailField}>
+              <Text style={styles.detailLabel}>What have you tried?</Text>
+              <TextInput
+                style={styles.detailInput}
+                value={whatTried}
+                onChangeText={setWhatTried}
+                placeholder="Any solutions you've attempted?"
+                placeholderTextColor={colors.textMuted}
+                multiline
+                maxLength={500}
+              />
+            </View>
+          </View>
 
           {/* Delete Button - Only show if owner or admin */}
           {canDelete && (
@@ -514,36 +494,11 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: colors.textMuted,
   },
-  detailsToggle: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginHorizontal: 16,
-    marginTop: 16,
-    padding: 16,
-    backgroundColor: colors.surface,
-    borderRadius: radius.md,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  detailsToggleLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  detailsToggleTitle: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: colors.text,
-  },
-  detailsToggleSubtitle: {
+  detailHint: {
     fontSize: 13,
     color: colors.textMuted,
-    marginTop: 2,
-  },
-  detailsSection: {
-    padding: 16,
-    paddingTop: 8,
+    marginBottom: 16,
+    marginTop: -4,
   },
   detailField: {
     marginBottom: 16,

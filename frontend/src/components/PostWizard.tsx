@@ -81,6 +81,12 @@ export default function PostWizard({ onComplete, onCancel }: PostWizardProps) {
   const [frequency, setFrequency] = useState<string | null>(null);
   const [severity, setSeverity] = useState<number | null>(null);
   
+  // Step 2 - Optional detail fields (collapsible)
+  const [showDetails, setShowDetails] = useState(false);
+  const [whenHappens, setWhenHappens] = useState('');
+  const [whoAffected, setWhoAffected] = useState('');
+  const [whatTried, setWhatTried] = useState('');
+  
   // Local community toggle
   const [isLocal, setIsLocal] = useState(false);
   const [myCommunity, setMyCommunity] = useState<any>(null);
@@ -135,6 +141,9 @@ export default function PostWizard({ onComplete, onCancel }: PostWizardProps) {
         frequency: frequency || null,
         pain_level: severity || null,
         is_local: isLocal,
+        when_happens: whenHappens.trim() || null,
+        who_affected: whoAffected.trim() || null,
+        what_tried: whatTried.trim() || null,
       });
       
       // Reset state before calling onComplete
@@ -143,6 +152,10 @@ export default function PostWizard({ onComplete, onCancel }: PostWizardProps) {
       setCategoryId('other');
       setFrequency(null);
       setSeverity(null);
+      setShowDetails(false);
+      setWhenHappens('');
+      setWhoAffected('');
+      setWhatTried('');
       setStep(1);
       setSimilarProblems([]);
       
@@ -331,6 +344,68 @@ export default function PostWizard({ onComplete, onCancel }: PostWizardProps) {
         <Text style={styles.severityLabel}>Mild</Text>
         <Text style={styles.severityLabel}>Severe</Text>
       </View>
+
+      {/* Collapsible Details Section */}
+      <TouchableOpacity 
+        style={styles.detailsToggle}
+        onPress={() => setShowDetails(!showDetails)}
+        data-testid="details-toggle"
+      >
+        <View style={styles.detailsToggleLeft}>
+          <Ionicons 
+            name={showDetails ? "chevron-down" : "chevron-forward"} 
+            size={20} 
+            color={colors.textSecondary} 
+          />
+          <View>
+            <Text style={styles.detailsToggleTitle}>Add details (optional)</Text>
+            <Text style={styles.detailsToggleSubtitle}>Helps others relate faster</Text>
+          </View>
+        </View>
+      </TouchableOpacity>
+
+      {showDetails && (
+        <View style={styles.detailsSection}>
+          <View style={styles.detailField}>
+            <Text style={styles.detailLabel}>When does this happen?</Text>
+            <TextInput
+              style={styles.detailInput}
+              value={whenHappens}
+              onChangeText={setWhenHappens}
+              placeholder="Describe the situation..."
+              placeholderTextColor={colors.textMuted}
+              multiline
+              maxLength={500}
+            />
+          </View>
+
+          <View style={styles.detailField}>
+            <Text style={styles.detailLabel}>Who does it affect?</Text>
+            <TextInput
+              style={styles.detailInput}
+              value={whoAffected}
+              onChangeText={setWhoAffected}
+              placeholder="Who else experiences this?"
+              placeholderTextColor={colors.textMuted}
+              multiline
+              maxLength={500}
+            />
+          </View>
+
+          <View style={styles.detailField}>
+            <Text style={styles.detailLabel}>What have you tried?</Text>
+            <TextInput
+              style={styles.detailInput}
+              value={whatTried}
+              onChangeText={setWhatTried}
+              placeholder="Any solutions you've attempted?"
+              placeholderTextColor={colors.textMuted}
+              multiline
+              maxLength={500}
+            />
+          </View>
+        </View>
+      )}
     </ScrollView>
   );
 
@@ -703,5 +778,54 @@ const styles = StyleSheet.create({
   localCheckboxActive: {
     backgroundColor: 'rgba(255,255,255,0.3)',
     borderColor: '#fff',
+  },
+  detailsToggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 24,
+    padding: 16,
+    backgroundColor: colors.surface,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  detailsToggleLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  detailsToggleTitle: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: colors.text,
+  },
+  detailsToggleSubtitle: {
+    fontSize: 13,
+    color: colors.textMuted,
+    marginTop: 2,
+  },
+  detailsSection: {
+    paddingTop: 8,
+  },
+  detailField: {
+    marginBottom: 16,
+  },
+  detailLabel: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: colors.textSecondary,
+    marginBottom: 8,
+  },
+  detailInput: {
+    backgroundColor: colors.surface,
+    borderRadius: radius.md,
+    padding: 14,
+    fontSize: 15,
+    color: colors.text,
+    minHeight: 80,
+    textAlignVertical: 'top',
+    borderWidth: 1,
+    borderColor: colors.border,
   },
 });

@@ -118,12 +118,6 @@ export default function ProblemDetail() {
   // Check if current user is the owner
   const isOwner = user && problem && user.id === problem.user_id;
 
-  // Check if any context fields have content
-  const hasWhenHappens = problem?.when_happens && problem.when_happens.trim().length > 0;
-  const hasWhoAffected = problem?.who_affected && problem.who_affected.trim().length > 0;
-  const hasWhatTried = problem?.what_tried && problem.what_tried.trim().length > 0;
-  const hasAnyContext = hasWhenHappens || hasWhoAffected || hasWhatTried;
-
   const handleRelate = async () => {
     if (!problem) return;
     
@@ -588,49 +582,6 @@ export default function ProblemDetail() {
               <Text style={styles.actionText}>Report</Text>
             </TouchableOpacity>
           </View>
-
-          {/* Context Section - Only show if has content OR show "Add details" card for owner */}
-          {hasAnyContext ? (
-            <View style={styles.contextSection}>
-              {hasWhenHappens && (
-                <>
-                  <Text style={styles.contextLabel}>When does this happen?</Text>
-                  <View style={styles.contextBox}>
-                    <Text style={styles.contextText}>{problem.when_happens}</Text>
-                  </View>
-                </>
-              )}
-
-              {hasWhoAffected && (
-                <>
-                  <Text style={styles.contextLabel}>Who does it affect?</Text>
-                  <View style={styles.contextBox}>
-                    <Text style={styles.contextText}>{problem.who_affected}</Text>
-                  </View>
-                </>
-              )}
-
-              {hasWhatTried && (
-                <>
-                  <Text style={styles.contextLabel}>What have you tried?</Text>
-                  <View style={styles.contextBox}>
-                    <Text style={styles.contextText}>{problem.what_tried}</Text>
-                  </View>
-                </>
-              )}
-            </View>
-          ) : isOwner ? (
-            <TouchableOpacity style={styles.addDetailsCard} onPress={handleEdit}>
-              <View style={styles.addDetailsContent}>
-                <Ionicons name="add-circle-outline" size={24} color={colors.primary} />
-                <View style={styles.addDetailsText}>
-                  <Text style={styles.addDetailsTitle}>Add details (optional)</Text>
-                  <Text style={styles.addDetailsSubtitle}>Helps others relate faster</Text>
-                </View>
-              </View>
-              <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
-            </TouchableOpacity>
-          ) : null}
 
           {/* Comments Section */}
           <View style={styles.commentsSection}>
@@ -1240,54 +1191,6 @@ const styles = StyleSheet.create({
   },
   actionTextActive: {
     color: colors.primary,
-  },
-  contextSection: {
-    marginBottom: 24,
-  },
-  contextLabel: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: colors.textSecondary,
-    marginBottom: 8,
-    marginTop: 12,
-  },
-  contextBox: {
-    backgroundColor: colors.surface,
-    padding: 14,
-    borderRadius: radius.md,
-  },
-  contextText: {
-    fontSize: 15,
-    color: colors.text,
-    lineHeight: 22,
-  },
-  addDetailsCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: colors.surface,
-    padding: 16,
-    borderRadius: radius.md,
-    marginBottom: 24,
-    borderWidth: 1,
-    borderColor: colors.primary + '30',
-    borderStyle: 'dashed',
-  },
-  addDetailsContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  addDetailsText: {},
-  addDetailsTitle: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: colors.text,
-  },
-  addDetailsSubtitle: {
-    fontSize: 13,
-    color: colors.textMuted,
-    marginTop: 2,
   },
   sectionTitle: {
     fontSize: 16,
