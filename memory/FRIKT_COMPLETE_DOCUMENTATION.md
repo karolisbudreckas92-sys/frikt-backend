@@ -115,16 +115,24 @@
 
 #### Post Screen (`/app/(tabs)/post.tsx`)
 - **How to get there:** Bottom tab "+" (Post)
-- **Elements:**
-  - Title input (required, min 10 chars)
+- **Uses:** `PostWizard` component — 2-step flow
+- **Step 1 — "What's bothering you today?":**
+  - Text input (required, min 10 chars, max 500)
   - **"Post to {community_name}" toggle** (only if user has a community)
-  - Category picker (disabled/auto-set to "Local" when local toggle is ON)
-  - Similar problems indicator (real-time as user types)
-  - Optional fields: frequency, pain level (1-5), willing to pay, when it happens, who's affected, what I've tried
-  - "Post" button
+  - Similar problems indicator (real-time debounced search as user types, shows max 2)
+  - "Continue" button (enabled when >= 10 chars)
+- **Step 2 — "Add quick details" (all optional):**
+  - Category picker (10 chips, auto-set to "Local" if local toggle ON)
+  - Frequency picker: Daily / Weekly / Monthly / Rare
+  - Severity (1-5) scale with Mild–Severe labels
+  - **Collapsible section "Add details (optional) — Helps others relate faster"** (collapsed by default):
+    - "When does this happen?" (TextInput, max 500)
+    - "Who does it affect?" (TextInput, max 500)
+    - "What have you tried?" (TextInput, max 500)
+  - "Skip" button (posts without tags) or "Done" button (posts with tags)
 - **API Calls:**
   - Similar check → `GET /api/problems/similar?title={title}` (or with `is_local=true&community_id={id}`)
-  - Submit → `POST /api/problems`
+  - Submit → `POST /api/problems` (includes `when_happens`, `who_affected`, `what_tried` if provided)
 
 #### Categories Screen (`/app/(tabs)/categories.tsx`)
 - **How to get there:** Bottom tab "Categories"
@@ -158,10 +166,11 @@
   - Category tag + Local tag (if applicable)
   - Frikt title
   - Author name (tappable → user profile) + avatar + timestamp
-  - Detail fields: frequency, pain level, when, who, what tried
+  - Metadata: frequency, pain level (if set)
   - Relate button + count
   - Save button, Follow button, Share button
   - Report button (3-dot menu)
+  - Edit button (owner only, navigates to `/edit-problem?id={id}`)
   - **For local frikts:** community name banner + membership status
   - **Comments section:**
     - Top-level comments sorted by `helpful_count DESC`
@@ -171,6 +180,7 @@
     - `is_community_member` badge on comments for local frikts
   - Comment input: text field + quick reply pills
   - Related frikts section at bottom
+- **Note:** Detail fields (when_happens, who_affected, what_tried) are NOT shown here. They exist only in creation (PostWizard Step 2) and edit screen.
 
 **Quick Reply Pills:** "I relate because...", "One thing I tried...", "Have you tried...?"
 
@@ -229,6 +239,28 @@
 | Terms | `/app/terms.tsx` | Static content |
 | Privacy Policy | `/app/privacy-policy.tsx` | Static content |
 
+#### Edit Problem Screen (`/app/edit-problem.tsx`)
+- **How to get there:** Problem detail → Edit button (owner only)
+- **Elements (all visible, no collapsible):**
+  - Frikt text (TextInput, editable)
+  - Category picker (10 chips)
+  - Frequency picker: Daily / Weekly / Monthly / Rare
+  - Severity (1-5) scale
+  - "When does this happen?" (TextInput)
+  - "Who does it affect?" (TextInput)
+  - "What have you tried?" (TextInput)
+  - "Save Changes" button
+- **API Calls:**
+  - Load → `GET /api/problems/{id}`
+  - Save → `PATCH /api/problems/{id}`
+
+#### DisplayName Propagation
+When a user updates their displayName via `PUT /api/users/me/profile`, the backend also propagates the new name to all denormalized fields:
+- `problems.user_name` (all user's frikts)
+- `comments.user_name` (all user's comments)
+- `comments.reply_to_user_name` (replies to user)
+- `feedback.user_name` (all user's feedback)
+
 ---
 
 ### 1.5 Admin Panel (`/app/admin.tsx`)
@@ -251,10 +283,11 @@
 **Broadcast:** Send push notification to all users or admins only. Title + message + optional link. Broadcast history with delivery stats. Debug push tokens list. Test push to specific user.
 
 **Communities:**
-- **Community Requests section:** Pending new community creation requests (non-expired only). Approve/reject actions.
+- **Community Requests section:** Pending new community creation requests (non-expired only). "Contact" (mailto) and "Dismiss" actions. `PUT /api/admin/community-requests/{id}` to update status.
 - **Create Community:** Name + code + moderator email form.
-- **Active Communities list:** Name, code, member count, frikt count, pending join requests. Change code action.
-- **Join Requests per community:** Pending, non-expired requests. "Send Code" action (opens mailto with invite code).
+- **Active Communities list:** Name, code, member count, frikt count, pending join requests. Change code action. Expandable "Members" section per community.
+- **Members:** Searchable list of community members (name, email, role, join date). `GET /api/admin/communities/{id}/members?search=query`
+- **Join Requests per community:** Pending, non-expired requests. "Send Code" action (opens mailto with invite code). Sent status tracking.
 - **Export:** Download community data as anonymous `.txt` file (period filter: all/7d/30d/90d).
 
 **Feedback:** List of user feedback submissions. Mark read/unread, delete.
@@ -602,20 +635,22 @@ created_at: datetime
 
 ### Creating a Global Frikt
 
-1. User taps "+" tab → Post Screen
-2. Fills in title (required, min 10 chars), local toggle OFF, category (default "other"), optional fields
-3. As user types, `GET /api/problems/similar?title={title}` shows potential duplicates
-4. User taps "Post" → `POST /api/problems`
-5. Backend creates `problems` document with `is_local=false, community_id=null`
-6. Rate limit: max 10 frikts per day per user
-7. Gamification: increment `total_posts`, check category specialist badges
+1. User taps "+" tab → PostWizard opens
+2. **Step 1:** Types frikt text (required, min 10 chars). Local toggle OFF. `GET /api/problems/similar?title={title}` shows potential duplicates as user types
+3. Taps "Continue" → advances to Step 2
+4. **Step 2:** Selects category (default "other"), frequency, severity — all optional
+5. Optionally expands "Add details" section to fill: when_happens, who_affected, what_tried
+6. Taps "Done" (or "Skip" to post without tags) → `POST /api/problems`
+7. Backend creates `problems` document with `is_local=false, community_id=null`
+8. Rate limit: max 10 frikts per day per user
+9. Gamification: increment `total_posts`, check category specialist badges
 
 ### Creating a Local Frikt
 
-1. User taps "+" tab → Post Screen
-2. Toggles "Post to {community_name}" ON
-3. `category_id` auto-set to "local"
-4. Similar problems checked within community: `GET /api/problems/similar?title={title}&is_local=true&community_id={id}`
+1. User taps "+" tab → PostWizard opens
+2. **Step 1:** Toggles "Post to {community_name}" ON, types frikt text
+3. Similar problems checked within community: `GET /api/problems/similar?title={title}&is_local=true&community_id={id}`
+4. **Step 2:** Category auto-set to "local" (picker disabled). Frequency, severity, details optional
 5. `POST /api/problems` with `is_local=true`
 6. Backend validates community membership (403 if not), sets `community_id`, forces `category_id = "local"`
 7. Frikt only appears in local feed, never in global feeds
@@ -1382,3 +1417,14 @@ Rotates based on day of week:
 ---
 
 ## END OF DOCUMENTATION
+
+---
+*Last updated: March 31, 2026*
+*Changes in this version:*
+- *Updated Post Screen to reflect 2-step PostWizard with collapsible details*
+- *Updated Problem Detail Screen: removed "Add details" section*
+- *Added Edit Problem Screen documentation*
+- *Added DisplayName Propagation section*
+- *Updated Admin Communities: members list, dismiss requests, sent status*
+- *Added Onboarding Screen documentation*
+- *Updated API Reference: admin members, community request dismiss endpoints*
