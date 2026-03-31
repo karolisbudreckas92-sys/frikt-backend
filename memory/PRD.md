@@ -72,6 +72,18 @@ FRIKT is a mobile app (Expo/React Native + FastAPI + MongoDB) for sharing daily 
 - FIX 17: Empty community behavior documented — 0-member communities remain active, joinable, searchable
 - FIX 18: Search only matches on `title` — removed `when_happens` and `who_affected` from search query
 
+## Community Avatar Feature (Complete - March 2026)
+- Added `avatar_url` field to Community model (string | null, default null)
+- Admin endpoint `POST /api/admin/communities/{id}/avatar` for base64 image upload
+- Admin panel: Tappable avatar in expanded community rows with image picker
+- Frontend: All community views (Home local header, Community Detail, Search, Profile) show avatar if set, fallback to pin icon
+- API responses: GET /communities, GET /communities/{id}, GET /communities/me, GET /admin/communities all include avatar_url
+
+## Anonymous Reminder (Complete - March 2026)
+- Subtle helper text in PostWizard Step 1 below character counter
+- Text: "This is anonymous. Focus on the problem, not the person."
+- Gray (#999), 12px, centered, always visible
+
 ## Testing
 - iteration_6.json: 33/33 PASS
 - iteration_7.json: 42/46 PASS (4 rate-limit)
@@ -79,6 +91,7 @@ FRIKT is a mobile app (Expo/React Native + FastAPI + MongoDB) for sharing daily 
 - iteration_12.json: Security fixes - 100% pass
 - iteration_13.json: Data integrity fixes - 100% pass
 - iteration_14.json: Cleanup fixes - 14/14 PASS (100%)
+- iteration_15.json: Community avatar - 12/12 PASS (100%)
 
 ## Pending Issues
 - P3: ESLint/TypeScript warnings (backlog)
