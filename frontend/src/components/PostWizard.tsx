@@ -215,6 +215,9 @@ export default function PostWizard({ onComplete, onCancel }: PostWizardProps) {
           : `${problemText.length}/500`
         }
       </Text>
+      <Text style={styles.anonymousHint} data-testid="anonymous-hint-text">
+        This is anonymous. Focus on the problem, not the person.
+      </Text>
 
       {/* Local toggle */}
       {myCommunity && (
@@ -560,6 +563,12 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
     textAlign: 'right',
     marginTop: 8,
+  },
+  anonymousHint: {
+    fontSize: 12,
+    color: '#999',
+    textAlign: 'center',
+    marginTop: 10,
   },
   searchingContainer: {
     flexDirection: 'row',
