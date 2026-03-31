@@ -35,6 +35,10 @@ FRIKT is a mobile app (Expo/React Native + FastAPI + MongoDB) for sharing daily 
 - Added `extraData={followedCategories}` to FlatList in categories.tsx
 - Ensures optimistic UI updates render immediately without manual refresh
 
+## DisplayName Propagation Fix (Complete - March 2026)
+- PUT /api/users/me/profile now propagates displayName to: problems.user_name, comments.user_name, comments.reply_to_user_name, feedback.user_name
+- Fixed comment creation to use displayName instead of registration name
+
 ## Documentation
 - `FRIKT_COMPLETE_DOCUMENTATION.md` regenerated from scratch (1586 lines, 20 sections, March 2026)
 - FIX 1: Soft-deleted parent no longer blocks replies (only admin-hidden does)
