@@ -50,7 +50,11 @@ function CommunityCard() {
     <View style={commStyles.card} data-testid="community-card">
       <View style={commStyles.row}>
         <View style={commStyles.icon}>
-          <Ionicons name="location" size={18} color="#fff" />
+          {community.avatar_url ? (
+            <Image source={{ uri: community.avatar_url }} style={{ width: 36, height: 36, borderRadius: 18 }} />
+          ) : (
+            <Ionicons name="location" size={18} color="#fff" />
+          )}
         </View>
         <View style={{ flex: 1 }}>
           <Text style={commStyles.title}>{community.name}</Text>

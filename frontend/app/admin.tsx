@@ -12,6 +12,7 @@ import {
   Platform,
   Linking,
   Share,
+  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -21,6 +22,7 @@ import { api } from '@/src/services/api';
 import { useAuth } from '@/src/context/AuthContext';
 import { formatDistanceToNow } from 'date-fns';
 import Toast from 'react-native-root-toast';
+import * as ImagePicker from 'expo-image-picker';
 
 type Tab = 'overview' | 'feedback' | 'reports' | 'broadcast' | 'users' | 'audit' | 'communities';
 
@@ -1008,6 +1010,34 @@ export default function AdminPanel() {
     }
   };
 
+  const handlePickCommunityAvatar = async (communityId: string) => {
+    const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permissionResult.granted) {
+      Alert.alert('Permission needed', 'Please allow access to your photo library.');
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.7,
+      base64: true,
+    });
+    if (!result.canceled && result.assets[0]) {
+      try {
+        await api.adminUploadCommunityAvatar(
+          communityId,
+          result.assets[0].base64!,
+          result.assets[0].mimeType || 'image/jpeg'
+        );
+        loadData();
+        Toast.show('Avatar updated', { duration: Toast.durations.SHORT, position: Toast.positions.BOTTOM, backgroundColor: '#E85D3A', textColor: '#fff' });
+      } catch (error) {
+        Alert.alert('Error', 'Failed to upload avatar');
+      }
+    }
+  };
+
   const toggleExpandComm = (communityId: string) => {
     if (expandedComm === communityId) {
       setExpandedComm(null);
@@ -1155,6 +1185,27 @@ export default function AdminPanel() {
             {/* Expanded content */}
             {isExpanded && (
               <View style={{ marginTop: 12, borderTopWidth: 1, borderTopColor: colors.border, paddingTop: 12 }}>
+                {/* Community Avatar */}
+                <View style={{ alignItems: 'center', marginBottom: 16 }}>
+                  <TouchableOpacity
+                    onPress={() => handlePickCommunityAvatar(comm.id)}
+                    activeOpacity={0.7}
+                    data-testid={`comm-avatar-picker-${comm.id}`}
+                  >
+                    <View style={{ width: 64, height: 64, borderRadius: 32, backgroundColor: CORAL, justifyContent: 'center', alignItems: 'center', overflow: 'hidden' }}>
+                      {comm.avatar_url ? (
+                        <Image source={{ uri: comm.avatar_url }} style={{ width: 64, height: 64, borderRadius: 32 }} />
+                      ) : (
+                        <Ionicons name="location" size={28} color="#fff" />
+                      )}
+                    </View>
+                    <View style={{ position: 'absolute', bottom: 0, right: 0, backgroundColor: CORAL, borderRadius: 10, width: 20, height: 20, justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: colors.surface }}>
+                      <Ionicons name="camera" size={10} color="#fff" />
+                    </View>
+                  </TouchableOpacity>
+                  <Text style={{ fontSize: 11, color: colors.textMuted, marginTop: 4 }}>Tap to change avatar</Text>
+                </View>
+
                 {/* Change Code */}
                 <View style={{ marginBottom: 12 }}>
                   <Text style={{ fontSize: 13, fontWeight: '600', color: colors.text, marginBottom: 6 }}>Change Code</Text>

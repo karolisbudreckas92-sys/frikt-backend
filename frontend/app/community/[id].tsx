@@ -10,6 +10,7 @@ import {
   TextInput,
   Alert,
   ScrollView,
+  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
@@ -129,7 +130,11 @@ export default function CommunityDetail() {
       {/* Community info */}
       <View style={styles.communityInfo}>
         <View style={styles.communityIcon}>
-          <Ionicons name="location" size={28} color="#fff" />
+          {community?.avatar_url ? (
+            <Image source={{ uri: community.avatar_url }} style={{ width: 56, height: 56, borderRadius: 28 }} />
+          ) : (
+            <Ionicons name="location" size={28} color="#fff" />
+          )}
         </View>
         <Text style={styles.communityName}>{community?.name}</Text>
         <Text style={styles.communityStats}>

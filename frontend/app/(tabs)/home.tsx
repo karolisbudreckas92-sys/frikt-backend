@@ -10,6 +10,7 @@ import {
   TextInput,
   Alert,
   ScrollView,
+  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -243,7 +244,11 @@ export default function Home() {
       ) : myCommunity ? (
         <>
           <View style={styles.communityHeader}>
-            <Ionicons name="location" size={16} color="#E85D3A" />
+            {myCommunity.avatar_url ? (
+              <Image source={{ uri: myCommunity.avatar_url }} style={{ width: 20, height: 20, borderRadius: 10 }} />
+            ) : (
+              <Ionicons name="location" size={16} color="#E85D3A" />
+            )}
             <Text style={styles.communityName}>{myCommunity.name}</Text>
             <Text style={styles.communityStats}>
               {myCommunity.member_count || 0} members

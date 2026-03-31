@@ -375,7 +375,11 @@ export default function Search() {
               data-testid={`community-card-${item.id}`}
             >
               <View style={styles.communityIcon}>
-                <Ionicons name="location" size={22} color="#fff" />
+                {item.avatar_url ? (
+                  <Image source={{ uri: item.avatar_url }} style={{ width: 44, height: 44, borderRadius: 22 }} />
+                ) : (
+                  <Ionicons name="location" size={22} color="#fff" />
+                )}
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={styles.communityName}>{item.name}</Text>

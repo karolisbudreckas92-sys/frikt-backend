@@ -713,6 +713,14 @@ class ApiService {
     return response.data;
   }
 
+  async adminUploadCommunityAvatar(communityId: string, base64Image: string, mimeType: string = 'image/jpeg') {
+    const response = await this.client.post(`/admin/communities/${communityId}/avatar`, {
+      image: base64Image,
+      mimeType
+    });
+    return response.data;
+  }
+
   // ===================== ADMIN BROADCAST =====================
 
   async broadcastNotification(title: string, body: string) {

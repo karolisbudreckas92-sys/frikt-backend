@@ -505,6 +505,7 @@ class Community(BaseModel):
     name: str
     active_code: str
     moderator_email: str
+    avatar_url: Optional[str] = None
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
 class CommunityMember(BaseModel):
@@ -4966,6 +4967,54 @@ async def admin_list_communities(search: Optional[str] = None, limit: int = 50, 
     
     total = await db.communities.count_documents(query)
     return {"communities": communities, "total": total}
+
+class CommunityAvatarUpload(BaseModel):
+    image: str
+    mimeType: str = "image/jpeg"
+
+@api_router.post("/admin/communities/{community_id}/avatar")
+async def admin_upload_community_avatar(community_id: str, data: CommunityAvatarUpload, admin: dict = Depends(require_admin)):
+    """Upload or update a community's avatar image. Admin only."""
+    import base64
+    import os
+    
+    community = await db.communities.find_one({"id": community_id})
+    if not community:
+        raise HTTPException(status_code=404, detail="Community not found")
+    
+    try:
+        image_data = base64.b64decode(data.image)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid base64 image")
+    
+    if len(image_data) > 2 * 1024 * 1024:
+        raise HTTPException(status_code=400, detail="File too large (max 2MB)")
+    
+    upload_dir = "/app/backend/uploads/community-avatars"
+    os.makedirs(upload_dir, exist_ok=True)
+    
+    ext = 'jpg'
+    if 'png' in data.mimeType:
+        ext = 'png'
+    elif 'webp' in data.mimeType:
+        ext = 'webp'
+    
+    filename = f"{community_id}_{str(uuid.uuid4())[:8]}.{ext}"
+    filepath = os.path.join(upload_dir, filename)
+    
+    with open(filepath, 'wb') as f:
+        f.write(image_data)
+    
+    avatar_url = f"/api/uploads/community-avatars/{filename}"
+    
+    await db.communities.update_one(
+        {"id": community_id},
+        {"$set": {"avatar_url": avatar_url}}
+    )
+    
+    await log_admin_action(admin, "upload_community_avatar", "community", community_id)
+    
+    return {"url": avatar_url, "message": "Community avatar uploaded successfully"}
 
 @api_router.get("/admin/community-requests")
 async def admin_get_community_requests(admin: dict = Depends(require_admin)):
