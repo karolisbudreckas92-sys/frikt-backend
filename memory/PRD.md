@@ -39,6 +39,12 @@ FRIKT is a mobile app (Expo/React Native + FastAPI + MongoDB) for sharing daily 
 - PUT /api/users/me/profile now propagates displayName to: problems.user_name, comments.user_name, comments.reply_to_user_name, feedback.user_name
 - Fixed comment creation to use displayName instead of registration name
 
+## Add Details Fields Relocation (Complete - March 2026)
+- Moved 'Add details' (when_happens, who_affected, what_tried) from frikt detail view to Step 2 of PostWizard
+- Collapsible section below Severity in creation flow, collapsed by default
+- Removed context section and 'Add details' card entirely from problem/[id].tsx
+- Edit screen shows all detail fields directly (no collapsible toggle)
+
 ## Documentation
 - `FRIKT_COMPLETE_DOCUMENTATION.md` regenerated from scratch (1586 lines, 20 sections, March 2026)
 - FIX 1: Soft-deleted parent no longer blocks replies (only admin-hidden does)
