@@ -2231,7 +2231,7 @@ async def create_comment(comment_data: CommentCreate, user: dict = Depends(requi
     comment = Comment(
         problem_id=comment_data.problem_id,
         user_id=user["id"],
-        user_name=user["name"],
+        user_name=user.get("displayName") or user["name"],
         content=comment_data.content,
         parent_comment_id=parent_comment_id,
         reply_to_user_id=reply_to_user_id,
@@ -2992,6 +2992,25 @@ async def update_profile(profile: ProfileUpdate, user: dict = Depends(require_au
     await db.users.update_one(
         {"id": user["id"]},
         {"$set": update_data}
+    )
+    
+    # Propagate displayName change to all denormalized collections
+    new_display_name = display_name
+    await db.problems.update_many(
+        {"user_id": user["id"]},
+        {"$set": {"user_name": new_display_name}}
+    )
+    await db.comments.update_many(
+        {"user_id": user["id"]},
+        {"$set": {"user_name": new_display_name}}
+    )
+    await db.comments.update_many(
+        {"reply_to_user_id": user["id"]},
+        {"$set": {"reply_to_user_name": new_display_name}}
+    )
+    await db.feedback.update_many(
+        {"user_id": user["id"]},
+        {"$set": {"user_name": new_display_name}}
     )
     
     # Return updated user
