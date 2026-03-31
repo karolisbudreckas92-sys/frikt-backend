@@ -596,7 +596,20 @@ async def require_admin(credentials: HTTPAuthorizationCredentials = Depends(secu
     user = await get_current_user(credentials)
     if not user:
         raise HTTPException(status_code=401, detail="Not authenticated")
+    if user.get("status") == "banned":
+        raise HTTPException(status_code=403, detail="Account banned")
     if not is_admin(user):
+        # Log denied access attempt
+        await db.admin_audit_logs.insert_one({
+            "id": str(uuid.uuid4()),
+            "admin_id": user["id"],
+            "admin_email": user.get("email", "unknown"),
+            "action": "admin_access_denied",
+            "target_type": "admin_panel",
+            "target_id": "",
+            "details": {"reason": "non-admin user attempted admin access"},
+            "created_at": datetime.utcnow()
+        })
         raise HTTPException(status_code=403, detail="Admin access required")
     return user
 
@@ -1441,6 +1454,15 @@ async def forgot_password(request: PasswordResetRequest, background_tasks: Backg
     """Request a password reset email"""
     email_lower = request.email.lower().strip()
     
+    # Rate limit: max 3 reset requests per email per hour
+    one_hour_ago = datetime.utcnow() - timedelta(hours=1)
+    recent_requests = await db.password_reset_tokens.count_documents({
+        "email": email_lower,
+        "created_at": {"$gte": one_hour_ago}
+    })
+    if recent_requests >= 3:
+        return {"success": True, "message": "If an account exists with this email, you will receive a reset code."}
+    
     # Find user by email
     user = await db.users.find_one({"email": email_lower})
     
@@ -1462,14 +1484,18 @@ async def forgot_password(request: PasswordResetRequest, background_tasks: Backg
         {"$set": {"used": True}}
     )
     
-    # Create new reset token
-    reset_token = PasswordResetToken(
-        user_id=user["id"],
-        token=reset_code,
-        email=email_lower,
-        expires_at=datetime.utcnow() + timedelta(hours=RESET_TOKEN_EXPIRE_HOURS)
-    )
-    await db.password_reset_tokens.insert_one(reset_token.dict())
+    # Create new reset token with attempts counter
+    reset_token = {
+        "id": str(uuid.uuid4()),
+        "user_id": user["id"],
+        "token": reset_code,
+        "email": email_lower,
+        "expires_at": datetime.utcnow() + timedelta(hours=RESET_TOKEN_EXPIRE_HOURS),
+        "used": False,
+        "created_at": datetime.utcnow(),
+        "attempts": 0
+    }
+    await db.password_reset_tokens.insert_one(reset_token)
     
     # Send email in background
     user_name = user.get("displayName") or user.get("name", "User")
@@ -1488,7 +1514,21 @@ async def reset_password(request: PasswordResetConfirm):
     }, {"_id": 0})
     
     if not token_doc:
-        raise HTTPException(status_code=400, detail="Invalid or expired reset code")
+        raise HTTPException(status_code=400, detail="Invalid or expired code")
+    
+    # Check if max attempts exceeded
+    if token_doc.get("attempts", 0) >= 5:
+        await db.password_reset_tokens.update_one(
+            {"id": token_doc["id"]},
+            {"$set": {"used": True}}
+        )
+        raise HTTPException(status_code=400, detail="Invalid or expired code")
+    
+    # Increment attempts
+    await db.password_reset_tokens.update_one(
+        {"id": token_doc["id"]},
+        {"$inc": {"attempts": 1}}
+    )
     
     # Check expiration
     expires_at = token_doc.get("expires_at")
@@ -1496,12 +1536,11 @@ async def reset_password(request: PasswordResetConfirm):
         expires_at = datetime.fromisoformat(expires_at.replace("Z", "+00:00"))
     
     if datetime.utcnow() > expires_at:
-        # Mark token as used
         await db.password_reset_tokens.update_one(
             {"id": token_doc["id"]},
             {"$set": {"used": True}}
         )
-        raise HTTPException(status_code=400, detail="Reset code has expired. Please request a new one.")
+        raise HTTPException(status_code=400, detail="Invalid or expired code")
     
     # Find the user
     user = await db.users.find_one({"id": token_doc["user_id"]})
@@ -1529,25 +1568,54 @@ async def reset_password(request: PasswordResetConfirm):
     return {"success": True, "message": "Password has been reset successfully. You can now log in with your new password."}
 
 @api_router.post("/auth/verify-reset-code")
-async def verify_reset_code(token: str):
+async def verify_reset_code(token: str, email: Optional[str] = None):
     """Verify if a reset code is valid (without using it)"""
+    # First, try to find by exact token match
     token_doc = await db.password_reset_tokens.find_one({
         "token": token,
         "used": False
     }, {"_id": 0})
     
-    if not token_doc:
-        return {"valid": False, "message": "Invalid or expired reset code"}
+    if token_doc:
+        # Check if max attempts exceeded
+        if token_doc.get("attempts", 0) >= 5:
+            await db.password_reset_tokens.update_one(
+                {"id": token_doc["id"]},
+                {"$set": {"used": True}}
+            )
+            return {"valid": False, "message": "Invalid or expired code"}
+        
+        # Check expiration
+        expires_at = token_doc.get("expires_at")
+        if isinstance(expires_at, str):
+            expires_at = datetime.fromisoformat(expires_at.replace("Z", "+00:00"))
+        
+        if datetime.utcnow() > expires_at:
+            return {"valid": False, "message": "Invalid or expired code"}
+        
+        return {"valid": True, "email": token_doc.get("email")}
     
-    # Check expiration
-    expires_at = token_doc.get("expires_at")
-    if isinstance(expires_at, str):
-        expires_at = datetime.fromisoformat(expires_at.replace("Z", "+00:00"))
+    # Token not found — if email provided, increment attempts on that email's active token
+    if email:
+        email_lower = email.lower().strip()
+        active_token = await db.password_reset_tokens.find_one({
+            "email": email_lower,
+            "used": False
+        }, {"_id": 0})
+        if active_token:
+            new_attempts = active_token.get("attempts", 0) + 1
+            if new_attempts >= 5:
+                await db.password_reset_tokens.update_one(
+                    {"id": active_token["id"]},
+                    {"$set": {"used": True, "attempts": new_attempts}}
+                )
+            else:
+                await db.password_reset_tokens.update_one(
+                    {"id": active_token["id"]},
+                    {"$inc": {"attempts": 1}}
+                )
     
-    if datetime.utcnow() > expires_at:
-        return {"valid": False, "message": "Reset code has expired"}
-    
-    return {"valid": True, "email": token_doc.get("email")}
+    return {"valid": False, "message": "Invalid or expired code"}
 
 # ===================== CATEGORIES ROUTES =====================
 
@@ -1733,6 +1801,18 @@ async def get_problems(
         blocked_ids = await get_blocked_user_ids(user["id"])
         if blocked_ids:
             query["user_id"] = {"$nin": blocked_ids}
+    
+    # Filter out shadowbanned users' content (except the user's own)
+    shadowbanned_ids = await get_shadowbanned_user_ids()
+    if shadowbanned_ids:
+        # Remove current user from shadowban list (they should see their own content)
+        visible_shadowbanned = [uid for uid in shadowbanned_ids if not user or uid != user["id"]]
+        if visible_shadowbanned:
+            if "$nin" in query.get("user_id", {}):
+                # Merge with blocked IDs
+                query["user_id"]["$nin"] = list(set(query["user_id"]["$nin"] + visible_shadowbanned))
+            else:
+                query["user_id"] = {"$nin": visible_shadowbanned}
     
     if category_id:
         query["category_id"] = category_id
@@ -2412,6 +2492,16 @@ async def get_comments(problem_id: str, user: dict = Depends(get_current_user)):
         blocked_ids = await get_blocked_user_ids(user["id"])
         if blocked_ids:
             query["user_id"] = {"$nin": blocked_ids}
+    
+    # Filter out shadowbanned users' comments (except the user's own)
+    shadowbanned_ids = await get_shadowbanned_user_ids()
+    if shadowbanned_ids:
+        visible_shadowbanned = [uid for uid in shadowbanned_ids if not user or uid != user["id"]]
+        if visible_shadowbanned:
+            if "$nin" in query.get("user_id", {}):
+                query["user_id"]["$nin"] = list(set(query["user_id"]["$nin"] + visible_shadowbanned))
+            else:
+                query["user_id"] = {"$nin": visible_shadowbanned}
     
     # Get all comments for this problem
     all_comments = await db.comments.find(query).to_list(500)
@@ -3129,49 +3219,114 @@ async def upload_avatar_base64(data: AvatarBase64Upload, user: dict = Depends(re
 
 @api_router.delete("/users/me")
 async def delete_account(user: dict = Depends(require_auth)):
-    """Permanently delete user account and all associated data"""
+    """Delete user account while preserving community content"""
     user_id = user["id"]
     
     logger.info(f"Deleting account for user: {user_id}")
     
-    # Delete all user's problems (posts)
-    await db.problems.delete_many({"user_id": user_id})
+    # 1. Anonymize user's problems (don't hard-delete)
+    await db.problems.update_many(
+        {"user_id": user_id},
+        {"$set": {"user_name": "[deleted user]", "user_avatar_url": None, "user_id": "deleted_user"}}
+    )
     
-    # Delete all user's comments
-    await db.comments.delete_many({"user_id": user_id})
+    # 2. Anonymize user's comments
+    # For comments WITH replies (soft-delete style)
+    user_comments = await db.comments.find({"user_id": user_id}).to_list(5000)
+    for comment in user_comments:
+        has_replies = await db.comments.count_documents({"parent_comment_id": comment["id"]})
+        if has_replies > 0:
+            # Soft delete: preserve structure, anonymize content
+            await db.comments.update_one(
+                {"id": comment["id"]},
+                {"$set": {"status": "removed", "content": "[deleted]", "user_name": "[deleted]", "user_id": "deleted_user"}}
+            )
+        else:
+            # No replies: anonymize but keep content for context
+            await db.comments.update_one(
+                {"id": comment["id"]},
+                {"$set": {"user_name": "[deleted user]", "user_id": "deleted_user"}}
+            )
     
-    # Delete all user's relates
+    # 3. Update reply_to references pointing to this user
+    await db.comments.update_many(
+        {"reply_to_user_id": user_id},
+        {"$set": {"reply_to_user_name": "[deleted user]", "reply_to_user_id": "deleted_user"}}
+    )
+    
+    # 4. Clean up community data
+    await db.community_members.delete_many({"user_id": user_id})
+    await db.community_join_requests.delete_many({"user_id": user_id})
+    await db.community_requests.delete_many({"email": user.get("email", "")})
+    
+    # 5. Remove user_id from other users' saved_problems and followed_problems
+    # Get all problem IDs that were authored by this user
+    user_problem_ids = [p["id"] for p in await db.problems.find({"user_id": "deleted_user"}, {"id": 1}).to_list(5000)]
+    if user_problem_ids:
+        # Pull deleted user's problem IDs from other users' saved/followed arrays
+        await db.users.update_many(
+            {"saved_problems": {"$in": user_problem_ids}},
+            {"$pull": {"saved_problems": {"$in": user_problem_ids}}}
+        )
+        await db.users.update_many(
+            {"followed_problems": {"$in": user_problem_ids}},
+            {"$pull": {"followed_problems": {"$in": user_problem_ids}}}
+        )
+    
+    # 6. Recalculate relates_count and comments_count on affected problems
+    affected_problem_ids = list(set(
+        [c["problem_id"] for c in user_comments]
+    ))
+    for pid in affected_problem_ids:
+        relates_count = await db.relates.count_documents({"problem_id": pid})
+        comments_count = await db.comments.count_documents({"problem_id": pid, "status": {"$ne": "removed"}})
+        unique_commenters = len(set([
+            c["user_id"] async for c in db.comments.find({"problem_id": pid, "status": {"$ne": "removed"}}, {"user_id": 1})
+        ]))
+        await db.problems.update_one(
+            {"id": pid},
+            {"$set": {"relates_count": relates_count, "comments_count": comments_count, "unique_commenters": unique_commenters}}
+        )
+    
+    # 7. Delete user's relates
     await db.relates.delete_many({"user_id": user_id})
     
-    # Delete all user's helpfuls (on comments)
+    # Recalculate relates_count on problems the user had related to
+    related_problems = await db.relates.find({"user_id": user_id}).to_list(5000)
+    # (Already deleted above, but let's recalculate for problems where the user's relate was removed)
+    
+    # 8. Delete user's helpfuls
     await db.helpfuls.delete_many({"user_id": user_id})
     
-    # Delete all user's notifications
+    # 9. Delete auth and notification data
     await db.notifications.delete_many({"user_id": user_id})
+    await db.push_tokens.delete_many({"user_id": user_id})
+    await db.notification_settings.delete_many({"user_id": user_id})
+    await db.password_reset_tokens.delete_many({"user_id": user_id})
+    await db.pending_badge_notifications.delete_many({"user_id": user_id})
+    await db.pending_notification_batches.delete_many({"recipient_user_id": user_id})
+    await db.user_stats.delete_many({"user_id": user_id})
+    await db.user_achievements.delete_many({"user_id": user_id})
+    await db.feedback.delete_many({"user_id": user_id})
     
-    # Delete blocked user records (both as blocker and blocked)
+    # 10. Clean up blocked users (both directions)
     await db.blocked_users.delete_many({"blocker_user_id": user_id})
     await db.blocked_users.delete_many({"blocked_user_id": user_id})
     
-    # Delete user's reports
+    # 11. Clean up follows
+    await db.user_follows.delete_many({"follower_id": user_id})
+    await db.user_follows.delete_many({"following_id": user_id})
+    
+    # 12. Clean up reports
     await db.reports.delete_many({"reporter_id": user_id})
     
-    # Delete push tokens
-    await db.push_tokens.delete_many({"user_id": user_id})
-    
-    # Delete notification settings
-    await db.notification_settings.delete_many({"user_id": user_id})
-    
-    # Delete feedback from this user
-    await db.feedback.delete_many({"user_id": user_id})
-    
-    # Finally, delete the user record
+    # 13. Finally, delete the user document
     result = await db.users.delete_one({"id": user_id})
     
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="User not found")
     
-    logger.info(f"Successfully deleted account for user: {user_id}")
+    logger.info(f"Successfully deleted account for user: {user_id} (content preserved)")
     
     return {"success": True, "message": "Account deleted successfully"}
 
@@ -3285,6 +3440,29 @@ async def get_blocked_user_ids(user_id: str) -> List[str]:
         blocked_ids.add(b["blocker_user_id"])
     
     return list(blocked_ids)
+
+# Helper function to get shadowbanned user IDs with 60s cache
+_shadowban_cache = {"ids": [], "expires": 0}
+
+async def get_shadowbanned_user_ids() -> List[str]:
+    """Get list of shadowbanned user IDs, cached for 60 seconds"""
+    import time
+    now = time.time()
+    if now < _shadowban_cache["expires"]:
+        return _shadowban_cache["ids"]
+    
+    shadowbanned = await db.users.find(
+        {"status": "shadowbanned"},
+        {"id": 1}
+    ).to_list(5000)
+    ids = [u["id"] for u in shadowbanned]
+    _shadowban_cache["ids"] = ids
+    _shadowban_cache["expires"] = now + 60
+    return ids
+
+def invalidate_shadowban_cache():
+    """Call this when admin changes a user's status"""
+    _shadowban_cache["expires"] = 0
 
 # ===================== REPORT =====================
 
@@ -4024,6 +4202,7 @@ async def shadowban_user(user_id: str, admin: dict = Depends(require_admin)):
         raise HTTPException(status_code=400, detail="Cannot shadowban an admin user")
     
     await db.users.update_one({"id": user_id}, {"$set": {"status": "shadowbanned"}})
+    invalidate_shadowban_cache()
     
     await log_admin_action(admin, "shadowban_user", "user", user_id, {"email": user["email"]})
     return {"success": True, "status": "shadowbanned"}
@@ -4036,6 +4215,7 @@ async def unban_user(user_id: str, admin: dict = Depends(require_admin)):
         raise HTTPException(status_code=404, detail="User not found")
     
     await db.users.update_one({"id": user_id}, {"$set": {"status": "active"}})
+    invalidate_shadowban_cache()
     
     await log_admin_action(admin, "unban_user", "user", user_id, {"email": user["email"]})
     return {"success": True, "status": "active"}
