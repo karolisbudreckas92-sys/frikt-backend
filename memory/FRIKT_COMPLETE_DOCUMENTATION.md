@@ -492,11 +492,12 @@ created_at: datetime
 id: string (UUID)
 user_id: string → users.id
 type: "new_comment" | "new_relate" | "comment_reply" | "new_follower" | "badge_earned" | "admin_broadcast" | "batched_relate_batch" | "batched_comment_batch"
-problem_id: string
+problem_id: string | null
 message: string
 is_read: boolean (default false)
 created_at: datetime
 ```
+**Note:** `problem_id` is nullable — notification types `new_follower`, `badge_earned`, and `admin_broadcast` set this to `null`.
 
 ### Collection: `notification_settings`
 ```
@@ -1233,6 +1234,11 @@ GET  /api/
 | GET | /api/admin/communities/{id}/members | List community members (with ?search= query) |
 | PUT | /api/admin/community-requests/{id} | Dismiss/archive community creation request |
 
+#### Admin — Stats
+| Method | Path | Description |
+|--------|------|-------------|
+| POST | /api/admin/sync-problem-stats | Recalculate relates_count, comments_count, and unique_commenters for all problems from source collections |
+
 #### Admin — Feedback
 | Method | Path | Description |
 |--------|------|-------------|
@@ -1366,8 +1372,9 @@ Rotates based on day of week:
 - `DELETE /api/users/{id}/block`
 
 ### Content Filtering
-- `get_blocked_user_ids(user_id)` returns all blocked IDs
+- `get_blocked_user_ids(user_id)` returns users blocked BY the current user AND users who have blocked THE current user. Both directions are filtered from all content queries, search results, and interactions.
 - Applied as `{"user_id": {"$nin": blocked_ids}}` to all content queries
+- Blocked relationships also prevent: relating, commenting, following, and replying across the block in either direction.
 
 ---
 
