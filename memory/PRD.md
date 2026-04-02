@@ -84,6 +84,15 @@ FRIKT is a mobile app (Expo/React Native + FastAPI + MongoDB) for sharing daily 
 - Text: "This is anonymous. Focus on the problem, not the person."
 - Gray (#999), 12px, centered, always visible
 
+## Cloudinary Avatar Storage Migration (Complete - April 2026)
+- Migrated from Railway ephemeral filesystem to Cloudinary persistent storage
+- 3 endpoints updated: POST /users/me/avatar, POST /users/me/avatar-base64, POST /admin/communities/{id}/avatar
+- User avatars: `frikt/avatars/{user_id}` folder, Community avatars: `frikt/communities/{community_id}` folder
+- URLs: permanent `https://res.cloudinary.com/dpxdabjzy/...` (public, no auth required)
+- Old `/api/uploads/` mount kept as fallback for existing old URLs
+- Avatar propagation to problems + comments maintained
+- Cloudinary env vars: CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET
+
 ## Testing
 - iteration_6.json: 33/33 PASS
 - iteration_7.json: 42/46 PASS (4 rate-limit)
@@ -92,6 +101,7 @@ FRIKT is a mobile app (Expo/React Native + FastAPI + MongoDB) for sharing daily 
 - iteration_13.json: Data integrity fixes - 100% pass
 - iteration_14.json: Cleanup fixes - 14/14 PASS (100%)
 - iteration_15.json: Community avatar - 12/12 PASS (100%)
+- iteration_16.json: Cloudinary migration - 12/12 PASS (100%)
 
 ## Pending Issues
 - P3: ESLint/TypeScript warnings (backlog)
