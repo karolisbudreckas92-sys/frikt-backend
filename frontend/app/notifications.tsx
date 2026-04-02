@@ -67,15 +67,10 @@ export default function Notifications() {
     
     // Determine navigation based on notification type
     const handlePress = () => {
-      if (item.type === 'new_follower' && item.message) {
-        // For follower notifications, could navigate to profile
-        // For now, just dismiss (no user_id stored in notification)
-        return;
-      } else if (item.type === 'broadcast') {
-        // Broadcasts go to home
-        router.push('/(tabs)/home');
       if (item.type === 'new_follower') {
         router.push(`/user/${item.related_user_id || ''}`);
+      } else if (item.type === 'broadcast') {
+        router.push('/(tabs)/home');
       } else if (item.type === 'badge_earned') {
         router.push('/(tabs)/profile');
       } else if (item.problem_id) {
