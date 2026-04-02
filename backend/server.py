@@ -4830,7 +4830,7 @@ async def get_my_community(user: dict = Depends(require_auth)):
     return community
 
 @api_router.get("/communities/{community_id}")
-async def get_community(community_id: str, user: dict = Depends(require_auth)):
+async def get_community(community_id: str, user: dict = Depends(get_current_user)):
     """Get a specific community with stats."""
     community = await db.communities.find_one({"id": community_id}, {"_id": 0})
     if not community:
@@ -4839,18 +4839,20 @@ async def get_community(community_id: str, user: dict = Depends(require_auth)):
     community["member_count"] = await db.community_members.count_documents({"community_id": community_id})
     community["frikt_count"] = await db.problems.count_documents({"community_id": community_id, "is_local": True, "status": "active"})
     
-    # Check if user is a member
-    membership = await db.community_members.find_one({"user_id": user["id"], "community_id": community_id})
-    community["is_member"] = membership is not None
-    
-    # Check if user has a pending join request
-    pending_request = await db.community_join_requests.find_one({
-        "user_id": user["id"],
-        "community_id": community_id,
-        "status": "pending",
-        "expires_at": {"$gte": datetime.utcnow()}
-    })
-    community["has_pending_request"] = pending_request is not None
+    if user:
+        membership = await db.community_members.find_one({"user_id": user["id"], "community_id": community_id})
+        community["is_member"] = membership is not None
+        
+        pending_request = await db.community_join_requests.find_one({
+            "user_id": user["id"],
+            "community_id": community_id,
+            "status": "pending",
+            "expires_at": {"$gte": datetime.utcnow()}
+        })
+        community["has_pending_request"] = pending_request is not None
+    else:
+        community["is_member"] = False
+        community["has_pending_request"] = False
     
     return community
 
