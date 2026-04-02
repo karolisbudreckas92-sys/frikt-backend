@@ -9,6 +9,8 @@ import os
 import logging
 import asyncio
 import re
+import cloudinary
+import cloudinary.uploader
 from pathlib import Path
 from pydantic import BaseModel, Field, EmailStr
 from typing import List, Optional
@@ -63,12 +65,20 @@ security = HTTPBearer(auto_error=False)
 app = FastAPI(title="FRIKT API")
 api_router = APIRouter(prefix="/api")
 
-# Create uploads directory
+# Create uploads directory (kept as fallback for old URLs)
 UPLOADS_DIR = Path("/app/backend/uploads/avatars")
 UPLOADS_DIR.mkdir(parents=True, exist_ok=True)
 
-# Mount static files for serving uploaded avatars
+# Mount static files for serving old uploaded avatars (fallback)
 app.mount("/api/uploads", StaticFiles(directory="/app/backend/uploads"), name="uploads")
+
+# Cloudinary configuration
+cloudinary.config(
+    cloud_name=os.environ.get("CLOUDINARY_CLOUD_NAME"),
+    api_key=os.environ.get("CLOUDINARY_API_KEY"),
+    api_secret=os.environ.get("CLOUDINARY_API_SECRET"),
+    secure=True
+)
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -3154,45 +3164,38 @@ async def update_profile(profile: ProfileUpdate, user: dict = Depends(require_au
 
 @api_router.post("/users/me/avatar")
 async def upload_avatar(file: UploadFile = FastAPIFile(...), user: dict = Depends(require_auth)):
-    """Upload avatar image"""
-    import base64
-    import os
-    
-    # Validate file type
+    """Upload avatar image to Cloudinary"""
     if not file.content_type or not file.content_type.startswith('image/'):
         raise HTTPException(status_code=400, detail="File must be an image")
     
-    # Read file content
     content = await file.read()
     
-    # Limit file size (2MB)
     if len(content) > 2 * 1024 * 1024:
         raise HTTPException(status_code=400, detail="File too large (max 2MB)")
     
-    # Create uploads directory if it doesn't exist
-    upload_dir = "/app/backend/uploads/avatars"
-    os.makedirs(upload_dir, exist_ok=True)
+    try:
+        result = cloudinary.uploader.upload(
+            content,
+            folder="frikt/avatars",
+            public_id=user["id"],
+            overwrite=True,
+            resource_type="image"
+        )
+        avatar_url = result["secure_url"]
+    except Exception as e:
+        logger.error(f"Cloudinary upload error: {e}")
+        raise HTTPException(status_code=500, detail="Failed to upload image")
     
-    # Generate unique filename
-    file_ext = file.filename.split('.')[-1] if file.filename else 'jpg'
-    filename = f"{user['id']}_{str(uuid.uuid4())[:8]}.{file_ext}"
-    filepath = os.path.join(upload_dir, filename)
-    
-    # Save file
-    with open(filepath, 'wb') as f:
-        f.write(content)
-    
-    # Generate URL (served via static files)
-    avatar_url = f"/api/uploads/avatars/{filename}"
-    
-    # Update user record
     await db.users.update_one(
         {"id": user["id"]},
         {"$set": {"avatarUrl": avatar_url}}
     )
     
-    # Propagate avatar change to denormalized collections
     await db.problems.update_many(
+        {"user_id": user["id"]},
+        {"$set": {"user_avatar_url": avatar_url}}
+    )
+    await db.comments.update_many(
         {"user_id": user["id"]},
         {"$set": {"user_avatar_url": avatar_url}}
     )
@@ -3205,52 +3208,41 @@ class AvatarBase64Upload(BaseModel):
 
 @api_router.post("/users/me/avatar-base64")
 async def upload_avatar_base64(data: AvatarBase64Upload, user: dict = Depends(require_auth)):
-    """Upload avatar image as base64"""
+    """Upload avatar image as base64 to Cloudinary"""
     import base64
-    import os
     
-    # Decode base64
     try:
         image_data = base64.b64decode(data.image)
     except Exception:
         raise HTTPException(status_code=400, detail="Invalid base64 image")
     
-    # Limit file size (2MB)
     if len(image_data) > 2 * 1024 * 1024:
         raise HTTPException(status_code=400, detail="File too large (max 2MB)")
     
-    # Create uploads directory if it doesn't exist
-    upload_dir = "/app/backend/uploads/avatars"
-    os.makedirs(upload_dir, exist_ok=True)
+    try:
+        data_uri = f"data:{data.mimeType};base64,{data.image}"
+        result = cloudinary.uploader.upload(
+            data_uri,
+            folder="frikt/avatars",
+            public_id=user["id"],
+            overwrite=True,
+            resource_type="image"
+        )
+        avatar_url = result["secure_url"]
+    except Exception as e:
+        logger.error(f"Cloudinary upload error: {e}")
+        raise HTTPException(status_code=500, detail="Failed to upload image")
     
-    # Determine file extension from mimeType
-    ext = 'jpg'
-    if 'png' in data.mimeType:
-        ext = 'png'
-    elif 'gif' in data.mimeType:
-        ext = 'gif'
-    elif 'webp' in data.mimeType:
-        ext = 'webp'
-    
-    # Generate unique filename
-    filename = f"{user['id']}_{str(uuid.uuid4())[:8]}.{ext}"
-    filepath = os.path.join(upload_dir, filename)
-    
-    # Save file
-    with open(filepath, 'wb') as f:
-        f.write(image_data)
-    
-    # Generate URL (served via static files)
-    avatar_url = f"/api/uploads/avatars/{filename}"
-    
-    # Update user record
     await db.users.update_one(
         {"id": user["id"]},
         {"$set": {"avatarUrl": avatar_url}}
     )
     
-    # Propagate avatar change to denormalized collections
     await db.problems.update_many(
+        {"user_id": user["id"]},
+        {"$set": {"user_avatar_url": avatar_url}}
+    )
+    await db.comments.update_many(
         {"user_id": user["id"]},
         {"$set": {"user_avatar_url": avatar_url}}
     )
@@ -4974,14 +4966,12 @@ class CommunityAvatarUpload(BaseModel):
 
 @api_router.post("/admin/communities/{community_id}/avatar")
 async def admin_upload_community_avatar(community_id: str, data: CommunityAvatarUpload, admin: dict = Depends(require_admin)):
-    """Upload or update a community's avatar image. Admin only."""
-    import base64
-    import os
-    
+    """Upload or update a community's avatar image to Cloudinary. Admin only."""
     community = await db.communities.find_one({"id": community_id})
     if not community:
         raise HTTPException(status_code=404, detail="Community not found")
     
+    import base64
     try:
         image_data = base64.b64decode(data.image)
     except Exception:
@@ -4990,22 +4980,19 @@ async def admin_upload_community_avatar(community_id: str, data: CommunityAvatar
     if len(image_data) > 2 * 1024 * 1024:
         raise HTTPException(status_code=400, detail="File too large (max 2MB)")
     
-    upload_dir = "/app/backend/uploads/community-avatars"
-    os.makedirs(upload_dir, exist_ok=True)
-    
-    ext = 'jpg'
-    if 'png' in data.mimeType:
-        ext = 'png'
-    elif 'webp' in data.mimeType:
-        ext = 'webp'
-    
-    filename = f"{community_id}_{str(uuid.uuid4())[:8]}.{ext}"
-    filepath = os.path.join(upload_dir, filename)
-    
-    with open(filepath, 'wb') as f:
-        f.write(image_data)
-    
-    avatar_url = f"/api/uploads/community-avatars/{filename}"
+    try:
+        data_uri = f"data:{data.mimeType};base64,{data.image}"
+        result = cloudinary.uploader.upload(
+            data_uri,
+            folder="frikt/communities",
+            public_id=community_id,
+            overwrite=True,
+            resource_type="image"
+        )
+        avatar_url = result["secure_url"]
+    except Exception as e:
+        logger.error(f"Cloudinary community avatar upload error: {e}")
+        raise HTTPException(status_code=500, detail="Failed to upload image")
     
     await db.communities.update_one(
         {"id": community_id},
