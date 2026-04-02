@@ -1,6 +1,6 @@
 # FRIKT App - Complete Technical Documentation
 
-*Generated: March 2026*
+*Generated: March 2026 | Last updated: April 2026*
 
 ---
 
@@ -63,7 +63,7 @@
   - Pull-to-refresh + infinite scroll pagination
 
 **Local mode (user HAS a community):**
-  - Community header row: location icon, community name, member count
+  - Community header row: community avatar (if `avatar_url` exists, otherwise location pin icon), community name, member count
   - Sort pills: "Trending", "New", "Top"
   - FlatList of local ProblemCards (community-scoped)
 
@@ -109,7 +109,7 @@
 **Communities tab:**
   - Results from `GET /api/communities?search={query}`
   - Shows all communities when no query
-  - Cards: community name, member count, frikt count
+  - Cards: community avatar (if `avatar_url` exists, otherwise location pin icon), community name, member count, frikt count
   - Tap → `/community/{id}`
   - Empty state: "Want a local community? Request one here" → `/request-community`
 
@@ -120,6 +120,8 @@
   - Text input (required, min 10 chars, max 500)
   - **"Post to {community_name}" toggle** (only if user has a community)
   - Similar problems indicator (real-time debounced search as user types, shows max 2)
+  - Character counter ("X more characters needed" or "X/500")
+  - **Anonymous reminder text:** "This is anonymous. Focus on the problem, not the person." (gray #999, 12px, centered, always visible, not dismissible)
   - "Continue" button (enabled when >= 10 chars)
 - **Step 2 — "Add quick details" (all optional):**
   - Category picker (10 chips, auto-set to "Local" if local toggle ON)
@@ -150,7 +152,7 @@
 - **Elements:**
   - Avatar (tappable to edit)
   - Display name, bio, city
-  - **Community card** (if member): community name, member count, "Leave" button
+  - **Community card** (if member): community avatar (if `avatar_url` exists, otherwise location pin icon), community name, member count, "Leave" button
   - Stats: posts, comments, relates
   - Badge progress bar + unlocked badge count
   - Menu links: Edit Profile, My Posts, Saved, Notifications, Badges, Settings
@@ -187,7 +189,7 @@
 #### Community Detail Screen (`/app/community/[id].tsx`)
 - **How to get there:** Search → Communities tab → Tap community
 - **Elements:**
-  - Community name, location icon, member count, frikt count
+  - Community avatar (if `avatar_url` exists, 56x56 rounded; otherwise location pin icon), community name, member count, frikt count
   - **If member:** "Your Community" badge, community feed (FlatList of ProblemCards)
   - **If not member, no pending request:** "Request to Join" banner with optional message input
   - **If pending request:** "Request Pending" badge
@@ -212,7 +214,7 @@
 
 #### Onboarding Screen (`/app/onboarding.tsx`)
 - **How to get there:** Automatically after new user registration (router.replace from register.tsx)
-- **Persistence:** Uses `AsyncStorage` key `onboarding_complete`. If not set on app launch, authenticated users are redirected here from `index.tsx`.
+- **Persistence:** Uses `AsyncStorage` key `onboarding_complete`. If not set on app launch, authenticated users are redirected here from `index.tsx`. Server-side field `onboarding_completed` also tracked.
 - **Elements:** 4 horizontal swipeable screens via `FlatList` with `pagingEnabled`:
   1. "What's bothering you today?" — megaphone icon, explains posting frikts
   2. "What rises can't be ignored" — trending icon, explains the relate/ranking system
@@ -222,13 +224,24 @@
 - **Completion:** Stores `onboarding_complete = 'true'` in AsyncStorage, navigates to `/(tabs)/home`
 - **Login behavior:** `login.tsx` sets `onboarding_complete = 'true'` so existing users never see onboarding
 
+#### Notifications Screen (`/app/notifications.tsx`)
+- **How to get there:** Home → tap notification bell icon
+- **Elements:**
+  - FlatList of notifications with pull-to-refresh
+  - Each notification: icon by type, message, relative timestamp, unread indicator
+  - Tap action per type: `new_follower` → user profile, `broadcast` → home, `badge_earned` → profile, others → problem detail
+  - Empty state message when no notifications
+- **API Calls:**
+  - Load → `GET /api/notifications`
+  - Mark read → `POST /api/notifications/read`
+
 ---
 
 ### 1.4 Settings & User Screens
 
 | Screen | Path | API |
 |--------|------|-----|
-| Edit Profile | `/app/edit-profile.tsx` | `PUT /api/users/me/profile`, `POST /api/users/me/avatar` or `POST /api/users/me/avatar-base64` |
+| Edit Profile | `/app/edit-profile.tsx` | `PUT /api/users/me/profile`, `POST /api/users/me/avatar-base64` (Cloudinary) |
 | My Posts | `/app/my-posts.tsx` | `GET /api/users/me/posts` |
 | Saved | `/app/saved.tsx` | `GET /api/users/me/saved` |
 | Notifications | `/app/notifications.tsx` | `GET /api/notifications`, `POST /api/notifications/read` |
@@ -261,6 +274,11 @@ When a user updates their displayName via `PUT /api/users/me/profile`, the backe
 - `comments.reply_to_user_name` (replies to user)
 - `feedback.user_name` (all user's feedback)
 
+#### Avatar Propagation
+When a user uploads a new avatar (via Cloudinary), the backend propagates the new URL to:
+- `problems.user_avatar_url` (all user's frikts)
+- `comments.user_avatar_url` (all user's comments)
+
 ---
 
 ### 1.5 Admin Panel (`/app/admin.tsx`)
@@ -285,10 +303,12 @@ When a user updates their displayName via `PUT /api/users/me/profile`, the backe
 **Communities:**
 - **Community Requests section:** Pending new community creation requests (non-expired only). "Contact" (mailto) and "Dismiss" actions. `PUT /api/admin/community-requests/{id}` to update status.
 - **Create Community:** Name + code + moderator email form.
-- **Active Communities list:** Name, code, member count, frikt count, pending join requests. Change code action. Expandable "Members" section per community.
-- **Members:** Searchable list of community members (name, email, role, join date). `GET /api/admin/communities/{id}/members?search=query`
-- **Join Requests per community:** Pending, non-expired requests. "Send Code" action (opens mailto with invite code). Sent status tracking.
-- **Export:** Download community data as anonymous `.txt` file (period filter: all/7d/30d/90d).
+- **Active Communities list:** Name, code, member count, frikt count, pending join requests. Change code action. Expandable rows with:
+  - **Community Avatar:** Tappable avatar (64x64, rounded). Shows `avatar_url` if set, otherwise location pin icon. Tap opens image picker → uploads to Cloudinary via `POST /api/admin/communities/{id}/avatar`. Camera badge overlay. "Tap to change avatar" hint text.
+  - **Change Code** action
+  - **Members:** Searchable list of community members (name, email, role, join date). `GET /api/admin/communities/{id}/members?search=query`
+  - **Join Requests:** Pending, non-expired requests. "Send Code" action (opens mailto with invite code). Sent status tracking.
+  - **Export:** Download community data as anonymous `.txt` file (period filter: all/7d/30d/90d).
 
 **Feedback:** List of user feedback submissions. Mark read/unread, delete.
 
@@ -340,7 +360,7 @@ When a user updates their displayName via `PUT /api/users/me/profile`, the backe
 - Review and dismiss reports
 - Send broadcast notifications
 - View analytics dashboard
-- Create communities, change invite codes
+- Create communities, change invite codes, upload community avatars
 - Approve/reject community requests
 - View and manage join requests
 - Export community data
@@ -368,7 +388,7 @@ email: string (lowercase, unique)
 name: string
 password_hash: string (bcrypt)
 displayName: string | null
-avatarUrl: string | null
+avatarUrl: string | null (Cloudinary URL: https://res.cloudinary.com/...)
 bio: string | null
 city: string | null
 showCity: boolean (default false)
@@ -387,9 +407,9 @@ saved_problems: string[] (problem IDs)
 ### Collection: `problems`
 ```
 id: string (UUID)
-user_id: string → users.id
+user_id: string -> users.id
 user_name: string (denormalized)
-user_avatar_url: string | null (denormalized)
+user_avatar_url: string | null (denormalized, Cloudinary URL)
 title: string (min 10 chars)
 category_id: string
 frequency: "daily" | "weekly" | "monthly" | "rare" | null
@@ -409,15 +429,16 @@ is_pinned: boolean (default false)
 needs_context: boolean (default false)
 merged_into: string | null (problem ID if duplicate)
 is_local: boolean (default false)
-community_id: string | null → communities.id
+community_id: string | null -> communities.id
 ```
 
 ### Collection: `comments`
 ```
 id: string (UUID)
-problem_id: string → problems.id
-user_id: string → users.id
+problem_id: string -> problems.id
+user_id: string -> users.id
 user_name: string (denormalized)
+user_avatar_url: string | null (denormalized, Cloudinary URL)
 content: string (min 10 chars)
 created_at: datetime
 edited_at: datetime | null
@@ -435,14 +456,15 @@ id: string (UUID)
 name: string
 active_code: string (case-insensitive invite code)
 moderator_email: string
+avatar_url: string | null (Cloudinary URL, default null)
 created_at: datetime
 ```
 
 ### Collection: `community_members`
 ```
 id: string (UUID)
-user_id: string → users.id
-community_id: string → communities.id
+user_id: string -> users.id
+community_id: string -> communities.id
 joined_at: datetime
 ```
 **Constraint:** A user can only belong to 1 community at a time (enforced in application logic).
@@ -450,9 +472,9 @@ joined_at: datetime
 ### Collection: `community_join_requests`
 ```
 id: string (UUID)
-user_id: string → users.id
+user_id: string -> users.id
 user_email: string
-community_id: string → communities.id
+community_id: string -> communities.id
 message: string | null
 status: "pending" | "sent"
 created_at: datetime
@@ -472,8 +494,8 @@ expires_at: datetime (default: created_at + 3 days)
 ### Collection: `relates`
 ```
 id: string (UUID)
-problem_id: string → problems.id
-user_id: string → users.id
+problem_id: string -> problems.id
+user_id: string -> users.id
 created_at: datetime
 ```
 **Unique constraint:** (problem_id, user_id)
@@ -481,8 +503,8 @@ created_at: datetime
 ### Collection: `helpfuls`
 ```
 id: string (UUID)
-comment_id: string → comments.id
-user_id: string → users.id
+comment_id: string -> comments.id
+user_id: string -> users.id
 created_at: datetime
 ```
 **Unique constraint:** (comment_id, user_id)
@@ -490,19 +512,19 @@ created_at: datetime
 ### Collection: `notifications`
 ```
 id: string (UUID)
-user_id: string → users.id
+user_id: string -> users.id
 type: "new_comment" | "new_relate" | "comment_reply" | "new_follower" | "badge_earned" | "admin_broadcast" | "batched_relate_batch" | "batched_comment_batch"
 problem_id: string | null
 message: string
 is_read: boolean (default false)
 created_at: datetime
 ```
-**Note:** `problem_id` is nullable — notification types `new_follower`, `badge_earned`, and `admin_broadcast` set this to `null`.
+**Note:** `problem_id` is nullable -- notification types `new_follower`, `badge_earned`, and `admin_broadcast` set this to `null`.
 
 ### Collection: `notification_settings`
 ```
-user_id: string → users.id
-push_notifications: boolean (default true) — master toggle
+user_id: string -> users.id
+push_notifications: boolean (default true) -- master toggle
 new_comments: boolean (default true)
 new_relates: boolean (default true)
 comment_replies: boolean (default true)
@@ -513,7 +535,7 @@ trending: boolean (default true)
 ### Collection: `push_tokens`
 ```
 id: string (UUID)
-user_id: string → users.id
+user_id: string -> users.id
 token: string (Expo push token)
 created_at: datetime
 is_active: boolean (default true)
@@ -522,7 +544,7 @@ is_active: boolean (default true)
 ### Collection: `reports`
 ```
 id: string (UUID)
-reporter_id: string → users.id
+reporter_id: string -> users.id
 reporter_name: string
 target_type: "problem" | "comment" | "user"
 target_id: string
@@ -535,14 +557,14 @@ status: "pending" | "reviewed" | "dismissed"
 ### Collection: `blocked_users`
 ```
 id: string (UUID)
-blocker_user_id: string → users.id
-blocked_user_id: string → users.id
+blocker_user_id: string -> users.id
+blocked_user_id: string -> users.id
 created_at: datetime
 ```
 
 ### Collection: `user_stats`
 ```
-user_id: string → users.id
+user_id: string -> users.id
 total_posts: int
 total_relates_given: int
 total_relates_received: int
@@ -559,14 +581,14 @@ max_relates_on_single_post: int
 ### Collection: `user_achievements`
 ```
 id: string (UUID)
-user_id: string → users.id
+user_id: string -> users.id
 badge_id: string
 unlocked_at: datetime
 ```
 
 ### Collection: `pending_badge_notifications`
 ```
-user_id: string → users.id
+user_id: string -> users.id
 badge: dict ({badge_id, name, icon, description, unlocked_at})
 created_at: datetime
 ```
@@ -574,7 +596,7 @@ created_at: datetime
 ### Collection: `pending_notification_batches`
 ```
 id: string (UUID)
-recipient_user_id: string → users.id
+recipient_user_id: string -> users.id
 batch_type: "relate_batch" | "comment_batch"
 target_id: string (problem_id)
 target_title: string
@@ -588,7 +610,7 @@ notification_sent: boolean
 ### Collection: `password_reset_tokens`
 ```
 id: string (UUID)
-user_id: string → users.id
+user_id: string -> users.id
 token: string (6-digit code)
 email: string
 expires_at: datetime (1 hour from creation)
@@ -599,7 +621,7 @@ created_at: datetime
 ### Collection: `feedback`
 ```
 id: string (UUID)
-user_id: string → users.id
+user_id: string -> users.id
 user_email: string
 user_name: string
 type: "bug" | "feature" | "other"
@@ -623,10 +645,15 @@ created_at: datetime
 ### Collection: `user_follows`
 ```
 id: string (UUID)
-follower_id: string → users.id
-following_id: string → users.id
+follower_id: string -> users.id
+following_id: string -> users.id
 created_at: datetime
 ```
+
+### Database Indexes
+- `community_members.user_id` — unique index
+- `communities.active_code` — unique index
+- `blocked_users.(blocker_user_id, blocked_user_id)` — unique compound index
 
 ---
 
@@ -634,19 +661,19 @@ created_at: datetime
 
 ### Creating a Global Frikt
 
-1. User taps "+" tab → PostWizard opens
-2. **Step 1:** Types frikt text (required, min 10 chars). Local toggle OFF. `GET /api/problems/similar?title={title}` shows potential duplicates as user types
-3. Taps "Continue" → advances to Step 2
-4. **Step 2:** Selects category (default "other"), frequency, severity — all optional
+1. User taps "+" tab -> PostWizard opens
+2. **Step 1:** Types frikt text (required, min 10 chars). Local toggle OFF. `GET /api/problems/similar?title={title}` shows potential duplicates as user types. Anonymous reminder visible below input.
+3. Taps "Continue" -> advances to Step 2
+4. **Step 2:** Selects category (default "other"), frequency, severity -- all optional
 5. Optionally expands "Add details" section to fill: when_happens, who_affected, what_tried
-6. Taps "Done" (or "Skip" to post without tags) → `POST /api/problems`
+6. Taps "Done" (or "Skip" to post without tags) -> `POST /api/problems`
 7. Backend creates `problems` document with `is_local=false, community_id=null`
 8. Rate limit: max 10 frikts per day per user
 9. Gamification: increment `total_posts`, check category specialist badges
 
 ### Creating a Local Frikt
 
-1. User taps "+" tab → PostWizard opens
+1. User taps "+" tab -> PostWizard opens
 2. **Step 1:** Toggles "Post to {community_name}" ON, types frikt text
 3. Similar problems checked within community: `GET /api/problems/similar?title={title}&is_local=true&community_id={id}`
 4. **Step 2:** Category auto-set to "local" (picker disabled). Frequency, severity, details optional
@@ -664,47 +691,47 @@ created_at: datetime
 | Local (Trending) | `is_local=true, community_id={id}, created_at >= 7 days` | `hot_score DESC` | Only local |
 | Local (New) | `is_local=true, community_id={id}` | `created_at DESC` | Only local |
 | Local (Top) | `is_local=true, community_id={id}` | `relates_count DESC` | Only local |
-| **Search** | `title REGEX match` | `created_at DESC` | **Yes — both** |
+| **Search** | `title REGEX match` | `created_at DESC` | **Yes -- both** |
 
 **Hot score:** `(relates_count * 3) + (comments_count * 2) + unique_commenters`
 **Engagement score:** `(relates_count * 2) + (comments_count * 1.5)`
 
 ### Relate Flow
 
-1. User taps "Relate" → `POST /api/problems/{id}/relate`
+1. User taps "Relate" -> `POST /api/problems/{id}/relate`
 2. Validates: not own post, not duplicate, community member (for local)
 3. Creates `relates` document, increments `relates_count`, recalculates `signal_score`
 4. Updates relater's `total_relates_given`, author's `total_relates_received`, `max_relates_on_single_post`
 5. Checks/awards badges for both users
-6. **Notification:** If actor is NOT shadowbanned → sends notification (batched if multiple in 5 min)
+6. **Notification:** If actor is NOT shadowbanned -> sends notification (batched if multiple in 5 min)
 
 ### Comment Flow (Top-Level)
 
-1. User types comment or taps quick-reply → `POST /api/comments` with `{problem_id, content}`
+1. User types comment or taps quick-reply -> `POST /api/comments` with `{problem_id, content}`
 2. Creates `comments` document with `parent_comment_id=null`
 3. Increments `comments_count`, `unique_commenters` (if first), recalculates `signal_score`
 4. Updates `total_comments`, checks badges
-5. **Notification:** If actor is NOT shadowbanned → notifies problem owner (batched), notifies followers
+5. **Notification:** If actor is NOT shadowbanned -> notifies problem owner (batched), notifies followers
 
 ### Reply Flow (Threaded)
 
-1. User taps "Reply" on a comment → `POST /api/comments` with `{problem_id, content, parent_comment_id, reply_to_user_id}`
+1. User taps "Reply" on a comment -> `POST /api/comments` with `{problem_id, content, parent_comment_id, reply_to_user_id}`
 2. **Flatten rule:** If replying to a reply, backend resolves to the root top-level comment
 3. **Status validation:** Only `status='hidden'` (admin action) blocks replies. `status='removed'` (user soft-delete) allows the thread to continue.
 4. Resolves `reply_to_user_name` from `reply_to_user_id`
 5. Same stats/gamification as top-level
-6. **Notification:** If actor is NOT shadowbanned → sends reply notification to the user whose Reply was tapped
+6. **Notification:** If actor is NOT shadowbanned -> sends reply notification to the user whose Reply was tapped
 
 ### Comment Deletion
 
-- **Hard delete:** Comment with no replies → permanently removed, decrements `comments_count`, deletes associated `helpfuls`
-- **Soft delete:** Comment with replies → `status="removed"`, `content="[deleted]"`, `user_name="[deleted]"`. Replies preserved. Count not decremented. **New replies can still be posted** in the thread.
+- **Hard delete:** Comment with no replies -> permanently removed, decrements `comments_count`, deletes associated `helpfuls`
+- **Soft delete:** Comment with replies -> `status="removed"`, `content="[deleted]"`, `user_name="[deleted]"`. Replies preserved. Count not decremented. **New replies can still be posted** in the thread.
 - **Admin-hidden comments** (`status='hidden'`) block all new replies
 
 ### Save / Follow / Report Flows
-- Save: `POST/DELETE /api/problems/{id}/save` → toggles in `users.saved_problems[]`
-- Follow: `POST/DELETE /api/problems/{id}/follow` → toggles in `users.followed_problems[]`. User gets comment notifications for followed frikts.
-- Report: `POST /api/report/problem/{id}` or `/report/comment/{id}` or `/report/user/{id}` → creates `reports` document
+- Save: `POST/DELETE /api/problems/{id}/save` -> toggles in `users.saved_problems[]`
+- Follow: `POST/DELETE /api/problems/{id}/follow` -> toggles in `users.followed_problems[]`. User gets comment notifications for followed frikts.
+- Report: `POST /api/report/problem/{id}` or `/report/comment/{id}` or `/report/user/{id}` -> creates `reports` document
 
 ---
 
@@ -716,7 +743,7 @@ created_at: datetime
 - `feed`: "new" | "trending" | "foryou" | "local"
 - `category_id`: optional filter
 - `community_id`: required when feed="local"
-- `sort_by`: for local feed — "trending" | "new" | "top"
+- `sort_by`: for local feed -- "trending" | "new" | "top"
 - `search`: optional text search (when present, local frikts are included)
 - `limit`: default 50
 - `skip`: for pagination
@@ -758,7 +785,7 @@ else:
 ```python
 query["is_local"] = True
 query["community_id"] = community_id
-# sort_by: "new" → created_at DESC, "top" → relates_count DESC, "trending" → hot_score
+# sort_by: "new" -> created_at DESC, "top" -> relates_count DESC, "trending" -> hot_score
 ```
 
 ### Similar Problems (`GET /api/problems/similar`)
@@ -777,7 +804,7 @@ query["community_id"] = community_id
 ### Structure
 - **Threaded comments** with one level of nesting
 - Top-level: `parent_comment_id = null`
-- Replies: `parent_comment_id` → top-level comment ID
+- Replies: `parent_comment_id` -> top-level comment ID
 - Replies-to-replies are **flattened** to the root top-level parent
 - Top-level sorted by `helpful_count DESC`, replies by `created_at ASC`
 
@@ -809,8 +836,8 @@ query["community_id"] = community_id
 - **Status validation:** Only `status='hidden'` (admin action) blocks new replies. `status='removed'` (user soft-delete) allows the thread to continue. This prevents entire threads from freezing when someone deletes their top-level comment.
 
 ### Soft Delete Behavior
-- Comment with replies → soft-delete: `status="removed"`, `content="[deleted]"`, `user_name="[deleted]"`. Replies preserved. **New replies can still be posted** in the thread.
-- Comment without replies → hard delete: permanently removed
+- Comment with replies -> soft-delete: `status="removed"`, `content="[deleted]"`, `user_name="[deleted]"`. Replies preserved. **New replies can still be posted** in the thread.
+- Comment without replies -> hard delete: permanently removed
 - **Admin-hidden comments** (`status='hidden'`) block all new replies to that thread
 
 ### `is_community_member` Field
@@ -819,8 +846,8 @@ query["community_id"] = community_id
 - `true` for all comments on global frikts (not applicable)
 
 ### Helpful System
-- `POST /api/comments/{id}/helpful` → creates `helpfuls`, increments `helpful_count`
-- `DELETE /api/comments/{id}/helpful` → removes and decrements
+- `POST /api/comments/{id}/helpful` -> creates `helpfuls`, increments `helpful_count`
+- `DELETE /api/comments/{id}/helpful` -> removes and decrements
 - One helpful per user per comment
 
 ### Restrictions
@@ -848,8 +875,8 @@ query["community_id"] = community_id
 **Shadowban suppression:** If the actor (the person relating, commenting, or following) has `status='shadowbanned'`, no notification is created, no push is sent, and they are not added to notification batches. This ensures shadowbanned users are completely invisible to other users.
 
 ### Batching
-- Multiple relates within 5 minutes → batched into single notification
-- Multiple comments within 3 minutes → batched into single notification
+- Multiple relates within 5 minutes -> batched into single notification
+- Multiple comments within 3 minutes -> batched into single notification
 - Batched example: "3 people related to your Frikt"
 - Background processor runs every 60 seconds to flush pending batches
 
@@ -865,6 +892,12 @@ query["community_id"] = community_id
 - `follows`: receive follower notifications
 - `trending`: receive trending alerts
 
+### Navigation on Tap
+- `new_follower` -> `/user/{related_user_id}`
+- `broadcast` -> `/(tabs)/home`
+- `badge_earned` -> `/(tabs)/profile`
+- Others (with `problem_id`) -> `/problem/{problem_id}`
+
 ---
 
 ## 8. COMMUNITIES SYSTEM
@@ -872,7 +905,13 @@ query["community_id"] = community_id
 ### Community Model
 A community is a location-based or code-gated group. Users can belong to one community at a time and post local-only frikts visible within their community.
 
-**Empty community behavior (FIX 17):** Communities with 0 members remain active, joinable, and searchable. There is no auto-archive or cleanup for empty communities — they persist until manually removed by an admin.
+**Empty community behavior (FIX 17):** Communities with 0 members remain active, joinable, and searchable. There is no auto-archive or cleanup for empty communities -- they persist until manually removed by an admin.
+
+### Community Avatar
+- Communities can have an optional `avatar_url` (Cloudinary URL)
+- Admin uploads via `POST /api/admin/communities/{id}/avatar` (base64 image, stored in Cloudinary `frikt/communities/` folder)
+- Displayed in: Home local header, Community Detail, Search Communities cards, Profile community card, Admin panel
+- Fallback: Location pin icon when `avatar_url` is null/undefined
 
 ### Joining Flow
 1. User enters invite code on Home Local tab
@@ -882,15 +921,15 @@ A community is a location-based or code-gated group. Users can belong to one com
    - **Already in same community (400):** "You are already a member"
    - **Already in different community (409):** Returns current + new community names. Frontend shows Switch alert.
    - **Invalid code (404):** "Invalid community code"
-4. Switch: `POST /api/communities/switch` with new code → leaves old, joins new
+4. Switch: `POST /api/communities/switch` with new code -> leaves old, joins new
 
 ### Leaving Flow
 - `DELETE /api/communities/leave`
 - Removes membership. Local frikts user posted remain in the community feed.
 
 ### Request to Join Flow
-1. User browses communities in Search → Communities tab
-2. Taps community → Community Detail Screen
+1. User browses communities in Search -> Communities tab
+2. Taps community -> Community Detail Screen
 3. If not member, sees "Request to Join" banner
 4. Fills optional message + taps "Request to Join"
 5. `POST /api/communities/{id}/request-join`
@@ -903,7 +942,7 @@ A community is a location-based or code-gated group. Users can belong to one com
 2. `/request-community` screen: fills email, community name, optional description
 3. `POST /api/community-requests`
 4. Creates community request with `expires_at = created_at + 3 days`
-5. Admin sees in Communities tab → Community Requests section
+5. Admin sees in Communities tab -> Community Requests section
 6. **Expired requests** (older than 3 days) are automatically filtered out from admin views
 
 ### Request Expiration Rules
@@ -918,13 +957,14 @@ Expired requests remain in the database but are excluded from all admin API resp
 ### Admin Community Management
 - **Create:** Name + code + moderator email
 - **Change Code:** Update active invite code (old codes stop working)
+- **Upload Avatar:** Upload community profile image via Cloudinary
 - **View Join Requests:** See pending, non-expired requests; send code via mailto
 - **Export:** Download community frikt data as anonymous structured text (filterable by period)
 - All admin actions logged in `admin_audit_logs`
 
 ### Export Format (`GET /api/admin/communities/{id}/export`)
 
-The export is fully **anonymous** — no author names, no signal scores, no pain levels, no frequency data. Output format:
+The export is fully **anonymous** -- no author names, no signal scores, no pain levels, no frequency data. Output format:
 
 ```
 COMMUNITY EXPORT: {community_name}
@@ -966,7 +1006,7 @@ END OF EXPORT
 2. Find user by lowercase email
 3. Verify password hash
 4. Check `status != "banned"`
-5. Generate JWT → Returns `{access_token, user}`
+5. Generate JWT -> Returns `{access_token, user}`
 
 ### Token Management
 - JWT stored in SecureStore (iOS/Android) via `expo-secure-store`
@@ -976,9 +1016,14 @@ END OF EXPORT
 - `require_auth()`: required auth (raises 401)
 
 ### Password Reset
-1. `POST /api/auth/forgot-password` → generates 6-digit code, stores in `password_reset_tokens` (1 hour expiry), sends email via Resend
-2. `POST /api/auth/verify-reset-code` → validates code
-3. `POST /api/auth/reset-password` → sets new password
+1. `POST /api/auth/forgot-password` -> generates 6-digit code, stores in `password_reset_tokens` (1 hour expiry), sends email via Resend
+2. `POST /api/auth/verify-reset-code` -> validates code
+3. `POST /api/auth/reset-password` -> sets new password
+- **Brute-force protection:** Max 5 verification attempts per token. Max 3 reset requests per email per hour.
+
+### Banned User Check
+- All authenticated endpoints check `status != "banned"` via `require_auth` dependency
+- Banned users receive 403 on any API call
 
 ---
 
@@ -1035,7 +1080,7 @@ Posts with interaction ALWAYS beat posts without (except very new posts with rec
 - **Endpoint:** `GET /api/problems?search={query}`
 - **Type:** Case-insensitive regex
 - **Fields:** `title` only (Cleanup FIX 18: `when_happens` and `who_affected` removed from search indexing)
-- **Includes local frikts:** Yes — when a search parameter is present, the `is_local` filter is NOT applied. Local and global frikts appear together.
+- **Includes local frikts:** Yes -- when a search parameter is present, the `is_local` filter is NOT applied. Local and global frikts appear together.
 ```python
 # Local frikts excluded from feeds, but NOT from search
 if feed in ("new", "trending", "foryou") and not search:
@@ -1050,7 +1095,7 @@ if feed in ("new", "trending", "foryou") and not search:
 ### Community Search
 - **Endpoint:** `GET /api/communities?search={query}`
 - **Fields:** `name`
-- Returns communities with `member_count` and `frikt_count`
+- Returns communities with `member_count`, `frikt_count`, and `avatar_url`
 
 ---
 
@@ -1068,7 +1113,7 @@ GET  /api/health
 GET  /api/
 ```
 
-### Auth Required — Full Endpoint List
+### Auth Required -- Full Endpoint List
 
 #### Auth
 | Method | Path | Description |
@@ -1124,10 +1169,10 @@ GET  /api/
 | GET | /api/users/me/badges | Get badges |
 | GET | /api/users/me/gamification-stats | Get stats |
 | POST | /api/users/me/visit | Record daily visit |
-| PUT | /api/users/me/profile | Update profile |
-| POST | /api/users/me/avatar | Upload avatar (multipart) |
-| POST | /api/users/me/avatar-base64 | Upload avatar (base64) |
-| DELETE | /api/users/me | Delete account |
+| PUT | /api/users/me/profile | Update profile (incl. onboarding_completed) |
+| POST | /api/users/me/avatar | Upload avatar multipart (Cloudinary) |
+| POST | /api/users/me/avatar-base64 | Upload avatar base64 (Cloudinary) |
+| DELETE | /api/users/me | Delete account (soft-delete) |
 | POST | /api/users/me/change-password | Change password |
 | GET | /api/users/me/blocked | Get blocked users |
 | GET | /api/users/{id}/profile | Get user profile |
@@ -1146,9 +1191,9 @@ GET  /api/
 | POST | /api/communities/join | Join via invite code |
 | POST | /api/communities/switch | Switch to new community |
 | DELETE | /api/communities/leave | Leave current community |
-| GET | /api/communities | List all (searchable) |
-| GET | /api/communities/me | Get user's current community |
-| GET | /api/communities/{id} | Community detail (is_member, has_pending_request) |
+| GET | /api/communities | List all (searchable, includes avatar_url) |
+| GET | /api/communities/me | Get user's current community (includes avatar_url) |
+| GET | /api/communities/{id} | Community detail (includes avatar_url, is_member, has_pending_request) |
 | POST | /api/community-requests | Request new community creation |
 | POST | /api/communities/{id}/request-join | Request to join |
 
@@ -1183,7 +1228,7 @@ GET  /api/
 | POST | /api/feedback | Submit feedback |
 | GET | /api/health | Health check |
 
-#### Admin — Content & Users
+#### Admin -- Content & Users
 | Method | Path | Description |
 |--------|------|-------------|
 | GET | /api/admin/reports | Get all reports |
@@ -1208,7 +1253,7 @@ GET  /api/
 | POST | /api/admin/users/{id}/shadowban | Shadowban user |
 | POST | /api/admin/users/{id}/unban | Unban user |
 
-#### Admin — Broadcast & Analytics
+#### Admin -- Broadcast & Analytics
 | Method | Path | Description |
 |--------|------|-------------|
 | POST | /api/admin/broadcast-notification | Send broadcast |
@@ -1221,11 +1266,12 @@ GET  /api/
 | POST | /api/admin/sync-all-user-stats | Sync all user stats |
 | POST | /api/admin/sync-user-stats/{id} | Sync single user |
 
-#### Admin — Communities
+#### Admin -- Communities
 | Method | Path | Description |
 |--------|------|-------------|
 | POST | /api/admin/communities | Create community |
 | PUT | /api/admin/communities/{id}/code | Change invite code |
+| POST | /api/admin/communities/{id}/avatar | Upload community avatar (Cloudinary) |
 | GET | /api/admin/communities | List communities with stats |
 | GET | /api/admin/community-requests | Get creation requests (non-expired) |
 | GET | /api/admin/communities/{id}/join-requests | Get join requests (non-expired) |
@@ -1234,12 +1280,12 @@ GET  /api/
 | GET | /api/admin/communities/{id}/members | List community members (with ?search= query) |
 | PUT | /api/admin/community-requests/{id} | Dismiss/archive community creation request |
 
-#### Admin — Stats
+#### Admin -- Stats
 | Method | Path | Description |
 |--------|------|-------------|
 | POST | /api/admin/sync-problem-stats | Recalculate relates_count, comments_count, and unique_commenters for all problems from source collections |
 
-#### Admin — Feedback
+#### Admin -- Feedback
 | Method | Path | Description |
 |--------|------|-------------|
 | GET | /api/admin/feedback | Get all feedback |
@@ -1257,7 +1303,14 @@ GET  /api/
 ### Profile Fields (System-managed)
 - `email`, `name`, `created_at`, `role`, `status`, `followed_categories`, `followed_problems`, `saved_problems`, `onboarding_completed`, `posts_today`
 
-### Badge System — 45 total badges
+### Avatar Storage (Cloudinary)
+- **Upload endpoints:** `POST /api/users/me/avatar` (multipart) and `POST /api/users/me/avatar-base64`
+- **Storage:** Cloudinary cloud, folder `frikt/avatars/`, `public_id = user_id`
+- **URL format:** `https://res.cloudinary.com/{cloud_name}/image/upload/frikt/avatars/{user_id}.{ext}`
+- **Propagation:** On upload, `avatarUrl` is propagated to `problems.user_avatar_url` and `comments.user_avatar_url` for all user's content
+- **Old URLs:** Legacy `/api/uploads/avatars/` URLs (from pre-Cloudinary era) are still served via StaticFiles mount as fallback. Users with old URLs see default avatar until they re-upload.
+
+### Badge System -- 45 total badges
 
 **A. Visit Streaks (5)**
 | Badge | Threshold | Description |
@@ -1326,6 +1379,7 @@ GET  /api/
 - 1 day missed: grace window (up to 2 misses), streak continues
 - 2+ days missed: streak resets to 1
 - Same day visit: no change
+- **Source of truth:** `user_stats.current_visit_streak` collection (not user model)
 
 ---
 
@@ -1358,13 +1412,15 @@ Rotates based on day of week:
 | Self-follow | Blocked |
 | Duplicate relate | Blocked |
 | Duplicate helpful | Blocked |
+| Password reset requests | Max 3 per email per hour |
+| Password reset verification | Max 5 attempts per token |
 
 ---
 
 ## 17. BLOCKED USERS
 
 ### Blocking Flow
-1. `POST /api/users/{id}/block` → creates `blocked_users` document
+1. `POST /api/users/{id}/block` -> creates `blocked_users` document
 2. Blocked user's content (frikts, comments) filtered from all queries for the blocker
 3. Blocked user excluded from search results
 
@@ -1381,10 +1437,10 @@ Rotates based on day of week:
 ## 18. ACCOUNT DELETION (Soft Delete)
 
 1. `DELETE /api/users/me`
-2. **Preserves community content** — user's problems and comments are anonymized:
-   - `user_name` → `"[deleted user]"`
-   - `user_avatar_url` → `null`
-   - `user_id` → preserved for data integrity
+2. **Preserves community content** -- user's problems and comments are anonymized:
+   - `user_name` -> `"[deleted user]"`
+   - `user_avatar_url` -> `null`
+   - `user_id` -> preserved for data integrity
 3. Deletes user from `users` collection
 4. Deletes personal data: relates, helpfuls, notifications, push tokens, notification settings, user stats, achievements, follows, feedback, pending badges
 5. Community membership removed, member counts recalculated
@@ -1403,8 +1459,28 @@ Rotates based on day of week:
 | Token Storage | expo-secure-store (iOS/Android) |
 | Push Notifications | Expo Push Notifications + Firebase (FCM) for Android |
 | Email | Resend (password reset emails) |
+| Image Storage | Cloudinary (user avatars + community avatars) |
 | Hosting | Railway (backend), EAS Build (mobile builds) |
 | Background Tasks | asyncio (notification batch processing every 60s) |
+
+### Cloudinary Configuration
+- **Cloud name:** configured via `CLOUDINARY_CLOUD_NAME` env var
+- **Folders:** `frikt/avatars/` (user avatars), `frikt/communities/` (community avatars)
+- **public_id:** user_id for user avatars, community_id for community avatars
+- **Overwrite:** enabled (re-uploading replaces the previous image)
+- **URLs:** Permanent, public, no authentication required (e.g. `https://res.cloudinary.com/{cloud}/image/upload/frikt/avatars/{user_id}.jpg`)
+
+### Environment Variables (Railway)
+```
+MONGO_URL           - MongoDB Atlas connection string
+DB_NAME             - Database name
+JWT_SECRET          - JWT signing secret
+ADMIN_EMAILS        - Comma-separated admin emails
+CORS_ORIGINS        - Allowed origins
+CLOUDINARY_CLOUD_NAME  - Cloudinary cloud name
+CLOUDINARY_API_KEY     - Cloudinary API key
+CLOUDINARY_API_SECRET  - Cloudinary API secret
+```
 
 ---
 
@@ -1417,10 +1493,10 @@ Rotates based on day of week:
 ### Flow
 1. Action occurs (relate/comment)
 2. Check for existing pending batch for same recipient + target
-3. If exists → add actor to batch, return `False` (don't send immediate)
+3. If exists -> add actor to batch, return `False` (don't send immediate)
 4. If no existing batch, check for recently sent notification within window
-5. If recently sent → create new pending batch, return `False`
-6. If no recent notification → create batch marked as sent, return `True` (send immediate)
+5. If recently sent -> create new pending batch, return `False`
+6. If no recent notification -> create batch marked as sent, return `True` (send immediate)
 
 ### Background Processor
 - Runs every 60 seconds via asyncio
@@ -1430,22 +1506,51 @@ Rotates based on day of week:
 
 ---
 
+## 21. SECURITY FEATURES
+
+### Banned User Enforcement
+- `require_auth` dependency checks `status != "banned"` on every authenticated request
+- Banned users receive 403 immediately, cannot access any endpoint
+
+### Shadowban Content Filtering
+- Shadowbanned users' posts and comments are excluded from all feed queries
+- Their actions (relate, comment, follow) do not generate notifications
+- They are not added to notification batches
+
+### Password Reset Brute-Force Protection
+- Max 5 verification attempts per reset token
+- Max 3 reset requests per email per hour
+- Rate limiting prevents token enumeration
+
+### Account Deletion (Soft Delete)
+- User data deleted, but community contributions (posts, comments) anonymized to `[deleted user]`
+- Preserves conversation threads and engagement data integrity
+
+### Admin Endpoint Protection
+- All `/api/admin/*` endpoints require `role: "admin"` via `require_admin` dependency
+- Admin actions logged to `admin_audit_logs` for accountability
+
+### Bidirectional Block Filtering
+- Blocking is enforced in both directions
+- Neither user can see the other's content, search results, or interact
+
+---
+
 ## END OF DOCUMENTATION
 
 ---
-*Last updated: March 31, 2026*
+*Last updated: April 3, 2026*
 *Changes in this version:*
-- *Updated Post Screen to reflect 2-step PostWizard with collapsible details*
-- *Updated Problem Detail Screen: removed "Add details" section*
-- *Added Edit Problem Screen documentation*
-- *Added DisplayName Propagation section*
-- *Updated Admin Communities: members list, dismiss requests, sent status*
-- *Added Onboarding Screen documentation*
-- *Updated API Reference: admin members, community request dismiss endpoints*
-- *Cleanup FIX 14: Removed `streak_days` from users schema, visit streak now exclusively in `user_stats.current_visit_streak`*
-- *Cleanup FIX 15: Removed dead fields — `willing_to_pay` from problems, `rocket10_*` from users, `is_pinned` from comments*
-- *Cleanup FIX 16: Added `onboarding_completed` to users schema with server-side migration*
-- *Cleanup FIX 17: Documented empty community behavior (0-member communities stay active)*
-- *Cleanup FIX 18: Search now only matches on `title` field (removed `when_happens`, `who_affected`)*
-- *Updated notification_settings schema: added `comment_replies` and `follows` toggles*
-- *Updated account deletion to reflect soft-delete/anonymization behavior*
+- *Added Community Avatar feature: avatar_url field, admin upload endpoint, frontend display in 4 screens*
+- *Added Cloudinary migration: all avatar uploads (user + community) now use Cloudinary persistent storage*
+- *Added Anonymous Reminder text in PostWizard Step 1*
+- *Added Notifications Screen documentation with tap navigation per type*
+- *Fixed notifications.tsx syntax error (missing closing brace in handlePress)*
+- *Added Avatar Propagation section (user avatars propagate to problems + comments)*
+- *Added Section 21: Security Features summary*
+- *Updated Tech Stack: added Cloudinary as Image Storage*
+- *Updated Environment Variables: added Cloudinary config*
+- *Updated API Reference: community endpoints now include avatar_url, added admin avatar upload endpoint*
+- *Updated Rate Limits: added password reset limits*
+- *Updated Visit Streak Logic: source of truth is user_stats collection*
+- *Previous changes: Cleanup FIX 13-18, Security FIX 1-5, Data Integrity FIX 6-12*
