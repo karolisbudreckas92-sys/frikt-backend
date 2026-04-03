@@ -232,7 +232,7 @@ export default function PostWizard({ onComplete, onCancel }: PostWizardProps) {
               Post to {myCommunity.name}
             </Text>
             <Text style={[styles.localToggleHint, isLocal && { color: 'rgba(255,255,255,0.7)' }]}>
-              Only members of your community will see this
+              Only members can post and relate in your local feed
             </Text>
           </View>
           <View style={[styles.localCheckbox, isLocal && styles.localCheckboxActive]}>

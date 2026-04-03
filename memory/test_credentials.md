@@ -8,7 +8,7 @@
 - Register new test users via POST /api/auth/register with name, email, password
 
 ## API URL
-- Preview: https://schema-removal.preview.emergentagent.com
+- Preview: https://frikt-bugfix-release.preview.emergentagent.com
 - Backend local: http://localhost:8001
 
 ## MongoDB

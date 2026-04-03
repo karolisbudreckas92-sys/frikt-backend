@@ -287,6 +287,9 @@ export default function Home() {
           value={joinCode}
           onChangeText={setJoinCode}
           autoCapitalize="characters"
+          autoComplete="off"
+          autoCorrect={false}
+          textContentType="none"
           data-testid="community-code-input"
         />
         <TouchableOpacity

@@ -65,7 +65,7 @@
     "admin_password": "Admin123!",
     "test_user_email": "testuser.frikt@example.com",
     "test_user_password": "TestUser123!",
-    "preview_api_url": "https://schema-removal.preview.emergentagent.com"
+    "preview_api_url": "https://frikt-bugfix-release.preview.emergentagent.com"
   },
   "seed_data_creation": "Test communities created during tests with prefixes: JOIN-, LOCF-, SW1-, SW2-, LV-, ADM-, CHG-. These can be cleaned up via admin panel.",
   "retest_needed": false,

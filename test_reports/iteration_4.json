@@ -53,7 +53,7 @@
     "frontend": "Code review PASS, UI testing limited by hardcoded production URL"
   },
   "test_credentials": {
-    "preview_api_url": "https://schema-removal.preview.emergentagent.com",
+    "preview_api_url": "https://frikt-bugfix-release.preview.emergentagent.com",
     "test_user_email": "testuser.frikt@example.com",
     "test_user_password": "TestUser123!",
     "note": "Frontend uses hardcoded production URL, backend tests use preview URL correctly"

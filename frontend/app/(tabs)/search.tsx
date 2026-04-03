@@ -318,6 +318,9 @@ export default function Search() {
             onChangeText={setQuery}
             onSubmitEditing={handleSearch}
             returnKeyType="search"
+            autoComplete="off"
+            autoCorrect={false}
+            textContentType="none"
             data-testid="search-input"
           />
           {query.length > 0 && (

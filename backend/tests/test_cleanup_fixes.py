@@ -7,7 +7,7 @@ import requests
 import os
 import uuid
 
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://schema-removal.preview.emergentagent.com').rstrip('/')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://frikt-bugfix-release.preview.emergentagent.com').rstrip('/')
 
 # Test credentials
 ADMIN_EMAIL = "karolisbudreckas92@gmail.com"

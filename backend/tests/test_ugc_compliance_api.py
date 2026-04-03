@@ -8,7 +8,7 @@ import os
 import uuid
 
 # Use preview URL for testing
-BASE_URL = os.environ.get('EXPO_PUBLIC_BACKEND_URL', 'https://schema-removal.preview.emergentagent.com').rstrip('/')
+BASE_URL = os.environ.get('EXPO_PUBLIC_BACKEND_URL', 'https://frikt-bugfix-release.preview.emergentagent.com').rstrip('/')
 
 # Test credentials
 ADMIN_EMAIL = "karolisbudreckas92@gmail.com"

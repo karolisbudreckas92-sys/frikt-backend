@@ -42,7 +42,7 @@
   "test_credentials": {
     "admin_email": "karolisbudreckas92@gmail.com",
     "admin_password": "Admin123!",
-    "preview_api_url": "https://schema-removal.preview.emergentagent.com"
+    "preview_api_url": "https://frikt-bugfix-release.preview.emergentagent.com"
   },
   "seed_data_creation": "Test problems created with prefix 'TEST_' for each test, cleaned up after each test. Admin posts_today counter was reset during testing.",
   "retest_needed": false,

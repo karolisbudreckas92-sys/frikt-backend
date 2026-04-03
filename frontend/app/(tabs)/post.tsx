@@ -1,14 +1,22 @@
-import React from 'react';
+import React, { useState, useCallback } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { colors } from '@/src/theme/colors';
 import PostWizard from '@/src/components/PostWizard';
 import Toast from 'react-native-root-toast';
 import { useBadges } from '@/src/contexts/BadgeContext';
+import { useFocusEffect } from '@react-navigation/native';
 
 export default function PostTab() {
   const router = useRouter();
   const { showCelebration } = useBadges();
+  const [focusKey, setFocusKey] = useState(0);
+
+  useFocusEffect(
+    useCallback(() => {
+      setFocusKey(k => k + 1);
+    }, [])
+  );
 
   const handleComplete = (problemId?: string, newlyAwardedBadges?: any[]) => {
     // Show success toast
@@ -45,7 +53,7 @@ export default function PostTab() {
 
   return (
     <View style={styles.container}>
-      <PostWizard onComplete={handleComplete} onCancel={handleCancel} />
+      <PostWizard key={focusKey} onComplete={handleComplete} onCancel={handleCancel} />
     </View>
   );
 }

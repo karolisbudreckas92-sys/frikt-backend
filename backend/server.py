@@ -1934,6 +1934,25 @@ async def get_problems(
                 {"$limit": limit}
             ]
             problems = await db.problems.aggregate(pipeline).to_list(limit)
+            
+            # Fallback: if fewer than 5 results, show all local frikts by hot_score
+            if len(problems) < 5:
+                fallback_pipeline = [
+                    {"$match": query},
+                    {"$addFields": {
+                        "hot_score": {
+                            "$add": [
+                                {"$multiply": [{"$ifNull": ["$relates_count", 0]}, 3]},
+                                {"$multiply": [{"$ifNull": ["$comments_count", 0]}, 2]},
+                                {"$ifNull": ["$unique_commenters", 0]}
+                            ]
+                        }
+                    }},
+                    {"$sort": {"hot_score": -1, "created_at": -1}},
+                    {"$skip": skip},
+                    {"$limit": limit}
+                ]
+                problems = await db.problems.aggregate(fallback_pipeline).to_list(limit)
     else:
         # Fallback
         sort = [("created_at", -1)]

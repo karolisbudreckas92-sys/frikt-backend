@@ -1,83 +1,68 @@
-<analysis>**original_problem_statement**: The user requested a comprehensive series of fixes and enhancements across multiple domains:
-1. Verify and fix the first-time Onboarding flow persistence.
-2. Fix a UI bug with unfollowing categories (optimistic update UI).
-3. Update the app's Logo and Splash screens using newly provided SVG/PNG assets.
-4. **Data Propagation**: Propagate denormalized  to existing problems and comments when updated.
-5. **UI Flow**: Move the Add details fields (, , ) from the detail view to the creation flow (Step 2, collapsible) and the edit screen.
-6. **5 Critical Security Fixes**: Check banned status on all requests, brute-force protection for password reset, soft-delete for account deletion (preserving community content), verify admin roles on all admin endpoints, and filter shadowbanned content from feeds.
-7. **7 Data Integrity Fixes**: Propagate avatar changes, add unique indexes (, , ), bidirectional block filtering, allow nullable  in notifications, and create a counter reconciliation endpoint.
-8. **6 Cleanup Fixes**: Expand notification settings toggles, consolidate visit streak logic, remove dead fields from schemas, store onboarding completion server-side, define empty community behavior, and remove detail fields from search indexing.
+<analysis>**original_problem_statement**: The user requested the completion of Cleanup Fixes 14-18, followed by adding new features (Anonymous reminder in PostWizard, Community Avatar uploads), migrating the ephemeral Railway avatar storage to Cloudinary, resolving an EAS TestFlight versioning issue, and fixing 4 newly reported bugs (Local trending fallback, iOS autofill input styling, Profile/Post tab state refresh, and misleading subtitle text).
 
-**PRODUCT REQUIREMENTS**: Complete all the stated bug fixes, data integrity improvements, and security patches without breaking existing functionality, heavily utilizing the  after each major batch.
+**PRODUCT REQUIREMENTS**: Finalize schema cleanups, implement Cloudinary for persistent image storage, update complete documentation, and fix remaining UI/logic bugs for the production build.
 
-**User's preferred language**: **Spanish** (INSTRUCT next agent to respond and communicate with the user in **Spanish** only).
+**User's preferred language**: Spanish (You MUST automatically detect the user's primary language from their messages inside the <trajectory> tag and INSTRUCT next agent to respond in the user's preferred language only. The user communicates in Spanish).
 
 **what currently exists?** 
-A stable, feature-rich full-stack application (React Native/Expo + FastAPI + MongoDB). The application has just undergone massive security, data integrity, and UI stabilization updates. Almost all the requested batches of fixes (Security, Data Propagation, Data Integrity) have been successfully implemented and verified with a 100% pass rate using the testing agent. The app includes complex features like local communities, shadowbanning, gamification, and notification batching.
+A stable full-stack application (React Native/Expo + FastAPI + MongoDB). The backend now uses Cloudinary for persistent avatar storage. Community avatars are fully integrated. Schema cleanups (removing , , ) are complete. The app has just been version bumped to 1.0.3 for TestFlight. 
 
 **Last working item**:
-    - Last item agent was working: The agent was midway through the **6 CLEANUP FIXES** batch requested by the user. Specifically, the agent had just finished FIX 13 (Notification settings) and was in the middle of executing a  for **FIX 14 (Consolidate visit streak to one source)** to replace  with .
-    - Status: IN PROGRESS
-    - Agent Testing Done: N (for the current cleanup batch)
-    - Which testing method agent to use? testing_agent_v3_fork (Backend API testing is highly recommended once all cleanup fixes are complete).
+    - Last item agent was working: The agent just finished fixing 4 specific bugs reported by the user: 1) Local Trending showing empty (added fallback to  if < 5 frikts), 2) Search/Code inputs having a yellow background on iOS (disabled autocomplete/autofill props), 3) Community membership not updating without restart (added  to Profile and a dynamic  to PostWizard to force remount), 4) Misleading Post to local subtitle text updated.
+    - Status: USER VERIFICATION PENDING
+    - Agent Testing Done: Y (Curled the backend logic for Bug 1. UI changes for bugs 2, 3, 4 were applied but cannot be effectively curled).
+    - Which testing method agent to use? manual testing by user / frontend testing agent (for UI state refresh).
     - User Testing Done: N
 
 **All Pending/In progress Issue list**:
-  Issue 1: (P0) Complete the remaining CLEANUP FIXES (Fixes 14 through 18)
+  Issue 1: Verify the 4 recently fixed UI/Logic bugs.
   
   Issues Detail:
-  - Issue 1: Complete CLEANUP FIXES
-     - Attempted fixes: Fix 13 (Notification toggles) is done. Fix 14 (Visit streak consolidation) had one  executed just before the session ended.
-     - Next debug checklist: 
-        - **FIX 14**: Verify  is completely removed from the  collection logic and only  is used in .
-        - **FIX 15**: Remove  from  schema. Remove , ,  from  schema. Remove  from  schema (in ).
-        - **FIX 16**: Add  (bool, default false) to user models. Update  to accept it. Add logic (maybe in the startup event) to set  for users created before today. Update frontend to check server-side state on launch.
-        - **FIX 17**: Add a code comment explicitly defining that communities with 0 members remain active, joinable, and searchable.
-        - **FIX 18**: In , remove  and  from the  regex query. Only search on .
-     - Why fix this issue and what will be achieved with the fix? Completes the user's final batch of application cleanup tasks before their next production release.
-     - Status: IN PROGRESS
+  - Issue 1: 
+     - Attempted fixes: Agent applied changes to , , , , and  / .
+     - Next debug checklist: Inform the user that the 4 bugs have been fixed and ask if they would like to verify them locally via their Expo/TestFlight build, or if they want to run . 
+     - Why fix this issue and what will be achieved with the fix? Completes the user's immediate bug report queue for the 1.0.3 release.
+     - Status: USER VERIFICATION PENDING
      - Is recurring issue? N
-     - Should Test frontend/backend/both after fix? Both (Backend API via testing agent, Frontend via screenshot/manual logic check).
-     - Blocked on other issue: None
+     - Should Test frontend/backend/both after fix? Both (Mainly Frontend UX verification).
+     - Blocked on other issue: None.
 
 **In progress Task List**:
   None.
 
 **Upcoming and Future Tasks**
     Upcoming Tasks:
-    - (P1) Run  once Fixes 14-18 are implemented to verify no regressions occurred during schema cleanup.
-    - (P1) Update  to reflect the final schema changes from the cleanup fixes.
+    - (P1) Update  and  if the recent 4 bug fixes warrant a documentation update (e.g., Trending fallback logic).
+    
     Future Tasks:
-    - (P2) Refactor the monolithic  into smaller FastAPI routers. *(User explicitly requested to wait on this until after their upcoming District 9 local launch).*
+    - (P2) Refactor the monolithic  into smaller FastAPI routers (Post District 9 launch).
     - (P2) Refactor the monolithic  into smaller components.
     - (P3) Address ESLint, TypeScript, and  warnings.
+    - (P3) Deep linking setup.
 
 **Completed work in this session**
-- Onboarding Flow persistence bugs fixed ( checks AsyncStorage) (DONE)
-- Unfollow Category UI bug fixed (added  to ) (DONE)
-- App Logo Updated (PNGs generated and EAS configured, LogoMark in  updated to exact SVG proportions) (DONE)
-- Propagate  changes to , ,  (DONE)
-- Move Add details fields to PostWizard Step 2 (collapsible) and Edit Screen; removed from detail view (DONE)
-- **Security Fixes:** 
-  - Banned user 403 checks added to  (DONE)
-  - Password reset brute-force protection (max 5 attempts) + rate limiting (DONE)
-  - Account deletion changed to soft-delete () to preserve community content (DONE)
-  - Admin endpoints audited for role checks & logging (DONE)
-  - Shadowban content filtering added to feeds and comments (DONE)
-- **Data Integrity Fixes:**
-  - Propagate avatar changes to  and  (DONE)
-  - Unique indexes added for , , and  (DONE)
-  - Bidirectional block filtering added to queries, comments, relates, and follows (DONE)
-  - Notifications  made nullable (DONE)
-  - Admin endpoint  created for counter reconciliation (DONE)
-- **Cleanup Fixes (Partial):**
-  - FIX 13: Added  and  to Notification settings + Frontend UI (DONE)
+- Cleanup Fixes 14-18 (Removed , added , removed dead schema fields) (DONE)
+- Generated & updated  thoroughly (DONE)
+- Feature: Added anonymous reminder helper text in PostWizard (DONE)
+- Feature: Community Avatars (Backend upload endpoints, Admin UI, App-wide display integration) (DONE)
+- Critical Fix: Migrated User and Community Avatars from ephemeral Railway filesystem to Cloudinary (DONE)
+- Bug Fix:  (Unclosed brace) in  (DONE)
+- Bug Fix: 401 Unauthorized on  changed to optional auth (DONE)
+- App version bumped to 1.0.3, buildNumber 46 for TestFlight submission (DONE)
+- Bug Fix: Local Trending empty fallback (DONE)
+- Bug Fix: iOS Autofill yellow background on inputs (DONE)
+- Bug Fix: Community state refresh on Profile/Post tabs without app restart (DONE)
+- Bug Fix: Post to local subtitle clarity updated (DONE)
 
 **Earlier issues found/mentioned but not fixed**
-  None.
+   None.
 
 **Known issue recurrence from previous fork**
-  - None applicable currently. Keep in mind the user builds locally, so always remind them to run  before running --platform is required when building in non-interactive mode.
+  - Ephemeral File Storage: Fixed in this session by migrating to Cloudinary. Do not attempt to save uploaded files to local  anymore.
+  - EAS remote versioning overrides local  for iOS builds. The agent provided instructions (An Expo user account is required to proceed.
+
+Log in to EAS with email or username (exit and run eas login --help to see other login options)
+Input is required, but stdin is not readable. Failed to display prompt: Email or username) to resolve this.
 
 **Code Architecture**
 
@@ -86,51 +71,57 @@ A stable, feature-rich full-stack application (React Native/Expo + FastAPI + Mon
 - React Native / Expo (Frontend)
 - FastAPI / Python (Backend)
 - MongoDB (Database)
-- Soft Deletes & Data Denormalization (Updates cascade via  to maintain read performance).
+- Cloudinary (Image Storage - Integrated this session)
 
 **key DB schema**
-  - : Uses  (migrating away from ), added  (pending).
-  - : ,  (denormalized). , ,  (detail fields).
-  - : , ,  (denormalized).
-  - : Expanded with , , , , .
+  - :  (Now a full Cloudinary URL instead of relative path), .
+  - : Added .
+  - /: Denormalized  (Cloudinary URLs).
 
 **changes in tech stack**
-  - None
+  - **Cloudinary integration added.** Looking in indexes: https://pypi.org/simple, https://d33sy5i8bnduwe.cloudfront.net/simple/
+Requirement already satisfied: cloudinary in /root/.venv/lib/python3.11/site-packages (1.44.1)
+Requirement already satisfied: six in /root/.venv/lib/python3.11/site-packages (from cloudinary) (1.17.0)
+Requirement already satisfied: urllib3>=1.26.5 in /root/.venv/lib/python3.11/site-packages (from cloudinary) (2.6.3)
+Requirement already satisfied: certifi in /root/.venv/lib/python3.11/site-packages (from cloudinary) (2026.1.4). Python SDK handles uploads. Images are stored remotely, no longer using local . 
 
 **All files of reference**
--  (Core backend file where all schema/logic fixes must happen).
--  (Recently updated).
--  (Contains details implementation).
+-  (Updated with Cloudinary SDK, Trending fallback, Community optional auth).
+- , , ,  (Updated with UI fixes, state refreshes, and Community Avatar display).
+-  (Updated text, local toggle).
+-  (Cloudinary keys added).
 
 **Areas that need refactoring**:
--  and . (On hold per user request until post-launch).
+-  (>5200 lines) and  (>2200 lines).
 
 **key api endpoints**
-- : Needs to handle .
-- : Search query needs  and  removed.
+-  &  (Uploads to Cloudinary).
+-  (Uploads community avatar to Cloudinary).
+-  (Trending fallback logic updated).
 
 **Critical Info for New Agent**
-- **LANGUAGE**: Respond entirely in **Spanish**.
-- The user is extremely thorough and provides numbered lists of fixes (e.g., CLEANUP FIXES - 6 issues). The previous agent finished Fix 13 and started Fix 14. You must pick up exactly from Fix 14 to Fix 18.
-- The  file was just fully regenerated. After you finish Fixes 14-18, you should update it slightly to reflect the schema removals (Fix 15) and onboarding field addition (Fix 16).
+- Respond exclusively in **Spanish**.
+- Cloudinary credentials are set up locally and in the user's Railway environment. DO NOT revert to saving images to the local filesystem.
+- The user is actively building and deploying via EAS (An Expo user account is required to proceed.
+Either log in with eas login or set the EXPO_TOKEN environment variable if you're using EAS CLI on CI (Learn more: https://docs.expo.dev/accounts/programmatic-access/)). Avoid making breaking changes without thorough testing.
+- The 4 bugs from the user's last prompt are technically implemented in the code, but you have not yet responded to the user to confirm this. Your first action should be to inform the user that the 4 bugs are fixed and ask how they want to proceed with testing.
 
 **documents and test reports created in this job**
+  -  (Massively updated)
   - 
-  - 
-  -  (Security fixes tests)
-  -  (Data integrity fixes tests)
+  - , , 
 
 **Last 10 User Messages and any pending HUMAN messages** 
- - User requested Complete Documentation generation.
- - Agent provided documentation.
- - User asked how to download the document.
- - Agent explained VS Code/GitHub options and printed the content in chat.
- - User submitted 5 Critical Security Fixes.
- - Agent implemented and tested all 5.
- - User submitted 7 Data Integrity Fixes.
- - Agent implemented and tested all 7.
- - User submitted 6 Cleanup Fixes (Fix 13 to Fix 18).
- - Agent started implementing Cleanup Fixes (session ended after starting Fix 14).
+ - User requested the migration of avatars to Cloudinary due to Railway's ephemeral filesystem.
+ - Agent implemented Cloudinary, tested, and finished.
+ - User uploaded an image showing an app crash (algo no funciona).
+ - Agent found and fixed a SyntaxError ( missing) in .
+ - User asked for the  to be fully rewritten with all recent changes. Agent did so.
+ - User noticed a 401 Unauthorized in logs for . Agent changed it to optional auth.
+ - User asked for instructions to bump TestFlight version from 1.0.2 to 1.0.3.
+ - Agent updated  and gave EAS commands.
+ - User had trouble with git branch divergence and EAS build versioning. Agent provided CLI commands to fix remote versioning.
+ - User reported 4 bugs: Trending empty fallback, Search input yellow background, Community membership state not refreshing, and Post to local subtitle text. *(Agent implemented the fixes in code, but session ended before agent could reply to user).*
 
 **Project Health Check:**
 - Broken: None.
@@ -138,16 +129,17 @@ A stable, feature-rich full-stack application (React Native/Expo + FastAPI + Mon
 
 **3rd Party Integrations**
 - Expo EAS (Build and Submit)
-- Google Play / App Store
+- Cloudinary (Image Storage - newly added) - *Requires User API Key (Provided in backend/.env)*
 
 **Testing status**
-  - Testing agent used after significant changes: YES (iterations 10, 11, 12, 13 all showed 100% pass rates for massive logic refactors).
+  - Testing agent used after significant changes: YES (Iterations 14, 15, 16).
   - Troubleshoot agent used after agent stuck in loop: NO
   - Test files created: None
-  - Known regressions: None.
+  - Known regressions: None
 
 **Credentials to test flow:**
-- Check  (Usually admin is  / ).
+Check .
 
 **What agent forgot to execute**
-- The agent was cut off by the context limit before finishing the user's latest prompt (CLEANUP FIXES - 6 issues). It only completed Fix 13 and began Fix 14. You must complete Fixes 14, 15, 16, 17, and 18.</analysis>
+- The agent implemented the code fixes for the final 4 Bugs requested by the user, but the context limit was reached before the agent could send a message to the user confirming the fixes.
+- The agent has not run  for these final 4 bug fixes.</analysis>

@@ -16,7 +16,7 @@ from datetime import datetime
 # Get BASE_URL from environment
 BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', '').rstrip('/')
 if not BASE_URL:
-    BASE_URL = "https://schema-removal.preview.emergentagent.com"
+    BASE_URL = "https://frikt-bugfix-release.preview.emergentagent.com"
 
 # Admin credentials
 ADMIN_EMAIL = "karolisbudreckas92@gmail.com"
