@@ -455,7 +455,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
   },
-  header: { fontSize: 24, color: colors.primary, letterSpacing: -0.5, fontFamily: fonts.bold },
+  logo: { fontSize: 24, color: colors.primary, letterSpacing: -0.5, fontFamily: fonts.bold },
   headerRight: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   headerButton: { position: 'relative', padding: 4 },
   notifBadge: {
@@ -463,7 +463,7 @@ const styles = StyleSheet.create({
     borderRadius: 10, minWidth: 18, height: 18, justifyContent: 'center',
     alignItems: 'center', paddingHorizontal: 4,
   },
-  notifBadge: { color: colors.white, fontSize: 10, fontFamily: fonts.bold },
+  badgeText: { color: colors.white, fontSize: 10, fontFamily: fonts.bold },
   headerContainer: { marginBottom: 8 },
   
   // Toggle
@@ -478,7 +478,7 @@ const styles = StyleSheet.create({
   },
   toggleButtonActive: { backgroundColor: colors.primary },
   toggleButtonActiveLocal: { backgroundColor: CORAL },
-  toggleButton: { fontSize: 14, color: colors.textSecondary, fontFamily: fonts.medium },
+  toggleText: { fontSize: 14, color: colors.textSecondary, fontFamily: fonts.medium },
   toggleTextActive: { color: '#fff' },
   
   // Feed tabs
@@ -494,7 +494,7 @@ const styles = StyleSheet.create({
   communityHeader: {
     flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingTop: 12, gap: 6,
   },
-  communityHeader: { fontSize: 16, color: colors.text, fontFamily: fonts.bold },
+  communityName: { fontSize: 16, color: colors.text, fontFamily: fonts.bold },
   communityStats: { fontSize: 13, color: colors.textMuted },
   
   // No community
@@ -514,13 +514,13 @@ const styles = StyleSheet.create({
   },
   joinButtonDisabled: { backgroundColor: colors.disabledBg },
   joinButtonTextDisabled: { color: colors.disabledText },
-  joinButton: { color: '#fff', fontSize: 15, fontFamily: fonts.bold },
+  joinButtonText: { color: '#fff', fontSize: 15, fontFamily: fonts.bold },
   orText: { fontSize: 13, color: colors.textMuted, marginVertical: 16 },
   browseButton: {
     flexDirection: 'row', alignItems: 'center', gap: 6, borderWidth: 1.5,
     borderColor: CORAL, borderRadius: 12, paddingVertical: 12, paddingHorizontal: 24,
   },
-  browseButton: { color: CORAL, fontSize: 14, fontFamily: fonts.semibold },
+  browseButtonText: { color: CORAL, fontSize: 14, fontFamily: fonts.semibold },
   requestLink: { color: CORAL, fontSize: 13, marginTop: 20, textDecorationLine: 'underline' },
   
   listContent: { paddingBottom: 100 },
@@ -531,12 +531,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', backgroundColor: colors.primary,
     paddingVertical: 12, paddingHorizontal: 20, borderRadius: 12, marginTop: 20, gap: 8,
   },
-  ctaButton: { fontSize: 14, color: colors.white, fontFamily: fonts.semibold },
+  ctaButtonText: { fontSize: 14, color: colors.white, fontFamily: fonts.semibold },
   retryButton: {
     flexDirection: 'row', alignItems: 'center', backgroundColor: colors.primary,
     paddingVertical: 12, paddingHorizontal: 20, borderRadius: 12, marginTop: 20, gap: 8,
   },
-  retryButton: { fontSize: 14, color: colors.white, fontFamily: fonts.semibold },
+  retryButtonText: { fontSize: 14, color: colors.white, fontFamily: fonts.semibold },
   loadingOverlay: {
     position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
     justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background,
