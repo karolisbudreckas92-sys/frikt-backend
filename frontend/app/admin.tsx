@@ -1444,6 +1444,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 18,
+    fontFamily: fonts.semibold,
     color: colors.text,
   },
   adminBadgeHeader: {
@@ -1484,6 +1485,7 @@ const styles = StyleSheet.create({
   tabBadgeText: {
     color: colors.white,
     fontSize: 9,
+    fontFamily: fonts.bold,
   },
   tabActive: {
     borderBottomWidth: 2,
@@ -1491,6 +1493,7 @@ const styles = StyleSheet.create({
   },
   tabText: {
     fontSize: 10,
+    fontFamily: fonts.medium,
     color: colors.textMuted,
   },
   tabTextActive: {
@@ -1510,6 +1513,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 14,
+    fontFamily: fonts.semibold,
     color: colors.textSecondary,
     marginBottom: 12,
     marginTop: 16,
@@ -1533,6 +1537,7 @@ const styles = StyleSheet.create({
   },
   metricValue: {
     fontSize: 28,
+    fontFamily: fonts.bold,
     color: colors.text,
   },
   metricLabel: {
@@ -1554,6 +1559,7 @@ const styles = StyleSheet.create({
   },
   statValue: {
     fontSize: 20,
+    fontFamily: fonts.semibold,
     color: colors.text,
     marginTop: 8,
   },
@@ -1576,6 +1582,7 @@ const styles = StyleSheet.create({
   },
   alertTitle: {
     fontSize: 14,
+    fontFamily: fonts.semibold,
     color: colors.primary,
   },
   alertText: {
@@ -1609,6 +1616,7 @@ const styles = StyleSheet.create({
   },
   rankNumber: {
     fontSize: 16,
+    fontFamily: fonts.bold,
     color: colors.primary,
     width: 30,
   },
@@ -1617,6 +1625,7 @@ const styles = StyleSheet.create({
   },
   topProblemTitle: {
     fontSize: 14,
+    fontFamily: fonts.medium,
     color: colors.text,
   },
   topProblemStats: {
@@ -1626,6 +1635,7 @@ const styles = StyleSheet.create({
   },
   signalScore: {
     fontSize: 11,
+    fontFamily: fonts.semibold,
     color: colors.primary,
   },
   topProblemStat: {
@@ -1650,6 +1660,7 @@ const styles = StyleSheet.create({
   },
   totalCountText: {
     fontSize: 15,
+    fontFamily: fonts.semibold,
     color: colors.text,
   },
   filterChip: {
@@ -1666,6 +1677,7 @@ const styles = StyleSheet.create({
   },
   filterChipText: {
     fontSize: 12,
+    fontFamily: fonts.medium,
     color: colors.textSecondary,
   },
   filterChipTextActive: {
@@ -1706,6 +1718,7 @@ const styles = StyleSheet.create({
   },
   reportTypeText: {
     fontSize: 10,
+    fontFamily: fonts.semibold,
     textTransform: 'uppercase',
   },
   reasonBadge: {
@@ -1716,6 +1729,7 @@ const styles = StyleSheet.create({
   },
   reasonText: {
     fontSize: 10,
+    fontFamily: fonts.semibold,
     color: colors.amber,
     textTransform: 'uppercase',
   },
@@ -1769,6 +1783,7 @@ const styles = StyleSheet.create({
   },
   actionBtnText: {
     fontSize: 12,
+    fontFamily: fonts.medium,
     color: colors.textSecondary,
   },
   userCard: {
@@ -1793,6 +1808,7 @@ const styles = StyleSheet.create({
   },
   userAvatarText: {
     fontSize: 16,
+    fontFamily: fonts.semibold,
     color: colors.white,
   },
   userInfo: {
@@ -1801,6 +1817,7 @@ const styles = StyleSheet.create({
   },
   userName: {
     fontSize: 14,
+    fontFamily: fonts.semibold,
     color: colors.text,
   },
   userEmail: {
@@ -1814,6 +1831,7 @@ const styles = StyleSheet.create({
   },
   statusText: {
     fontSize: 10,
+    fontFamily: fonts.semibold,
     textTransform: 'uppercase',
   },
   adminBadge: {
@@ -1829,6 +1847,7 @@ const styles = StyleSheet.create({
   },
   adminBadgeText: {
     fontSize: 10,
+    fontFamily: fonts.semibold,
     color: colors.primary,
   },
   userJoined: {
@@ -1852,6 +1871,7 @@ const styles = StyleSheet.create({
   },
   userActionText: {
     fontSize: 12,
+    fontFamily: fonts.medium,
   },
   auditCard: {
     backgroundColor: colors.surface,
@@ -1877,6 +1897,7 @@ const styles = StyleSheet.create({
   auditAction: {
     flex: 1,
     fontSize: 13,
+    fontFamily: fonts.medium,
     color: colors.text,
   },
   auditTime: {
@@ -1918,6 +1939,7 @@ const styles = StyleSheet.create({
   },
   formulaTitle: {
     fontSize: 12,
+    fontFamily: fonts.semibold,
     color: colors.text,
     marginBottom: 4,
   },
@@ -1985,10 +2007,12 @@ const styles = StyleSheet.create({
   },
   feedbackAvatarText: {
     fontSize: 14,
+    fontFamily: fonts.semibold,
     color: colors.white,
   },
   feedbackUserName: {
     fontSize: 14,
+    fontFamily: fonts.semibold,
     color: colors.text,
   },
   feedbackEmail: {
@@ -2043,6 +2067,7 @@ const styles = StyleSheet.create({
   },
   feedbackActionText: {
     fontSize: 12,
+    fontFamily: fonts.medium,
     color: colors.textSecondary,
   },
   emptySubtitle: {
@@ -2065,6 +2090,7 @@ const styles = StyleSheet.create({
   },
   broadcastStatValue: {
     fontSize: 24,
+    fontFamily: fonts.bold,
     color: colors.primary,
   },
   broadcastStatLabel: {
@@ -2080,6 +2106,7 @@ const styles = StyleSheet.create({
   },
   broadcastSectionTitle: {
     fontSize: 16,
+    fontFamily: fonts.semibold,
     color: colors.text,
     marginBottom: 16,
   },
@@ -2094,6 +2121,7 @@ const styles = StyleSheet.create({
   },
   inputLabel: {
     fontSize: 14,
+    fontFamily: fonts.medium,
     color: colors.text,
   },
   charCount: {
@@ -2125,6 +2153,7 @@ const styles = StyleSheet.create({
   },
   previewTitle: {
     fontSize: 12,
+    fontFamily: fonts.medium,
     color: colors.textMuted,
     marginBottom: 10,
     textTransform: 'uppercase',
@@ -2155,11 +2184,13 @@ const styles = StyleSheet.create({
   },
   previewAppName: {
     fontSize: 11,
+    fontFamily: fonts.semibold,
     color: colors.textMuted,
     marginBottom: 2,
   },
   previewNotifTitle: {
     fontSize: 14,
+    fontFamily: fonts.semibold,
     color: colors.text,
     marginBottom: 2,
   },
@@ -2182,6 +2213,7 @@ const styles = StyleSheet.create({
   },
   sendButtonText: {
     fontSize: 16,
+    fontFamily: fonts.semibold,
     color: colors.white,
   },
   historyItem: {
@@ -2197,11 +2229,13 @@ const styles = StyleSheet.create({
   },
   historyTitle: {
     fontSize: 14,
+    fontFamily: fonts.semibold,
     color: colors.text,
     flex: 1,
   },
   historyRecipients: {
     fontSize: 12,
+    fontFamily: fonts.medium,
     color: colors.accent,
     marginLeft: 8,
   },
@@ -2243,5 +2277,6 @@ const styles = StyleSheet.create({
   primaryButtonText: {
     color: '#fff',
     fontSize: 14,
+    fontFamily: fonts.semibold,
   },
 });

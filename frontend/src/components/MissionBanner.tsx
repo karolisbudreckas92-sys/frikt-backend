@@ -92,6 +92,7 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 12,
+    fontFamily: fonts.semibold,
     color: colors.accent,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
@@ -99,6 +100,7 @@ const styles = StyleSheet.create({
   },
   prompt: {
     fontSize: 15,
+    fontFamily: fonts.medium,
     color: colors.text,
     lineHeight: 21,
   },
@@ -113,10 +115,12 @@ const styles = StyleSheet.create({
   },
   buttonText: {
     fontSize: 14,
+    fontFamily: fonts.semibold,
     color: colors.white,
   },
   buttonText: {
     fontSize: 14,
+    fontFamily: fonts.semibold,
     color: colors.white,
   },
 });

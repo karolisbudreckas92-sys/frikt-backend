@@ -136,6 +136,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 17,
+    fontFamily: fonts.semibold,
     color: colors.text,
   },
   placeholder: {
@@ -177,6 +178,7 @@ const styles = StyleSheet.create({
   submitButtonText: {
     color: colors.white,
     fontSize: 16,
+    fontFamily: fonts.semibold,
   },
   successContainer: {
     flex: 1,
@@ -185,6 +187,7 @@ const styles = StyleSheet.create({
   },
   successText: {
     fontSize: 24,
+    fontFamily: fonts.semibold,
     color: colors.accent,
     marginTop: 16,
   },

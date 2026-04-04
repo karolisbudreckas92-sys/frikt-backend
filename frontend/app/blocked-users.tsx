@@ -183,6 +183,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 17,
+    fontFamily: fonts.semibold,
     color: colors.text,
   },
   loadingContainer: {
@@ -198,6 +199,7 @@ const styles = StyleSheet.create({
   },
   emptyTitle: {
     fontSize: 18,
+    fontFamily: fonts.semibold,
     color: colors.text,
     marginTop: 16,
   },
@@ -239,6 +241,7 @@ const styles = StyleSheet.create({
   },
   avatarText: {
     fontSize: 18,
+    fontFamily: fonts.semibold,
     color: colors.white,
   },
   nameContainer: {
@@ -247,6 +250,7 @@ const styles = StyleSheet.create({
   },
   userName: {
     fontSize: 16,
+    fontFamily: fonts.semibold,
     color: colors.text,
   },
   blockedDate: {
@@ -265,6 +269,7 @@ const styles = StyleSheet.create({
   },
   unblockText: {
     fontSize: 14,
+    fontFamily: fonts.semibold,
     color: colors.primary,
   },
 });

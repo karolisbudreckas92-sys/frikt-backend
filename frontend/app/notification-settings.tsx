@@ -282,6 +282,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 18,
+    fontFamily: fonts.semibold,
     color: colors.text,
   },
   loadingContainer: {
@@ -314,6 +315,7 @@ const styles = StyleSheet.create({
   },
   statusTitle: {
     fontSize: 15,
+    fontFamily: fonts.semibold,
     color: colors.text,
   },
   statusText: {
@@ -323,6 +325,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 14,
+    fontFamily: fonts.semibold,
     color: colors.textSecondary,
     marginBottom: 12,
     textTransform: 'uppercase',
@@ -358,6 +361,7 @@ const styles = StyleSheet.create({
   },
   settingTitle: {
     fontSize: 15,
+    fontFamily: fonts.semibold,
     color: colors.text,
   },
   settingDesc: {

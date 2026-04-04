@@ -141,7 +141,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface, borderBottomWidth: 1, borderBottomColor: colors.border,
   },
   backButton: { padding: 4 },
-  headerTitle: { flex: 1, fontSize: 18, color: colors.text, textAlign: 'center' },
+  header: { flex: 1, fontSize: 18, color: colors.text, textAlign: 'center', fontFamily: fonts.semibold },
   content: { padding: 24 },
   title: { fontSize: 22, color: colors.text, textAlign: 'center', marginTop: 16 },
   subtitle: { fontSize: 14, color: colors.textSecondary, textAlign: 'center', marginTop: 8, marginBottom: 28, lineHeight: 20 },
@@ -157,12 +157,12 @@ const styles = StyleSheet.create({
   },
   buttonDisabled: { backgroundColor: colors.disabledBg },
   submitButtonTextDisabled: { color: colors.disabledText },
-  submitButtonText: { color: '#fff', fontSize: 16 },
+  submitButton: { color: '#fff', fontSize: 16, fontFamily: fonts.bold },
   successContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 32 },
   successTitle: { fontSize: 22, color: colors.text, marginTop: 16 },
   successText: { fontSize: 15, color: colors.textSecondary, textAlign: 'center', marginTop: 10, lineHeight: 22 },
   doneButton: {
     backgroundColor: CORAL, borderRadius: radius.md, paddingVertical: 14, paddingHorizontal: 40, marginTop: 28,
   },
-  doneButtonText: { color: '#fff', fontSize: 16 },
+  doneButton: { color: '#fff', fontSize: 16, fontFamily: fonts.semibold },
 });

@@ -1051,6 +1051,7 @@ const styles = StyleSheet.create({
   },
   retryButtonText: {
     fontSize: 14,
+    fontFamily: fonts.semibold,
     color: colors.white,
   },
   header: {
@@ -1067,6 +1068,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 18,
+    fontFamily: fonts.semibold,
     color: colors.text,
   },
   headerRight: {
@@ -1098,6 +1100,7 @@ const styles = StyleSheet.create({
   },
   categoryText: {
     fontSize: 13,
+    fontFamily: fonts.semibold,
     color: colors.primary,
   },
   timeText: {
@@ -1106,6 +1109,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 22,
+    fontFamily: fonts.bold,
     color: colors.text,
     lineHeight: 30,
     marginBottom: 12,
@@ -1132,11 +1136,13 @@ const styles = StyleSheet.create({
   },
   authorAvatarText: {
     fontSize: 14,
+    fontFamily: fonts.semibold,
     color: colors.white,
   },
   authorName: {
     flex: 1,
     fontSize: 14,
+    fontFamily: fonts.medium,
     color: colors.text,
   },
   signalSummary: {
@@ -1152,6 +1158,7 @@ const styles = StyleSheet.create({
   },
   signalValue: {
     fontSize: 18,
+    fontFamily: fonts.bold,
     color: colors.text,
   },
   signalLabel: {
@@ -1187,6 +1194,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 16,
+    fontFamily: fonts.semibold,
     color: colors.text,
     marginBottom: 12,
   },
@@ -1215,6 +1223,7 @@ const styles = StyleSheet.create({
   },
   chipText: {
     fontSize: 12,
+    fontFamily: fonts.medium,
     color: colors.primary,
   },
   commentInput: {
@@ -1273,6 +1282,7 @@ const styles = StyleSheet.create({
   },
   commentAvatarText: {
     fontSize: 14,
+    fontFamily: fonts.semibold,
     color: colors.white,
   },
   commentMeta: {
@@ -1280,6 +1290,7 @@ const styles = StyleSheet.create({
   },
   commentAuthor: {
     fontSize: 14,
+    fontFamily: fonts.semibold,
     color: colors.text,
   },
   commentTime: {
@@ -1350,6 +1361,7 @@ const styles = StyleSheet.create({
   },
   reportTitle: {
     fontSize: 20,
+    fontFamily: fonts.bold,
     color: colors.text,
   },
   reportSubtitle: {
@@ -1391,6 +1403,7 @@ const styles = StyleSheet.create({
   },
   reportSubmitText: {
     fontSize: 16,
+    fontFamily: fonts.semibold,
     color: colors.white,
   },
   // Comment edit/delete styles
@@ -1472,6 +1485,7 @@ const styles = StyleSheet.create({
   },
   editSaveText: {
     fontSize: 14,
+    fontFamily: fonts.semibold,
     color: colors.white,
   },
   // Reply styles
@@ -1487,6 +1501,7 @@ const styles = StyleSheet.create({
   },
   replyIndicatorText: {
     fontSize: 13,
+    fontFamily: fonts.medium,
     color: colors.primary,
   },
   cancelReplyButton: {
@@ -1525,6 +1540,7 @@ const styles = StyleSheet.create({
   },
   viewRepliesText: {
     fontSize: 13,
+    fontFamily: fonts.medium,
     color: colors.primary,
   },
   replyCard: {
@@ -1548,6 +1564,7 @@ const styles = StyleSheet.create({
   },
   replyAvatarText: {
     fontSize: 11,
+    fontFamily: fonts.semibold,
     color: colors.white,
   },
   replyMeta: {
@@ -1562,6 +1579,7 @@ const styles = StyleSheet.create({
   },
   replyAuthor: {
     fontSize: 13,
+    fontFamily: fonts.semibold,
     color: colors.text,
   },
   replyToIndicator: {

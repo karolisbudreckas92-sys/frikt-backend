@@ -507,6 +507,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     flex: 1,
     fontSize: 18,
+    fontFamily: fonts.semibold,
     color: colors.text,
     textAlign: 'center',
   },
@@ -518,6 +519,7 @@ const styles = StyleSheet.create({
   },
   stepIndicatorText: {
     fontSize: 13,
+    fontFamily: fonts.semibold,
     color: colors.primary,
   },
   progressBar: {
@@ -537,6 +539,7 @@ const styles = StyleSheet.create({
   },
   stepTitle: {
     fontSize: 24,
+    fontFamily: fonts.bold,
     color: colors.text,
     marginBottom: 8,
   },
@@ -586,6 +589,7 @@ const styles = StyleSheet.create({
   },
   similarTitle: {
     fontSize: 16,
+    fontFamily: fonts.semibold,
     color: colors.text,
     marginBottom: 4,
   },
@@ -604,6 +608,7 @@ const styles = StyleSheet.create({
   },
   similarCardTitle: {
     fontSize: 14,
+    fontFamily: fonts.medium,
     color: colors.text,
     marginBottom: 8,
     lineHeight: 20,
@@ -619,6 +624,7 @@ const styles = StyleSheet.create({
   },
   fieldLabel: {
     fontSize: 14,
+    fontFamily: fonts.semibold,
     color: colors.text,
     marginBottom: 12,
     marginTop: 20,
@@ -649,6 +655,7 @@ const styles = StyleSheet.create({
   },
   chipText: {
     fontSize: 14,
+    fontFamily: fonts.medium,
     color: colors.textSecondary,
   },
   chipTextActive: {
@@ -674,6 +681,7 @@ const styles = StyleSheet.create({
   },
   severityText: {
     fontSize: 14,
+    fontFamily: fonts.medium,
     color: colors.textSecondary,
   },
   severityTextActive: {
@@ -709,6 +717,7 @@ const styles = StyleSheet.create({
   },
   primaryButtonText: {
     fontSize: 16,
+    fontFamily: fonts.semibold,
     color: colors.white,
   },
   skipButton: {
@@ -719,6 +728,7 @@ const styles = StyleSheet.create({
   },
   skipButtonText: {
     fontSize: 16,
+    fontFamily: fonts.medium,
     color: colors.textSecondary,
   },
   doneButton: {
@@ -733,6 +743,7 @@ const styles = StyleSheet.create({
   },
   doneButtonText: {
     fontSize: 16,
+    fontFamily: fonts.semibold,
     color: colors.white,
   },
   buttonDisabled: {
@@ -758,6 +769,7 @@ const styles = StyleSheet.create({
   },
   localToggleText: {
     fontSize: 14,
+    fontFamily: fonts.semibold,
     color: colors.text,
   },
   localToggleTextActive: {
@@ -799,6 +811,7 @@ const styles = StyleSheet.create({
   },
   detailsToggleTitle: {
     fontSize: 14,
+    fontFamily: fonts.medium,
     color: colors.textSecondary,
   },
   detailsToggleSubtitle: {
@@ -814,6 +827,7 @@ const styles = StyleSheet.create({
   },
   detailLabel: {
     fontSize: 14,
+    fontFamily: fonts.medium,
     color: colors.textSecondary,
     marginBottom: 8,
   },

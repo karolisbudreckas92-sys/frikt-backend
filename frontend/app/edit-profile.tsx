@@ -333,6 +333,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 17,
+    fontFamily: fonts.semibold,
     color: colors.text,
   },
   cancelText: {
@@ -341,6 +342,7 @@ const styles = StyleSheet.create({
   },
   saveText: {
     fontSize: 16,
+    fontFamily: fonts.semibold,
     color: colors.primary,
     textAlign: 'right',
   },
@@ -375,6 +377,7 @@ const styles = StyleSheet.create({
   },
   avatarInitial: {
     fontSize: 40,
+    fontFamily: fonts.bold,
     color: colors.white,
   },
   uploadingOverlay: {
@@ -403,6 +406,7 @@ const styles = StyleSheet.create({
   },
   changePhotoText: {
     fontSize: 15,
+    fontFamily: fonts.semibold,
     color: colors.primary,
   },
   form: {
@@ -413,6 +417,7 @@ const styles = StyleSheet.create({
   },
   fieldLabel: {
     fontSize: 14,
+    fontFamily: fonts.semibold,
     color: colors.textSecondary,
     marginBottom: 8,
   },
@@ -469,6 +474,7 @@ const styles = StyleSheet.create({
   },
   toggleLabel: {
     fontSize: 15,
+    fontFamily: fonts.medium,
     color: colors.text,
   },
   toggleDescription: {
