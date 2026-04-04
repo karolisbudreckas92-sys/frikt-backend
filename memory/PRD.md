@@ -50,6 +50,10 @@ Social platform for sharing everyday frustrations ("frikts"). Users post anonymo
   - Edit-problem: chip radius 18, severity height 36, font 14 medium
   - PostWizard Step 2 hint verified
 
+## Recently Fixed (Apr 2026)
+- Fixed duplicate StyleSheet keys in `home.tsx` (ctaButton x2, retryButton x2, mismatched toggleText/logo/badgeText refs)
+- Fixed duplicate StyleSheet keys in `community/[id].tsx` (header, communityIcon, joinBanner, requestJoinButton, nonMemberNotice — 5 duplicates causing broken layout for join flow, community header, and non-member notice)
+
 ## Backlog
 - (P2) Refactor `backend/server.py` into FastAPI routers
 - (P2) Refactor `frontend/app/admin.tsx` into components
