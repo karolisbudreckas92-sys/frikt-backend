@@ -667,20 +667,21 @@ const styles = StyleSheet.create({
   },
   severityChip: {
     flex: 1,
-    paddingVertical: 14,
-    borderRadius: radius.md,
+    borderRadius: 18,
     borderWidth: 1,
     borderColor: colors.border,
     backgroundColor: colors.surface,
     alignItems: 'center',
+    justifyContent: 'center',
+    height: 36,
   },
   severityChipActive: {
     backgroundColor: colors.primary,
     borderColor: colors.primary,
   },
   severityText: {
-    fontSize: 18,
-    fontFamily: fonts.semibold,
+    fontSize: 14,
+    fontFamily: fonts.medium,
     color: colors.textSecondary,
   },
   severityTextActive: {
@@ -723,15 +724,11 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: radius.md,
     paddingVertical: 16,
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.surface,
   },
   skipButtonText: {
     fontSize: 16,
-    fontFamily: fonts.semibold,
+    fontFamily: fonts.medium,
     color: colors.textSecondary,
   },
   doneButton: {

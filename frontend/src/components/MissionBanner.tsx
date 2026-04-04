@@ -118,9 +118,9 @@ const styles = StyleSheet.create({
     fontFamily: fonts.semibold,
     color: colors.white,
   },
-  buttonHint: {
-    fontSize: 12,
+  buttonText: {
+    fontSize: 14,
+    fontFamily: fonts.semibold,
     color: colors.white,
-    opacity: 0.7,
   },
 });
