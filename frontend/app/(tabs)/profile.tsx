@@ -11,28 +11,36 @@ import {
   Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useRouter, useNavigation } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, radius, fonts} from '@/src/theme/colors';
 import { api } from '@/src/services/api';
 import { useAuth } from '@/src/context/AuthContext';
 import { BadgeSection } from '@/src/components/BadgeSection';
 
-import { useFocusEffect } from '@react-navigation/native';
-
 function CommunityCard() {
   const [community, setCommunity] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
+  const navigation = useNavigation();
 
-  useFocusEffect(
-    useCallback(() => {
-      api.getMyCommunity()
-        .then(setCommunity)
-        .catch(() => setCommunity(null))
-        .finally(() => setLoading(false));
-    }, [])
-  );
+  const loadCommunity = useCallback(() => {
+    api.getMyCommunity()
+      .then(setCommunity)
+      .catch(() => setCommunity(null))
+      .finally(() => setLoading(false));
+  }, []);
+
+  useEffect(() => {
+    loadCommunity();
+  }, []);
+
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('focus', () => {
+      loadCommunity();
+    });
+    return unsubscribe;
+  }, [navigation, loadCommunity]);
 
   if (loading) return null;
 
