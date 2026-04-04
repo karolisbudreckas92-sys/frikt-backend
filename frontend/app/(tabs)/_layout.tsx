@@ -78,7 +78,6 @@ const styles = StyleSheet.create({
   },
   tabLabel: {
     fontSize: 11,
-    fontFamily: fonts.medium,
   },
   postButton: {
     width: 56,

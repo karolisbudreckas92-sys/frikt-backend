@@ -214,7 +214,6 @@ const styles = StyleSheet.create({
   },
   logo: {
     fontSize: 48,
-    fontFamily: fonts.bold,
     color: colors.text,
     letterSpacing: -2,
   },
@@ -228,7 +227,6 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 28,
-    fontFamily: fonts.bold,
     color: colors.text,
     marginBottom: 8,
   },
@@ -287,7 +285,6 @@ const styles = StyleSheet.create({
   },
   termsLink: {
     color: colors.primary,
-    fontFamily: fonts.semibold,
     textDecorationLine: 'underline',
   },
   button: {
@@ -303,7 +300,6 @@ const styles = StyleSheet.create({
   buttonText: {
     color: colors.white,
     fontSize: 16,
-    fontFamily: fonts.semibold,
   },
   buttonTextDisabled: {
     color: colors.disabledText,
@@ -320,6 +316,5 @@ const styles = StyleSheet.create({
   footerLink: {
     color: colors.primary,
     fontSize: 14,
-    fontFamily: fonts.semibold,
   },
 });

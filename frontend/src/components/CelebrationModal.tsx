@@ -194,7 +194,6 @@ const styles = StyleSheet.create({
   },
   congratsText: {
     fontSize: 14,
-    fontFamily: fonts.semibold,
     color: colors.primary,
     textTransform: 'uppercase',
     letterSpacing: 2,
@@ -202,7 +201,6 @@ const styles = StyleSheet.create({
   },
   badgeName: {
     fontSize: 26,
-    fontFamily: fonts.bold,
     color: colors.textPrimary,
     marginBottom: 12,
     textAlign: 'center',
@@ -223,7 +221,6 @@ const styles = StyleSheet.create({
   },
   additionalBadgesText: {
     fontSize: 14,
-    fontFamily: fonts.semibold,
     color: colors.primary,
   },
   dismissButton: {
@@ -237,7 +234,6 @@ const styles = StyleSheet.create({
   dismissText: {
     color: '#FFFFFF',
     fontSize: 18,
-    fontFamily: fonts.bold,
   },
 });
 

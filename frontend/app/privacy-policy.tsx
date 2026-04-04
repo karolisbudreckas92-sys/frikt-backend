@@ -53,7 +53,6 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 17,
-    fontFamily: fonts.semibold,
     color: colors.text,
   },
   webview: {

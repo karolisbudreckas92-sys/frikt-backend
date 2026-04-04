@@ -116,7 +116,6 @@ const styles = StyleSheet.create({
   },
   categoryText: {
     fontSize: 12,
-    fontFamily: fonts.semibold,
     color: colors.primary,
   },
   localTag: {
@@ -133,12 +132,10 @@ const styles = StyleSheet.create({
   },
   localTagText: {
     fontSize: 11,
-    fontFamily: fonts.semibold,
     color: '#E85D3A',
   },
   title: {
     fontSize: 16,
-    fontFamily: fonts.semibold,
     color: colors.text,
     lineHeight: 22,
     marginBottom: 6,
@@ -176,7 +173,6 @@ const styles = StyleSheet.create({
   },
   relateText: {
     fontSize: 13,
-    fontFamily: fonts.medium,
     color: colors.textSecondary,
   },
   relateTextActive: {

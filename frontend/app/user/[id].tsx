@@ -418,7 +418,6 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 18,
-    fontFamily: fonts.semibold,
     color: colors.text,
   },
   content: {
@@ -445,12 +444,10 @@ const styles = StyleSheet.create({
   },
   avatarText: {
     fontSize: 32,
-    fontFamily: fonts.bold,
     color: colors.white,
   },
   displayName: {
     fontSize: 22,
-    fontFamily: fonts.bold,
     color: colors.text,
     marginBottom: 4,
   },
@@ -476,7 +473,6 @@ const styles = StyleSheet.create({
   },
   communityTagText: {
     fontSize: 13,
-    fontFamily: fonts.semibold,
     color: '#E85D3A',
   },
   statsRow: {
@@ -493,7 +489,6 @@ const styles = StyleSheet.create({
   },
   statValue: {
     fontSize: 20,
-    fontFamily: fonts.bold,
     color: colors.text,
   },
   statLabel: {
@@ -517,7 +512,6 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 18,
-    fontFamily: fonts.semibold,
     color: colors.text,
   },
   sortTabs: {
@@ -536,7 +530,6 @@ const styles = StyleSheet.create({
   },
   sortTabText: {
     fontSize: 13,
-    fontFamily: fonts.medium,
     color: colors.textSecondary,
   },
   sortTabTextActive: {
@@ -548,7 +541,6 @@ const styles = StyleSheet.create({
   },
   emptyTitle: {
     fontSize: 16,
-    fontFamily: fonts.semibold,
     color: colors.text,
     marginTop: 12,
   },
@@ -575,11 +567,9 @@ const styles = StyleSheet.create({
   },
   categoryText: {
     fontSize: 11,
-    fontFamily: fonts.semibold,
   },
   postTitle: {
     fontSize: 15,
-    fontFamily: fonts.semibold,
     color: colors.text,
     lineHeight: 21,
     marginBottom: 10,
@@ -640,7 +630,6 @@ const styles = StyleSheet.create({
   },
   menuItemCancelText: {
     fontSize: 16,
-    fontFamily: fonts.semibold,
     color: colors.textSecondary,
     textAlign: 'center',
   },
@@ -664,7 +653,6 @@ const styles = StyleSheet.create({
   },
   reportTitle: {
     fontSize: 20,
-    fontFamily: fonts.bold,
     color: colors.text,
   },
   reportSubtitle: {
@@ -692,7 +680,6 @@ const styles = StyleSheet.create({
     color: colors.text,
   },
   reportReasonTextSelected: {
-    fontFamily: fonts.semibold,
     color: colors.primary,
   },
   reportSubmitButton: {
@@ -707,7 +694,6 @@ const styles = StyleSheet.create({
   },
   reportSubmitText: {
     fontSize: 16,
-    fontFamily: fonts.semibold,
     color: colors.white,
   },
 });

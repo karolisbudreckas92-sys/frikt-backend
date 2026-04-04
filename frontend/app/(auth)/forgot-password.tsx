@@ -342,7 +342,6 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 28,
-    fontFamily: fonts.bold,
     color: '#2B2F36',
     marginBottom: 8,
     textAlign: 'center',
@@ -379,7 +378,6 @@ const styles = StyleSheet.create({
   codeInput: {
     textAlign: 'center',
     fontSize: 24,
-    fontFamily: fonts.semibold,
     letterSpacing: 8,
   },
   eyeButton: {
@@ -398,7 +396,6 @@ const styles = StyleSheet.create({
   buttonText: {
     color: colors.white,
     fontSize: 16,
-    fontFamily: fonts.semibold,
   },
   resendButton: {
     alignItems: 'center',
@@ -422,6 +419,5 @@ const styles = StyleSheet.create({
   footerLink: {
     color: colors.primary,
     fontSize: 14,
-    fontFamily: fonts.semibold,
   },
 });

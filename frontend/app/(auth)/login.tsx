@@ -220,8 +220,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   logoText: {
-    fontSize: 56, // Doubled from 28
-    fontFamily: fonts.bold, // Bold
+    fontSize: 56, // Doubled from 28, // Bold
     color: '#2B2F36', // Wordmark color
     letterSpacing: -0.56, // -1% tracking
     marginLeft: 16, // Doubled from 8px
@@ -236,7 +235,6 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 28,
-    fontFamily: fonts.bold,
     color: '#2B2F36',
     marginBottom: 8,
   },
@@ -280,7 +278,6 @@ const styles = StyleSheet.create({
   buttonText: {
     color: colors.white,
     fontSize: 16,
-    fontFamily: fonts.semibold,
   },
   forgotPassword: {
     alignItems: 'center',
@@ -290,7 +287,6 @@ const styles = StyleSheet.create({
   forgotPasswordText: {
     color: colors.primary,
     fontSize: 14,
-    fontFamily: fonts.medium,
   },
   footer: {
     flexDirection: 'row',
@@ -304,6 +300,5 @@ const styles = StyleSheet.create({
   footerLink: {
     color: colors.primary,
     fontSize: 14,
-    fontFamily: fonts.semibold,
   },
 });

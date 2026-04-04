@@ -581,7 +581,6 @@ const styles = StyleSheet.create({
   },
   statsLabel: {
     fontSize: 16,
-    fontFamily: fonts.medium,
     color: '#1A1A1A',
     flex: 1,
   },
@@ -600,7 +599,6 @@ const styles = StyleSheet.create({
   },
   statsCount: {
     fontSize: 14,
-    fontFamily: fonts.bold,
     color: '#E85D3A',
   },
   
@@ -626,7 +624,6 @@ const styles = StyleSheet.create({
   },
   modalTitle: {
     fontSize: 18,
-    fontFamily: fonts.semibold,
     color: colors.textPrimary,
   },
   modalScroll: {
@@ -642,7 +639,6 @@ const styles = StyleSheet.create({
   },
   summaryText: {
     fontSize: 16,
-    fontFamily: fonts.semibold,
     color: colors.textPrimary,
     marginBottom: 8,
   },
@@ -664,7 +660,6 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 18,
-    fontFamily: fonts.bold,
     color: colors.textPrimary,
     marginBottom: 4,
   },
@@ -780,7 +775,6 @@ const styles = StyleSheet.create({
   },
   detailTitle: {
     fontSize: 22,
-    fontFamily: fonts.bold,
     color: colors.textPrimary,
     marginBottom: 16,
     textAlign: 'center',
@@ -794,7 +788,6 @@ const styles = StyleSheet.create({
   },
   requirementLabel: {
     fontSize: 12,
-    fontFamily: fonts.semibold,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
     marginBottom: 6,
@@ -846,7 +839,6 @@ const styles = StyleSheet.create({
   detailCloseText: {
     color: '#FFFFFF',
     fontSize: 16,
-    fontFamily: fonts.semibold,
   },
 });
 

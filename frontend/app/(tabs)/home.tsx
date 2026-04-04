@@ -455,7 +455,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
   },
-  logo: { fontSize: 24, fontFamily: fonts.bold, color: colors.primary, letterSpacing: -0.5 },
+  logo: { fontSize: 24, color: colors.primary, letterSpacing: -0.5 },
   headerRight: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   headerButton: { position: 'relative', padding: 4 },
   notifBadge: {
@@ -463,7 +463,7 @@ const styles = StyleSheet.create({
     borderRadius: 10, minWidth: 18, height: 18, justifyContent: 'center',
     alignItems: 'center', paddingHorizontal: 4,
   },
-  badgeText: { color: colors.white, fontSize: 10, fontFamily: fonts.bold },
+  badgeText: { color: colors.white, fontSize: 10 },
   headerContainer: { marginBottom: 8 },
   
   // Toggle
@@ -478,7 +478,7 @@ const styles = StyleSheet.create({
   },
   toggleButtonActive: { backgroundColor: colors.primary },
   toggleButtonActiveLocal: { backgroundColor: CORAL },
-  toggleText: { fontSize: 14, fontFamily: fonts.semibold, color: colors.textSecondary },
+  toggleText: { fontSize: 14, color: colors.textSecondary },
   toggleTextActive: { color: '#fff' },
   
   // Feed tabs
@@ -487,19 +487,19 @@ const styles = StyleSheet.create({
   feedTab: { paddingVertical: 8, paddingHorizontal: 14, borderRadius: 18, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, height: 36, justifyContent: 'center' },
   feedTabActive: { backgroundColor: '#E85D3A', borderColor: '#E85D3A' },
   feedTabActiveLocal: { backgroundColor: '#E85D3A', borderColor: '#E85D3A' },
-  feedTabText: { fontSize: 13, fontFamily: fonts.medium, color: colors.text },
+  feedTabText: { fontSize: 13, color: colors.text },
   feedTabTextActive: { color: '#FFFFFF' },
   
   // Community header
   communityHeader: {
     flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingTop: 12, gap: 6,
   },
-  communityName: { fontSize: 16, fontFamily: fonts.bold, color: colors.text },
+  communityName: { fontSize: 16, color: colors.text },
   communityStats: { fontSize: 13, color: colors.textMuted },
   
   // No community
   noCommContainer: { alignItems: 'center', paddingVertical: 32, paddingHorizontal: 32 },
-  noCommTitle: { fontSize: 20, fontFamily: fonts.bold, color: colors.text, marginTop: 12 },
+  noCommTitle: { fontSize: 20, color: colors.text, marginTop: 12 },
   noCommSubtitle: { fontSize: 14, color: colors.textSecondary, marginTop: 6, textAlign: 'center' },
   joinInputRow: {
     flexDirection: 'row', marginTop: 24, width: '100%', gap: 8,
@@ -514,29 +514,29 @@ const styles = StyleSheet.create({
   },
   joinButtonDisabled: { backgroundColor: colors.disabledBg },
   joinButtonTextDisabled: { color: colors.disabledText },
-  joinButtonText: { color: '#fff', fontFamily: fonts.bold, fontSize: 15 },
+  joinButtonText: { color: '#fff', fontSize: 15 },
   orText: { fontSize: 13, color: colors.textMuted, marginVertical: 16 },
   browseButton: {
     flexDirection: 'row', alignItems: 'center', gap: 6, borderWidth: 1.5,
     borderColor: CORAL, borderRadius: 12, paddingVertical: 12, paddingHorizontal: 24,
   },
-  browseButtonText: { color: CORAL, fontFamily: fonts.semibold, fontSize: 14 },
+  browseButtonText: { color: CORAL, fontSize: 14 },
   requestLink: { color: CORAL, fontSize: 13, marginTop: 20, textDecorationLine: 'underline' },
   
   listContent: { paddingBottom: 100 },
   emptyContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingVertical: 80 },
-  emptyTitle: { fontSize: 18, fontFamily: fonts.semibold, color: colors.text, marginTop: 16 },
+  emptyTitle: { fontSize: 18, color: colors.text, marginTop: 16 },
   emptyText: { fontSize: 14, color: colors.textSecondary, marginTop: 8 },
   ctaButton: {
     flexDirection: 'row', alignItems: 'center', backgroundColor: colors.primary,
     paddingVertical: 12, paddingHorizontal: 20, borderRadius: 12, marginTop: 20, gap: 8,
   },
-  ctaButtonText: { fontSize: 14, fontFamily: fonts.semibold, color: colors.white },
+  ctaButtonText: { fontSize: 14, color: colors.white },
   retryButton: {
     flexDirection: 'row', alignItems: 'center', backgroundColor: colors.primary,
     paddingVertical: 12, paddingHorizontal: 20, borderRadius: 12, marginTop: 20, gap: 8,
   },
-  retryButtonText: { fontSize: 14, fontFamily: fonts.semibold, color: colors.white },
+  retryButtonText: { fontSize: 14, color: colors.white },
   loadingOverlay: {
     position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
     justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background,

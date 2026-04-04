@@ -1062,7 +1062,7 @@ export default function AdminPanel() {
       ) : (
         commRequests.map((req) => (
           <View key={req.id} style={[styles.card, { borderLeftWidth: 3, borderLeftColor: CORAL }]}>
-            <Text style={{ fontSize: 15, fontFamily: fonts.semibold, color: colors.text }}>{req.community_name}</Text>
+            <Text style={{ fontSize: 15, color: colors.text }}>{req.community_name}</Text>
             <Text style={{ fontSize: 13, color: colors.textMuted, marginTop: 2 }}>{req.email}</Text>
             {req.description && <Text style={{ fontSize: 13, color: colors.textSecondary, marginTop: 4 }}>{req.description}</Text>}
             <View style={{ flexDirection: 'row', gap: 8, marginTop: 10 }}>
@@ -1076,7 +1076,7 @@ export default function AdminPanel() {
                 data-testid={`contact-request-${req.id}`}
               >
                 <Ionicons name="mail" size={14} color="#fff" />
-                <Text style={{ color: '#fff', fontSize: 12, fontFamily: fonts.semibold }}>Contact</Text>
+                <Text style={{ color: '#fff', fontSize: 12 }}>Contact</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={{ flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: colors.border, paddingVertical: 6, paddingHorizontal: 12, borderRadius: 8 }}
@@ -1091,7 +1091,7 @@ export default function AdminPanel() {
                 data-testid={`dismiss-request-${req.id}`}
               >
                 <Ionicons name="close-circle" size={14} color={colors.textMuted} />
-                <Text style={{ color: colors.textMuted, fontSize: 12, fontFamily: fonts.semibold }}>Dismiss</Text>
+                <Text style={{ color: colors.textMuted, fontSize: 12 }}>Dismiss</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -1173,7 +1173,7 @@ export default function AdminPanel() {
               data-testid={`comm-row-${comm.id}`}
             >
               <View style={{ flex: 1 }}>
-                <Text style={{ fontSize: 15, fontFamily: fonts.semibold, color: colors.text }}>{comm.name}</Text>
+                <Text style={{ fontSize: 15, color: colors.text }}>{comm.name}</Text>
                 <Text style={{ fontSize: 12, color: colors.textMuted, marginTop: 2 }}>
                   Code: {comm.active_code} | {comm.member_count} members | {comm.frikt_count} frikts
                   {comm.pending_join_requests > 0 && ` | ${comm.pending_join_requests} pending`}
@@ -1208,7 +1208,7 @@ export default function AdminPanel() {
 
                 {/* Change Code */}
                 <View style={{ marginBottom: 12 }}>
-                  <Text style={{ fontSize: 13, fontFamily: fonts.semibold, color: colors.text, marginBottom: 6 }}>Change Code</Text>
+                  <Text style={{ fontSize: 13, color: colors.text, marginBottom: 6 }}>Change Code</Text>
                   {changeCodeId === comm.id ? (
                     <View style={{ flexDirection: 'row', gap: 8 }}>
                       <TextInput
@@ -1236,14 +1236,14 @@ export default function AdminPanel() {
                       style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}
                       onPress={() => { setChangeCodeId(comm.id); setNewCode(comm.active_code); }}
                     >
-                      <Text style={{ fontSize: 15, fontFamily: fonts.bold, color: CORAL }}>{comm.active_code}</Text>
+                      <Text style={{ fontSize: 15, color: CORAL }}>{comm.active_code}</Text>
                       <Ionicons name="pencil" size={14} color={CORAL} />
                     </TouchableOpacity>
                   )}
                 </View>
 
                 {/* Join Requests */}
-                <Text style={{ fontSize: 13, fontFamily: fonts.semibold, color: colors.text, marginBottom: 6 }}>
+                <Text style={{ fontSize: 13, color: colors.text, marginBottom: 6 }}>
                   Join Requests ({joinReqs.length})
                 </Text>
                 {joinReqs.length === 0 ? (
@@ -1258,7 +1258,7 @@ export default function AdminPanel() {
                       {jr.status === 'sent' ? (
                         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: colors.border, paddingVertical: 6, paddingHorizontal: 12, borderRadius: 8 }}>
                           <Ionicons name="checkmark-circle" size={14} color={colors.textMuted} />
-                          <Text style={{ color: colors.textMuted, fontSize: 12, fontFamily: fonts.semibold }}>Sent</Text>
+                          <Text style={{ color: colors.textMuted, fontSize: 12 }}>Sent</Text>
                         </View>
                       ) : (
                         <TouchableOpacity
@@ -1273,7 +1273,7 @@ export default function AdminPanel() {
                           data-testid={`send-code-${jr.id}`}
                         >
                           <Ionicons name="mail" size={14} color="#fff" />
-                          <Text style={{ color: '#fff', fontSize: 12, fontFamily: fonts.semibold }}>Send Code</Text>
+                          <Text style={{ color: '#fff', fontSize: 12 }}>Send Code</Text>
                         </TouchableOpacity>
                       )}
                     </View>
@@ -1282,7 +1282,7 @@ export default function AdminPanel() {
 
                 {/* Members */}
                 <View style={{ marginTop: 12 }}>
-                  <Text style={{ fontSize: 13, fontFamily: fonts.semibold, color: colors.text, marginBottom: 6 }}>
+                  <Text style={{ fontSize: 13, color: colors.text, marginBottom: 6 }}>
                     Members ({commMembers[comm.id]?.total || 0})
                   </Text>
                   <TextInput
@@ -1303,7 +1303,7 @@ export default function AdminPanel() {
                     (commMembers[comm.id]?.members || []).map((member: any) => (
                       <View key={member.user_id} style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: colors.border }}>
                         <View style={{ flex: 1 }}>
-                          <Text style={{ fontSize: 13, fontFamily: fonts.medium, color: colors.text }}>{member.username}</Text>
+                          <Text style={{ fontSize: 13, color: colors.text }}>{member.username}</Text>
                           <Text style={{ fontSize: 11, color: colors.textMuted }}>{member.email}</Text>
                         </View>
                         <Text style={{ fontSize: 11, color: colors.textMuted }}>
@@ -1316,7 +1316,7 @@ export default function AdminPanel() {
 
                 {/* Export */}
                 <View style={{ marginTop: 12 }}>
-                  <Text style={{ fontSize: 13, fontFamily: fonts.semibold, color: colors.text, marginBottom: 6 }}>Export Data</Text>
+                  <Text style={{ fontSize: 13, color: colors.text, marginBottom: 6 }}>Export Data</Text>
                   <View style={{ flexDirection: 'row', gap: 6, marginBottom: 8, flexWrap: 'wrap' }}>
                     {['all', '7d', '30d', '90d'].map((p) => (
                       <TouchableOpacity
@@ -1328,7 +1328,7 @@ export default function AdminPanel() {
                         }}
                         onPress={() => setExportPeriod(prev => ({ ...prev, [comm.id]: p }))}
                       >
-                        <Text style={{ fontSize: 12, color: period === p ? '#fff' : colors.textSecondary, fontFamily: fonts.medium }}>
+                        <Text style={{ fontSize: 12, color: period === p ? '#fff' : colors.textSecondary }}>
                           {p === 'all' ? 'All time' : p === '7d' ? '7 days' : p === '30d' ? '30 days' : '90 days'}
                         </Text>
                       </TouchableOpacity>
@@ -1340,7 +1340,7 @@ export default function AdminPanel() {
                     data-testid={`export-${comm.id}`}
                   >
                     <Ionicons name="download-outline" size={16} color={CORAL} />
-                    <Text style={{ fontSize: 13, color: CORAL, fontFamily: fonts.semibold }}>Export {period === 'all' ? 'All' : period}</Text>
+                    <Text style={{ fontSize: 13, color: CORAL }}>Export {period === 'all' ? 'All' : period}</Text>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -1444,7 +1444,6 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 18,
-    fontFamily: fonts.semibold,
     color: colors.text,
   },
   adminBadgeHeader: {
@@ -1485,7 +1484,6 @@ const styles = StyleSheet.create({
   tabBadgeText: {
     color: colors.white,
     fontSize: 9,
-    fontFamily: fonts.bold,
   },
   tabActive: {
     borderBottomWidth: 2,
@@ -1494,7 +1492,6 @@ const styles = StyleSheet.create({
   tabText: {
     fontSize: 10,
     color: colors.textMuted,
-    fontFamily: fonts.medium,
   },
   tabTextActive: {
     color: colors.primary,
@@ -1513,7 +1510,6 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 14,
-    fontFamily: fonts.semibold,
     color: colors.textSecondary,
     marginBottom: 12,
     marginTop: 16,
@@ -1537,7 +1533,6 @@ const styles = StyleSheet.create({
   },
   metricValue: {
     fontSize: 28,
-    fontFamily: fonts.bold,
     color: colors.text,
   },
   metricLabel: {
@@ -1559,7 +1554,6 @@ const styles = StyleSheet.create({
   },
   statValue: {
     fontSize: 20,
-    fontFamily: fonts.semibold,
     color: colors.text,
     marginTop: 8,
   },
@@ -1582,7 +1576,6 @@ const styles = StyleSheet.create({
   },
   alertTitle: {
     fontSize: 14,
-    fontFamily: fonts.semibold,
     color: colors.primary,
   },
   alertText: {
@@ -1616,7 +1609,6 @@ const styles = StyleSheet.create({
   },
   rankNumber: {
     fontSize: 16,
-    fontFamily: fonts.bold,
     color: colors.primary,
     width: 30,
   },
@@ -1625,7 +1617,6 @@ const styles = StyleSheet.create({
   },
   topProblemTitle: {
     fontSize: 14,
-    fontFamily: fonts.medium,
     color: colors.text,
   },
   topProblemStats: {
@@ -1636,7 +1627,6 @@ const styles = StyleSheet.create({
   signalScore: {
     fontSize: 11,
     color: colors.primary,
-    fontFamily: fonts.semibold,
   },
   topProblemStat: {
     fontSize: 11,
@@ -1660,7 +1650,6 @@ const styles = StyleSheet.create({
   },
   totalCountText: {
     fontSize: 15,
-    fontFamily: fonts.semibold,
     color: colors.text,
   },
   filterChip: {
@@ -1678,7 +1667,6 @@ const styles = StyleSheet.create({
   filterChipText: {
     fontSize: 12,
     color: colors.textSecondary,
-    fontFamily: fonts.medium,
   },
   filterChipTextActive: {
     color: colors.white,
@@ -1718,7 +1706,6 @@ const styles = StyleSheet.create({
   },
   reportTypeText: {
     fontSize: 10,
-    fontFamily: fonts.semibold,
     textTransform: 'uppercase',
   },
   reasonBadge: {
@@ -1729,7 +1716,6 @@ const styles = StyleSheet.create({
   },
   reasonText: {
     fontSize: 10,
-    fontFamily: fonts.semibold,
     color: colors.amber,
     textTransform: 'uppercase',
   },
@@ -1784,7 +1770,6 @@ const styles = StyleSheet.create({
   actionBtnText: {
     fontSize: 12,
     color: colors.textSecondary,
-    fontFamily: fonts.medium,
   },
   userCard: {
     backgroundColor: colors.surface,
@@ -1808,7 +1793,6 @@ const styles = StyleSheet.create({
   },
   userAvatarText: {
     fontSize: 16,
-    fontFamily: fonts.semibold,
     color: colors.white,
   },
   userInfo: {
@@ -1817,7 +1801,6 @@ const styles = StyleSheet.create({
   },
   userName: {
     fontSize: 14,
-    fontFamily: fonts.semibold,
     color: colors.text,
   },
   userEmail: {
@@ -1831,7 +1814,6 @@ const styles = StyleSheet.create({
   },
   statusText: {
     fontSize: 10,
-    fontFamily: fonts.semibold,
     textTransform: 'uppercase',
   },
   adminBadge: {
@@ -1847,7 +1829,6 @@ const styles = StyleSheet.create({
   },
   adminBadgeText: {
     fontSize: 10,
-    fontFamily: fonts.semibold,
     color: colors.primary,
   },
   userJoined: {
@@ -1871,7 +1852,6 @@ const styles = StyleSheet.create({
   },
   userActionText: {
     fontSize: 12,
-    fontFamily: fonts.medium,
   },
   auditCard: {
     backgroundColor: colors.surface,
@@ -1897,7 +1877,6 @@ const styles = StyleSheet.create({
   auditAction: {
     flex: 1,
     fontSize: 13,
-    fontFamily: fonts.medium,
     color: colors.text,
   },
   auditTime: {
@@ -1939,7 +1918,6 @@ const styles = StyleSheet.create({
   },
   formulaTitle: {
     fontSize: 12,
-    fontFamily: fonts.semibold,
     color: colors.text,
     marginBottom: 4,
   },
@@ -2007,12 +1985,10 @@ const styles = StyleSheet.create({
   },
   feedbackAvatarText: {
     fontSize: 14,
-    fontFamily: fonts.semibold,
     color: colors.white,
   },
   feedbackUserName: {
     fontSize: 14,
-    fontFamily: fonts.semibold,
     color: colors.text,
   },
   feedbackEmail: {
@@ -2068,7 +2044,6 @@ const styles = StyleSheet.create({
   feedbackActionText: {
     fontSize: 12,
     color: colors.textSecondary,
-    fontFamily: fonts.medium,
   },
   emptySubtitle: {
     fontSize: 13,
@@ -2090,7 +2065,6 @@ const styles = StyleSheet.create({
   },
   broadcastStatValue: {
     fontSize: 24,
-    fontFamily: fonts.bold,
     color: colors.primary,
   },
   broadcastStatLabel: {
@@ -2106,7 +2080,6 @@ const styles = StyleSheet.create({
   },
   broadcastSectionTitle: {
     fontSize: 16,
-    fontFamily: fonts.semibold,
     color: colors.text,
     marginBottom: 16,
   },
@@ -2121,7 +2094,6 @@ const styles = StyleSheet.create({
   },
   inputLabel: {
     fontSize: 14,
-    fontFamily: fonts.medium,
     color: colors.text,
   },
   charCount: {
@@ -2153,7 +2125,6 @@ const styles = StyleSheet.create({
   },
   previewTitle: {
     fontSize: 12,
-    fontFamily: fonts.medium,
     color: colors.textMuted,
     marginBottom: 10,
     textTransform: 'uppercase',
@@ -2184,13 +2155,11 @@ const styles = StyleSheet.create({
   },
   previewAppName: {
     fontSize: 11,
-    fontFamily: fonts.semibold,
     color: colors.textMuted,
     marginBottom: 2,
   },
   previewNotifTitle: {
     fontSize: 14,
-    fontFamily: fonts.semibold,
     color: colors.text,
     marginBottom: 2,
   },
@@ -2213,7 +2182,6 @@ const styles = StyleSheet.create({
   },
   sendButtonText: {
     fontSize: 16,
-    fontFamily: fonts.semibold,
     color: colors.white,
   },
   historyItem: {
@@ -2229,14 +2197,12 @@ const styles = StyleSheet.create({
   },
   historyTitle: {
     fontSize: 14,
-    fontFamily: fonts.semibold,
     color: colors.text,
     flex: 1,
   },
   historyRecipients: {
     fontSize: 12,
     color: colors.accent,
-    fontFamily: fonts.medium,
     marginLeft: 8,
   },
   historyBody: {
@@ -2277,6 +2243,5 @@ const styles = StyleSheet.create({
   primaryButtonText: {
     color: '#fff',
     fontSize: 14,
-    fontFamily: fonts.semibold,
   },
 });

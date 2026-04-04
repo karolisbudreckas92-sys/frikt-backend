@@ -167,7 +167,6 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 28,
-    fontFamily: fonts.bold,
     color: colors.text,
   },
   subtitle: {
@@ -207,7 +206,6 @@ const styles = StyleSheet.create({
   },
   categoryName: {
     fontSize: 16,
-    fontFamily: fonts.semibold,
     color: colors.text,
   },
   categoryHint: {

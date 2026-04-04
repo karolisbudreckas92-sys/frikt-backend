@@ -101,13 +101,13 @@ const commStyles = StyleSheet.create({
     width: 36, height: 36, borderRadius: 18, backgroundColor: '#E85D3A',
     justifyContent: 'center', alignItems: 'center', marginRight: 10,
   },
-  title: { fontSize: 15, fontFamily: fonts.semibold, color: colors.text },
+  title: { fontSize: 15, color: colors.text },
   subtitle: { fontSize: 13, color: colors.textMuted, marginTop: 2 },
   leaveBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 4, alignSelf: 'flex-end', marginTop: 10,
     paddingVertical: 6, paddingHorizontal: 12, borderRadius: 8, borderWidth: 1, borderColor: colors.error + '40',
   },
-  leaveBtnText: { fontSize: 13, color: colors.error, fontFamily: fonts.medium },
+  leaveBtnText: { fontSize: 13, color: colors.error },
 });
 
 export default function Profile() {
@@ -484,12 +484,10 @@ const styles = StyleSheet.create({
   },
   avatarText: {
     fontSize: 36,
-    fontFamily: fonts.bold,
     color: colors.white,
   },
   name: {
     fontSize: 24,
-    fontFamily: fonts.bold,
     color: colors.text,
   },
   bio: {
@@ -520,7 +518,6 @@ const styles = StyleSheet.create({
   },
   editProfileText: {
     fontSize: 14,
-    fontFamily: fonts.semibold,
     color: colors.text,
   },
   badge: {
@@ -535,7 +532,6 @@ const styles = StyleSheet.create({
   },
   badgeText: {
     fontSize: 12,
-    fontFamily: fonts.semibold,
     color: colors.accent,
   },
   statsContainer: {
@@ -552,7 +548,6 @@ const styles = StyleSheet.create({
   },
   statValue: {
     fontSize: 24,
-    fontFamily: fonts.bold,
     color: colors.text,
   },
   statLabel: {
@@ -579,7 +574,6 @@ const styles = StyleSheet.create({
   },
   streakTitle: {
     fontSize: 16,
-    fontFamily: fonts.semibold,
     color: colors.text,
   },
   streakText: {
@@ -593,7 +587,6 @@ const styles = StyleSheet.create({
   },
   menuTitle: {
     fontSize: 14,
-    fontFamily: fonts.semibold,
     color: colors.textSecondary,
     marginBottom: 12,
     textTransform: 'uppercase',
@@ -637,7 +630,6 @@ const styles = StyleSheet.create({
   },
   adminBadgeText: {
     fontSize: 10,
-    fontFamily: fonts.bold,
     color: colors.primary,
     letterSpacing: 0.5,
   },
@@ -669,7 +661,6 @@ const styles = StyleSheet.create({
   },
   logoutText: {
     fontSize: 16,
-    fontFamily: fonts.semibold,
     color: colors.error,
   },
   legalSection: {
@@ -679,7 +670,6 @@ const styles = StyleSheet.create({
   },
   legalTitle: {
     fontSize: 12,
-    fontFamily: fonts.semibold,
     color: colors.textMuted,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
@@ -714,6 +704,5 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 16,
     color: colors.error,
-    fontFamily: fonts.medium,
   },
 });

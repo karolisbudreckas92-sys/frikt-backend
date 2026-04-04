@@ -145,7 +145,6 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 18,
-    fontFamily: fonts.semibold,
     color: colors.text,
   },
   loadingContainer: {
@@ -164,7 +163,6 @@ const styles = StyleSheet.create({
   },
   emptyTitle: {
     fontSize: 18,
-    fontFamily: fonts.semibold,
     color: colors.text,
     marginTop: 16,
   },
@@ -185,7 +183,6 @@ const styles = StyleSheet.create({
   },
   postButtonText: {
     fontSize: 14,
-    fontFamily: fonts.semibold,
     color: colors.white,
   },
 });

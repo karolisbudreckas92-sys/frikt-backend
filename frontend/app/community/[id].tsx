@@ -271,7 +271,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface, borderBottomWidth: 1, borderBottomColor: colors.border,
   },
   backButton: { padding: 4 },
-  headerTitle: { flex: 1, fontSize: 17, fontFamily: fonts.semibold, color: colors.text, textAlign: 'center' },
+  headerTitle: { flex: 1, fontSize: 17, color: colors.text, textAlign: 'center' },
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
 
   communityInfo: { alignItems: 'center', paddingVertical: 20, paddingHorizontal: 16 },
@@ -279,14 +279,14 @@ const styles = StyleSheet.create({
     width: 56, height: 56, borderRadius: 28, backgroundColor: CORAL,
     justifyContent: 'center', alignItems: 'center', marginBottom: 10,
   },
-  communityName: { fontSize: 22, fontFamily: fonts.bold, color: colors.text },
+  communityName: { fontSize: 22, color: colors.text },
   communityStats: { fontSize: 14, color: colors.textMuted, marginTop: 4 },
 
   joinBanner: {
     marginHorizontal: 16, padding: 16, borderRadius: radius.lg,
     backgroundColor: '#FFF3EF', borderWidth: 1, borderColor: CORAL + '30',
   },
-  joinBannerTitle: { fontSize: 16, fontFamily: fonts.semibold, color: colors.text, marginBottom: 10 },
+  joinBannerTitle: { fontSize: 16, color: colors.text, marginBottom: 10 },
   joinMessageInput: {
     backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border,
     borderRadius: radius.md, padding: 12, fontSize: 14, color: colors.text,
@@ -295,7 +295,7 @@ const styles = StyleSheet.create({
   requestJoinButton: {
     backgroundColor: CORAL, borderRadius: radius.md, paddingVertical: 12, alignItems: 'center',
   },
-  requestJoinButtonText: { color: '#fff', fontSize: 15, fontFamily: fonts.semibold },
+  requestJoinButtonText: { color: '#fff', fontSize: 15 },
   requestSentContainer: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   requestSentText: { flex: 1, fontSize: 14, color: CORAL, lineHeight: 20 },
 
@@ -309,11 +309,11 @@ const styles = StyleSheet.create({
   sortPills: { flexDirection: 'row', paddingHorizontal: 16, paddingTop: 14, paddingBottom: 4, gap: 8 },
   pill: { paddingVertical: 8, paddingHorizontal: 16, borderRadius: 20, backgroundColor: colors.surface },
   pillActive: { backgroundColor: CORAL },
-  pillText: { fontSize: 14, fontFamily: fonts.medium, color: colors.textSecondary },
+  pillText: { fontSize: 14, color: colors.textSecondary },
   pillTextActive: { color: '#fff' },
 
   listContent: { paddingBottom: 100 },
   emptyContainer: { alignItems: 'center', paddingVertical: 60 },
-  emptyTitle: { fontSize: 17, fontFamily: fonts.semibold, color: colors.text, marginTop: 12 },
+  emptyTitle: { fontSize: 17, color: colors.text, marginTop: 12 },
   emptyText: { fontSize: 14, color: colors.textSecondary, marginTop: 6, textAlign: 'center', paddingHorizontal: 32 },
 });

@@ -434,7 +434,6 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 28,
-    fontFamily: fonts.bold,
     color: colors.text,
   },
   subtitle: {
@@ -467,7 +466,6 @@ const styles = StyleSheet.create({
   },
   segmentText: {
     fontSize: 14,
-    fontFamily: fonts.semibold,
     color: colors.textSecondary,
   },
   segmentTextActive: {
@@ -508,7 +506,6 @@ const styles = StyleSheet.create({
   searchButtonText: {
     color: colors.white,
     fontSize: 14,
-    fontFamily: fonts.semibold,
   },
   loadingContainer: {
     flex: 1,
@@ -526,7 +523,6 @@ const styles = StyleSheet.create({
   },
   emptyTitle: {
     fontSize: 18,
-    fontFamily: fonts.semibold,
     color: colors.text,
     marginTop: 16,
   },
@@ -559,7 +555,6 @@ const styles = StyleSheet.create({
   },
   userAvatarText: {
     fontSize: 18,
-    fontFamily: fonts.semibold,
     color: colors.white,
   },
   userInfo: {
@@ -568,7 +563,6 @@ const styles = StyleSheet.create({
   },
   userName: {
     fontSize: 16,
-    fontFamily: fonts.semibold,
     color: colors.text,
   },
   userBio: {
@@ -604,7 +598,6 @@ const styles = StyleSheet.create({
   },
   communityName: {
     fontSize: 16,
-    fontFamily: fonts.semibold,
     color: colors.text,
   },
   communityStats: {

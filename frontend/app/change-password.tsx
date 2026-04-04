@@ -186,7 +186,6 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 17,
-    fontFamily: fonts.semibold,
     color: colors.text,
   },
   keyboardView: {
@@ -260,6 +259,5 @@ const styles = StyleSheet.create({
   buttonText: {
     color: colors.white,
     fontSize: 16,
-    fontFamily: fonts.semibold,
   },
 });

@@ -383,7 +383,6 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 17,
-    fontFamily: fonts.semibold,
     color: colors.text,
   },
   cancelText: {
@@ -392,7 +391,6 @@ const styles = StyleSheet.create({
   },
   saveText: {
     fontSize: 16,
-    fontFamily: fonts.semibold,
     color: colors.primary,
     textAlign: 'right',
   },
@@ -408,7 +406,6 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 14,
-    fontFamily: fonts.semibold,
     color: colors.textSecondary,
     marginBottom: 12,
   },
@@ -456,7 +453,6 @@ const styles = StyleSheet.create({
   },
   chipText: {
     fontSize: 14,
-    fontFamily: fonts.medium,
     color: colors.textSecondary,
   },
   chipTextActive: {
@@ -483,7 +479,6 @@ const styles = StyleSheet.create({
   },
   severityText: {
     fontSize: 14,
-    fontFamily: fonts.medium,
     color: colors.textSecondary,
   },
   severityTextActive: {
@@ -509,7 +504,6 @@ const styles = StyleSheet.create({
   },
   detailLabel: {
     fontSize: 14,
-    fontFamily: fonts.medium,
     color: colors.textSecondary,
     marginBottom: 8,
   },
@@ -538,7 +532,6 @@ const styles = StyleSheet.create({
   },
   deleteButtonText: {
     fontSize: 16,
-    fontFamily: fonts.semibold,
     color: colors.error,
   },
   bottomPadding: {
