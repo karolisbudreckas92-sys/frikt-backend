@@ -18,17 +18,21 @@ import { api } from '@/src/services/api';
 import { useAuth } from '@/src/context/AuthContext';
 import { BadgeSection } from '@/src/components/BadgeSection';
 
+import { useFocusEffect } from '@react-navigation/native';
+
 function CommunityCard() {
   const [community, setCommunity] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
-  useEffect(() => {
-    api.getMyCommunity()
-      .then(setCommunity)
-      .catch(() => setCommunity(null))
-      .finally(() => setLoading(false));
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      api.getMyCommunity()
+        .then(setCommunity)
+        .catch(() => setCommunity(null))
+        .finally(() => setLoading(false));
+    }, [])
+  );
 
   if (loading) return null;
 

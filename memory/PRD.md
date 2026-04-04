@@ -84,6 +84,18 @@ FRIKT is a mobile app (Expo/React Native + FastAPI + MongoDB) for sharing daily 
 - Text: "This is anonymous. Focus on the problem, not the person."
 - Gray (#999), 12px, centered, always visible
 
+## Visual Polish v1.0.4 (Complete - April 2026)
+14-screen UI tightening. Frontend only:
+- Theme: primary=#E85D3A, disabledBg=#E7E3DC, textSecondary=#6B6B6B, textMuted=#9A9A9A
+- All inputs: white bg, #E8E1D6 border, autofill prevention
+- All pills: 36px height, coral fill selected, white+border unselected
+- Search: full-width input with 300ms debounce, no separate button
+- PostWizard: Switch toggle, 'Post Frikt'/'Skip details', oval severity pills
+- Profile: coral streak (#FFF1EB), community above badges, tappable no-community card
+- Cards: white #FFFFFF bg, no duplicate Local tag
+- Badges: coral icons instead of yellow
+- Files modified: colors.ts, login/register, home, search, categories, PostWizard, problem/[id], profile, ProblemCard, MissionBanner, BadgeSection
+
 ## Cloudinary Avatar Storage Migration (Complete - April 2026)
 - Migrated from Railway ephemeral filesystem to Cloudinary persistent storage
 - 3 endpoints updated: POST /users/me/avatar, POST /users/me/avatar-base64, POST /admin/communities/{id}/avatar
@@ -103,6 +115,7 @@ FRIKT is a mobile app (Expo/React Native + FastAPI + MongoDB) for sharing daily 
 - iteration_15.json: Community avatar - 12/12 PASS (100%)
 - iteration_16.json: Cloudinary migration - 12/12 PASS (100%)
 - v1.0.3 Bug Fixes: Backend curl + code review verification (4/4 PASS)
+- v1.0.4 Visual Polish: Testing agent iteration_17 (95% pass, 13 files modified across 14 screens)
 
 ## Pending Issues
 - P3: ESLint/TypeScript warnings (backlog)
