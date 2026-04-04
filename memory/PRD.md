@@ -102,6 +102,21 @@ FRIKT is a mobile app (Expo/React Native + FastAPI + MongoDB) for sharing daily 
 - iteration_14.json: Cleanup fixes - 14/14 PASS (100%)
 - iteration_15.json: Community avatar - 12/12 PASS (100%)
 - iteration_16.json: Cloudinary migration - 12/12 PASS (100%)
+- v1.0.3 Bug Fixes: Backend curl + code review verification (4/4 PASS)
+
+## Pending Issues
+- P3: ESLint/TypeScript warnings (backlog)
+
+## Backlog
+- Refactor server.py into FastAPI routers (post-launch)
+- Refactor admin.tsx into smaller components
+- Deep Linking
+- Device regression testing
+
+## Credentials
+- Admin: karolisbudreckas92@gmail.com / Admin123!
+BUG 3: Community membership not updating without app restart — Added `useFocusEffect` to Profile CommunityCard and dynamic `key` to PostWizard (forces remount on tab focus)
+- BUG 4: Misleading "Post to local" subtitle — Updated to "Only members can post and relate in your local feed"
 
 ## Pending Issues
 - P3: ESLint/TypeScript warnings (backlog)
