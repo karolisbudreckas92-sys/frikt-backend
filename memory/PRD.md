@@ -1,65 +1,44 @@
 # FRIKT App - Product Requirements Document
 
-## Original Problem Statement
-Social platform for sharing everyday frustrations ("frikts"). Users post anonymously, others tap "Relate" to signal shared friction. Community-based local feeds via invite codes. Badge and streak gamification system.
+## Overview
+FRIKT is a social platform for sharing everyday frustrations ("frikts"). Users can post, relate to, and comment on frikts within global and local community feeds.
 
 ## Tech Stack
-- **Frontend**: React Native / Expo (iOS first via EAS builds)
-- **Backend**: FastAPI / Python (monolithic `server.py`)
-- **Database**: MongoDB (via Railway)
+- **Frontend**: React Native / Expo Router
+- **Backend**: FastAPI / Python
+- **Database**: MongoDB
 - **Image Storage**: Cloudinary
-- **Font**: Plus Jakarta Sans (via @expo-google-fonts)
+- **Build/Deploy**: EAS (Expo Application Services)
+- **Custom Fonts**: Plus Jakarta Sans (4 weights: 400, 500, 600, 700) - embedded via expo-font config plugin + runtime loading
 
-## Core Features (Implemented)
-- Authentication (register, login, forgot password)
-- Global feed (For You / Trending / New)
-- Local community feed (invite code)
-- Problem posting (2-step wizard, anonymous)
-- Relate system (like/upvote)
-- Comments
-- Categories with follow
-- User profiles + other user profiles
-- Badges & Celebrations
-- Push notifications
-- Admin panel
-- Community avatars (Cloudinary)
-- User avatars (Cloudinary)
-- Search with 300ms debounce
+## Critical Technical Notes
+- **DO NOT** use `useFocusEffect` or imports from `@react-navigation/native` — causes crashes with Expo Router
+- **DO NOT** add `fontWeight` to any style that has a custom `fontFamily` — causes iOS crashes
+- **Font embedding**: Fonts MUST be in `expo-font` config plugin (`app.json`) pointing to `./assets/fonts/` for production builds. Runtime `useFonts` alone works in Expo Go but NOT in production.
+- **Git sync**: Always verify `git log --oneline -3` matches Emergent's latest commit before building
 
-## Design System
-- **Primary**: `#E85D3A` (coral)
-- **Background**: `#FAF8F3`
-- **Surface**: `#FFFFFF`
-- **Font**: Plus Jakarta Sans (400, 500, 600, 700)
-- **Disabled**: bg `#E7E3DC`, text `#A19A90`
-- **Border**: `#E8E1D6`
-- See `/app/memory/FRIKT_FRONTEND_DESIGN_SPEC.md` for full spec
-
-## What's Been Implemented (Timeline)
-- Schema cleanups (streak_days, rocket10, willing_to_pay removed)
-- Onboarding flow
-- Community Avatars + Cloudinary migration
-- Visual Polish Round 1 (14+ screens, #E85D3A enforcement)
-- Visual Polish Round 2:
-  - Plus Jakarta Sans font (global, 32+ files)
-  - Auth pages bg unified to #FAF8F3
-  - All disabled buttons: solid bg instead of opacity
-  - BadgeSection modal: #E4572E→#E85D3A, amber→coral
-  - CelebrationModal: #E4572E→#E85D3A
-  - Badge counter pill: amber→coral
-  - Edit-problem: chip radius 18, severity height 36, font 14 medium
-  - PostWizard Step 2 hint verified
+## Font Weight Rules
+- Frikt text in feeds = `fonts.medium` (500)
+- Frikt text on detail page = `fonts.semibold` (600)
+- Headings and titles = `fonts.bold` (700)
+- User names = `fonts.semibold` (600)
 
 ## Recently Fixed (Apr 2026)
-- Fixed duplicate StyleSheet keys in `home.tsx` (ctaButton x2, retryButton x2, mismatched toggleText/logo/badgeText refs)
-- Fixed duplicate StyleSheet keys in `community/[id].tsx` (header, communityIcon, joinBanner, requestJoinButton, nonMemberNotice — 5 duplicates causing broken layout for join flow, community header, and non-member notice)
+- CRITICAL: Production crash on Profile/Create Frikt — caused by code not syncing to local repo (git pull failures)
+- Fonts embedded in iOS binary via expo-font config plugin with local asset files
+- Duplicate StyleSheet keys in home.tsx, profile.tsx, community/[id].tsx
+- Global trending fallback (same logic as local — falls back to hot_score if < 5 frikts)
+- Frikt card title weight reduced from semibold to medium
+- Problem detail title weight reduced from bold to semibold
+- Global ErrorHandler added for native crash capture
+- ErrorBoundary wrappers on Profile and CreateFrikt screens
+
+## Auth Credentials
+- Admin: karolisbudreckas92@gmail.com / Admin123!
+- Test: karolis@test.com / Test123!
 
 ## Backlog
 - (P2) Refactor `backend/server.py` into FastAPI routers
 - (P2) Refactor `frontend/app/admin.tsx` into components
 - (P3) ESLint/TypeScript/expo-doctor warnings
 - (P3) Deep linking setup
-
-## Test Credentials
-- Admin: karolisbudreckas92@gmail.com / Admin123!
-- Test: karolis@test.com / Test123!

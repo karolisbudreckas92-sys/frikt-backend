@@ -73,7 +73,6 @@ function RootLayoutNav() {
         <Stack.Screen name="category/[id]" options={{ presentation: 'card' }} />
         <Stack.Screen name="edit-profile" options={{ presentation: 'card' }} />
         <Stack.Screen name="edit-problem" options={{ presentation: 'card' }} />
-        <Stack.Screen name="font-debug" options={{ presentation: 'card' }} />
         <Stack.Screen name="onboarding" options={{ presentation: 'card', gestureEnabled: false }} />
       </Stack>
     </>
