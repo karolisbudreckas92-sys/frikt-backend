@@ -138,7 +138,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 16,
-    fontFamily: fonts.semibold,
+    fontFamily: fonts.medium,
     color: colors.text,
     lineHeight: 22,
     marginBottom: 6,

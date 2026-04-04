@@ -1109,7 +1109,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 22,
-    fontFamily: fonts.bold,
+    fontFamily: fonts.semibold,
     color: colors.text,
     lineHeight: 30,
     marginBottom: 12,
