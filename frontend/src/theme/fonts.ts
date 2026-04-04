@@ -9,7 +9,7 @@ export const getFontStyle = (weight: '400' | '500' | '600' | '700') => {
     '600': 'PlusJakartaSans_600SemiBold',
     '700': 'PlusJakartaSans_700Bold',
   };
-  return { fontFamily: map[weight] };
+  return { fontFamily: map[weight] || undefined };
 };
 
 export const fontFamily = {
