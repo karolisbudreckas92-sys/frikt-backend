@@ -67,7 +67,18 @@
           "photosPermission": "Upload a profile photo"
         }
       ],
-      "expo-secure-store"
+      "expo-secure-store",
+      [
+        "expo-font",
+        {
+          "fonts": [
+            "./assets/fonts/PlusJakartaSans_400Regular.ttf",
+            "./assets/fonts/PlusJakartaSans_500Medium.ttf",
+            "./assets/fonts/PlusJakartaSans_600SemiBold.ttf",
+            "./assets/fonts/PlusJakartaSans_700Bold.ttf"
+          ]
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true
