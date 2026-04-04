@@ -11,7 +11,7 @@ import {
   Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter, useNavigation } from 'expo-router';
+import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, radius, fonts} from '@/src/theme/colors';
 import { api } from '@/src/services/api';
@@ -22,25 +22,13 @@ function CommunityCard() {
   const [community, setCommunity] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
-  const navigation = useNavigation();
 
-  const loadCommunity = useCallback(() => {
+  useEffect(() => {
     api.getMyCommunity()
       .then(setCommunity)
       .catch(() => setCommunity(null))
       .finally(() => setLoading(false));
   }, []);
-
-  useEffect(() => {
-    loadCommunity();
-  }, []);
-
-  useEffect(() => {
-    const unsubscribe = navigation.addListener('focus', () => {
-      loadCommunity();
-    });
-    return unsubscribe;
-  }, [navigation, loadCommunity]);
 
   if (loading) return null;
 

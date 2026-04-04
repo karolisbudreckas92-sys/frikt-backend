@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { View, StyleSheet } from 'react-native';
-import { useRouter, useNavigation } from 'expo-router';
+import { useRouter } from 'expo-router';
 import { colors, fonts} from '@/src/theme/colors';
 import PostWizard from '@/src/components/PostWizard';
 import Toast from 'react-native-root-toast';
@@ -8,16 +8,8 @@ import { useBadges } from '@/src/contexts/BadgeContext';
 
 export default function PostTab() {
   const router = useRouter();
-  const navigation = useNavigation();
   const { showCelebration } = useBadges();
   const [focusKey, setFocusKey] = useState(0);
-
-  useEffect(() => {
-    const unsubscribe = navigation.addListener('focus', () => {
-      setFocusKey(k => k + 1);
-    });
-    return unsubscribe;
-  }, [navigation]);
 
   const handleComplete = (problemId?: string, newlyAwardedBadges?: any[]) => {
     // Show success toast
