@@ -374,6 +374,13 @@ export default function Home() {
         <View style={styles.headerRight}>
           <TouchableOpacity 
             style={styles.headerButton}
+            onPress={() => router.push('/font-debug')}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="bug-outline" size={20} color={colors.textMuted} />
+          </TouchableOpacity>
+          <TouchableOpacity 
+            style={styles.headerButton}
             onPress={() => router.push('/feedback')}
             activeOpacity={0.7}
           >

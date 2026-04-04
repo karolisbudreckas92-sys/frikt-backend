@@ -9,7 +9,25 @@ import { RootSiblingParent } from 'react-native-root-siblings';
 import { BadgeProvider } from '@/src/contexts/BadgeContext';
 import { NotificationProvider } from '@/src/contexts/NotificationContext';
 import { useFonts } from 'expo-font';
+import * as Font from 'expo-font';
 import * as SplashScreen from 'expo-splash-screen';
+import { Alert, Platform } from 'react-native';
+
+// Catch native crashes globally and show them
+if ((global as any).ErrorUtils) {
+  const defaultHandler = (global as any).ErrorUtils.getGlobalHandler();
+  (global as any).ErrorUtils.setGlobalHandler((error: any, isFatal: boolean) => {
+    console.error('[NATIVE CRASH]', isFatal ? 'FATAL' : 'NON-FATAL', error?.message || error);
+    if (isFatal && Platform.OS !== 'web') {
+      Alert.alert(
+        'App Error (Debug)',
+        `${error?.message || error}\n\nStack: ${error?.stack?.substring(0, 500) || 'none'}`,
+        [{ text: 'OK' }]
+      );
+    }
+    defaultHandler(error, isFatal);
+  });
+}
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
@@ -55,6 +73,7 @@ function RootLayoutNav() {
         <Stack.Screen name="category/[id]" options={{ presentation: 'card' }} />
         <Stack.Screen name="edit-profile" options={{ presentation: 'card' }} />
         <Stack.Screen name="edit-problem" options={{ presentation: 'card' }} />
+        <Stack.Screen name="font-debug" options={{ presentation: 'card' }} />
         <Stack.Screen name="onboarding" options={{ presentation: 'card', gestureEnabled: false }} />
       </Stack>
     </>
@@ -71,6 +90,10 @@ export default function RootLayout() {
 
   useEffect(() => {
     if (fontsLoaded || fontError) {
+      // Log font status for debugging
+      const loadedList = Font.getLoadedFonts();
+      console.log('[FONTS] Loaded:', fontsLoaded, 'Error:', fontError);
+      console.log('[FONTS] Available fonts:', loadedList.filter(f => f.includes('Jakarta')));
       SplashScreen.hideAsync().catch(() => {});
     }
   }, [fontsLoaded, fontError]);
