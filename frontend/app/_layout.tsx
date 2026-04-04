@@ -6,13 +6,12 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { usePushNotifications } from '@/src/services/notifications';
 import * as Notifications from 'expo-notifications';
 import { RootSiblingParent } from 'react-native-root-siblings';
-import { Alert } from 'react-native';
 import { BadgeProvider } from '@/src/contexts/BadgeContext';
 import { NotificationProvider } from '@/src/contexts/NotificationContext';
 import { useFonts, PlusJakartaSans_400Regular, PlusJakartaSans_500Medium, PlusJakartaSans_600SemiBold, PlusJakartaSans_700Bold } from '@expo-google-fonts/plus-jakarta-sans';
 import * as SplashScreen from 'expo-splash-screen';
 
-SplashScreen.preventAutoHideAsync();
+SplashScreen.preventAutoHideAsync().catch(() => {});
 
 // Debug: Show backend URL on first launch
 const BACKEND_URL = 'https://frikt-backend-production.up.railway.app';
@@ -23,7 +22,6 @@ function RootLayoutNav() {
   const { user } = useAuth();
   const { notification } = usePushNotifications(!!user);
 
-  // Debug alert - show once to verify URL
   useEffect(() => {
     if (!hasShownDebug) {
       hasShownDebug = true;
@@ -31,7 +29,6 @@ function RootLayoutNav() {
     }
   }, []);
 
-  // Handle notification tap navigation
   useEffect(() => {
     const subscription = Notifications.addNotificationResponseReceivedListener((response) => {
       const data = response.notification.request.content.data;
@@ -65,7 +62,7 @@ function RootLayoutNav() {
 }
 
 export default function RootLayout() {
-  const [fontsLoaded] = useFonts({
+  const [fontsLoaded, fontError] = useFonts({
     PlusJakartaSans_400Regular,
     PlusJakartaSans_500Medium,
     PlusJakartaSans_600SemiBold,
@@ -73,10 +70,12 @@ export default function RootLayout() {
   });
 
   useEffect(() => {
-    if (fontsLoaded) SplashScreen.hideAsync();
-  }, [fontsLoaded]);
+    if (fontsLoaded || fontError) {
+      SplashScreen.hideAsync().catch(() => {});
+    }
+  }, [fontsLoaded, fontError]);
 
-  if (!fontsLoaded) return null;
+  if (!fontsLoaded && !fontError) return null;
 
   return (
     <RootSiblingParent>
