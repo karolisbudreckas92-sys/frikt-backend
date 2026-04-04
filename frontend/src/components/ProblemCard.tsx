@@ -37,13 +37,13 @@ export default function ProblemCard({ problem, onPress, onRelate }: ProblemCardP
   return (
     <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.7}>
       <View style={styles.header}>
-        {!(problem.is_local && (problem.category_id === 'local' || problem.category_name === 'Local')) && (
+        {!(problem.is_local && (!problem.category_name || problem.category_name.toLowerCase() === 'local')) ? (
           <View style={[styles.categoryPill, { backgroundColor: categoryStyle.bgColor }]}>
             <Text style={[styles.categoryText, { color: categoryStyle.color }]}>
               {problem.category_name || categoryStyle.name}
             </Text>
           </View>
-        )}
+        ) : null}
         {problem.is_local && (
           <View style={styles.localTag} data-testid={`local-tag-${problem.id}`}>
             <Ionicons name="location" size={11} color="#E85D3A" />
