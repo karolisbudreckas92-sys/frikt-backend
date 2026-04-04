@@ -18,10 +18,9 @@ import { api } from '@/src/services/api';
 import { useAuth } from '@/src/context/AuthContext';
 import { BadgeSection } from '@/src/components/BadgeSection';
 
-function CommunityCard() {
+function CommunityCard({ router }: { router: any }) {
   const [community, setCommunity] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const router = useRouter();
 
   useEffect(() => {
     api.getMyCommunity()
@@ -302,7 +301,7 @@ export default function Profile() {
         </View>
 
         {/* Community Section */}
-        <CommunityCard />
+        <CommunityCard router={router} />
 
         {/* Badges Section */}
         <BadgeSection />
