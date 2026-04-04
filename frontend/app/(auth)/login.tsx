@@ -139,6 +139,8 @@ export default function Login() {
                 keyboardType="email-address"
                 autoCapitalize="none"
                 autoCorrect={false}
+                autoComplete="off"
+                textContentType="none"
               />
             </View>
 

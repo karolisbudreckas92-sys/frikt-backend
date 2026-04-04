@@ -540,15 +540,15 @@ export default function ProblemDetail() {
           {/* Actions */}
           <View style={styles.actionsRow}>
             <TouchableOpacity 
-              style={[styles.actionButton, problem.user_has_related && styles.actionButtonActive]} 
+              style={[styles.actionButton, styles.actionButtonRelate, problem.user_has_related && styles.actionButtonActive]} 
               onPress={handleRelate}
             >
               <Ionicons 
                 name={problem.user_has_related ? 'heart' : 'heart-outline'} 
-                size={20} 
-                color={problem.user_has_related ? colors.primary : colors.text} 
+                size={22} 
+                color={problem.user_has_related ? colors.primary : colors.primary} 
               />
-              <Text style={[styles.actionText, problem.user_has_related && styles.actionTextActive]}>
+              <Text style={[styles.actionText, { color: colors.primary, fontWeight: '600' }, problem.user_has_related && styles.actionTextActive]}>
                 Relate
               </Text>
             </TouchableOpacity>
@@ -560,9 +560,9 @@ export default function ProblemDetail() {
               <Ionicons 
                 name={problem.user_has_saved ? 'bookmark' : 'bookmark-outline'} 
                 size={20} 
-                color={problem.user_has_saved ? colors.primary : colors.text} 
+                color={problem.user_has_saved ? colors.primary : '#9A9A9A'} 
               />
-              <Text style={styles.actionText}>Save</Text>
+              <Text style={[styles.actionText, problem.user_has_saved && styles.actionTextActive]}>Save</Text>
             </TouchableOpacity>
 
             <TouchableOpacity 
@@ -572,13 +572,13 @@ export default function ProblemDetail() {
               <Ionicons 
                 name={problem.user_is_following ? 'notifications' : 'notifications-outline'} 
                 size={20} 
-                color={problem.user_is_following ? colors.warning : colors.text} 
+                color={problem.user_is_following ? colors.warning : '#9A9A9A'} 
               />
-              <Text style={styles.actionText}>Follow</Text>
+              <Text style={[styles.actionText, problem.user_is_following && styles.actionTextActive]}>Follow</Text>
             </TouchableOpacity>
 
             <TouchableOpacity style={styles.actionButton} onPress={handleReportFrikt}>
-              <Ionicons name="flag-outline" size={20} color={colors.text} />
+              <Ionicons name="flag-outline" size={20} color="#9A9A9A" />
               <Text style={styles.actionText}>Report</Text>
             </TouchableOpacity>
           </View>
@@ -1214,10 +1214,12 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   chip: {
-    backgroundColor: colors.softRed,
+    backgroundColor: colors.surface,
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 16,
+    borderWidth: 1,
+    borderColor: colors.primary,
   },
   chipText: {
     fontSize: 12,
@@ -1229,6 +1231,7 @@ const styles = StyleSheet.create({
     color: colors.text,
     minHeight: 60,
     textAlignVertical: 'top',
+    backgroundColor: '#FFFFFF',
   },
   sendButton: {
     position: 'absolute',

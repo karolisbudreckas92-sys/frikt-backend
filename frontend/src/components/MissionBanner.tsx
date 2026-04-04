@@ -49,7 +49,6 @@ export default function MissionBanner({ onDismiss }: MissionBannerProps) {
         onPress={() => router.push('/(tabs)/post')}
       >
         <Text style={styles.buttonText}>Post in this theme</Text>
-        <Text style={styles.buttonHint}>2 min</Text>
       </TouchableOpacity>
     </View>
   );
@@ -59,9 +58,9 @@ const styles = StyleSheet.create({
   container: {
     backgroundColor: colors.surface,
     marginHorizontal: 16,
-    marginTop: 12,
+    marginTop: 8,
     borderRadius: radius.lg,
-    padding: 16,
+    padding: 12,
     borderWidth: 1,
     borderColor: colors.cardBorder,
     ...shadows.subtle,
@@ -76,12 +75,12 @@ const styles = StyleSheet.create({
   content: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    marginBottom: 12,
+    marginBottom: 8,
   },
   iconContainer: {
-    width: 44,
-    height: 44,
-    borderRadius: radius.md,
+    width: 36,
+    height: 36,
+    borderRadius: radius.sm,
     backgroundColor: colors.softGreen,
     justifyContent: 'center',
     alignItems: 'center',

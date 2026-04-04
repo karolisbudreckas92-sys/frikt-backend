@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -64,6 +64,7 @@ export default function Search() {
   const [communitiesResults, setCommunitiesResults] = useState<CommunityResult[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Load communities on mount (no search needed)
   useEffect(() => {
@@ -71,6 +72,17 @@ export default function Search() {
       loadCommunitiesSearch();
     }
   }, [searchType]);
+
+  // Debounce search for frikts and users
+  useEffect(() => {
+    if (searchType === 'communities') return;
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    if (!query.trim()) return;
+    debounceRef.current = setTimeout(() => {
+      handleSearch();
+    }, 300);
+    return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
+  }, [query, searchType]);
 
   const loadCommunitiesSearch = async (search?: string) => {
     setIsLoading(true);
@@ -315,7 +327,12 @@ export default function Search() {
             placeholder={searchType === 'communities' ? 'Search communities...' : searchType === 'frikts' ? 'Search Frikts...' : 'Search users...'}
             placeholderTextColor={colors.textMuted}
             value={query}
-            onChangeText={setQuery}
+            onChangeText={(text) => {
+              setQuery(text);
+              if (searchType === 'communities') {
+                loadCommunitiesSearch(text.trim() || undefined);
+              }
+            }}
             onSubmitEditing={handleSearch}
             returnKeyType="search"
             autoComplete="off"
@@ -324,20 +341,11 @@ export default function Search() {
             data-testid="search-input"
           />
           {query.length > 0 && (
-            <TouchableOpacity onPress={() => setQuery('')} activeOpacity={0.7}>
+            <TouchableOpacity onPress={() => { setQuery(''); if (searchType === 'communities') loadCommunitiesSearch(); }} activeOpacity={0.7}>
               <Ionicons name="close-circle" size={20} color={colors.textMuted} />
             </TouchableOpacity>
           )}
         </View>
-        <TouchableOpacity 
-          style={[styles.searchButton, (searchType !== 'communities' && !query.trim()) && styles.searchButtonDisabled]} 
-          onPress={handleSearch}
-          disabled={searchType !== 'communities' && !query.trim()}
-          activeOpacity={0.7}
-          data-testid="search-submit-btn"
-        >
-          <Text style={styles.searchButtonText}>Search</Text>
-        </TouchableOpacity>
       </View>
 
       {isLoading ? (
@@ -437,10 +445,10 @@ const styles = StyleSheet.create({
   segmentedControl: {
     flexDirection: 'row',
     marginHorizontal: 16,
-    marginTop: 12,
+    marginTop: 8,
     backgroundColor: colors.surface,
-    borderRadius: radius.md,
-    padding: 4,
+    borderRadius: 18,
+    padding: 3,
     borderWidth: 1,
     borderColor: colors.border,
   },
@@ -449,9 +457,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 10,
-    borderRadius: radius.sm,
+    paddingVertical: 8,
+    borderRadius: 16,
     gap: 6,
+    height: 36,
   },
   segmentButtonActive: {
     backgroundColor: colors.primary,
@@ -467,18 +476,18 @@ const styles = StyleSheet.create({
   searchContainer: {
     flexDirection: 'row',
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingVertical: 8,
     gap: 12,
   },
   searchBox: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.surface,
+    backgroundColor: '#FFFFFF',
     borderRadius: 12,
     paddingHorizontal: 12,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: '#E8E1D6',
   },
   searchInput: {
     flex: 1,
@@ -513,7 +522,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingVertical: 80,
+    paddingVertical: 48,
   },
   emptyTitle: {
     fontSize: 18,

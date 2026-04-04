@@ -37,11 +37,13 @@ export default function ProblemCard({ problem, onPress, onRelate }: ProblemCardP
   return (
     <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.7}>
       <View style={styles.header}>
-        <View style={[styles.categoryPill, { backgroundColor: categoryStyle.bgColor }]}>
-          <Text style={[styles.categoryText, { color: categoryStyle.color }]}>
-            {problem.category_name || categoryStyle.name}
-          </Text>
-        </View>
+        {!(problem.is_local && (problem.category_id === 'local' || problem.category_name === 'Local')) && (
+          <View style={[styles.categoryPill, { backgroundColor: categoryStyle.bgColor }]}>
+            <Text style={[styles.categoryText, { color: categoryStyle.color }]}>
+              {problem.category_name || categoryStyle.name}
+            </Text>
+          </View>
+        )}
         {problem.is_local && (
           <View style={styles.localTag} data-testid={`local-tag-${problem.id}`}>
             <Ionicons name="location" size={11} color="#E85D3A" />
@@ -91,13 +93,13 @@ export default function ProblemCard({ problem, onPress, onRelate }: ProblemCardP
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: colors.surface,
+    backgroundColor: '#FFFFFF',
     marginHorizontal: 16,
     marginTop: 12,
     borderRadius: radius.lg,
     padding: 16,
     borderWidth: 1,
-    borderColor: colors.cardBorder,
+    borderColor: '#E8E1D6',
     ...shadows.card,
   },
   header: {
@@ -187,10 +189,10 @@ const styles = StyleSheet.create({
   },
   statText: {
     fontSize: 13,
-    color: colors.textSecondary,
+    color: '#6B6B6B',
   },
   timeText: {
-    fontSize: 12,
-    color: colors.textMuted,
+    fontSize: 11,
+    color: '#9A9A9A',
   },
 });

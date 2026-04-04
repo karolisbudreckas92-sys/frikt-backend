@@ -587,7 +587,7 @@ const styles = StyleSheet.create({
   statsBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FEF3C7',
+    backgroundColor: '#FFF1EB',
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 20,
@@ -692,9 +692,9 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   badgeIconUnlocked: {
-    backgroundColor: '#FEF3C7',
+    backgroundColor: '#FFF1EB',
     borderWidth: 2,
-    borderColor: '#F59E0B',
+    borderColor: '#E85D3A',
   },
   badgeIconLocked: {
     backgroundColor: colors.surface,

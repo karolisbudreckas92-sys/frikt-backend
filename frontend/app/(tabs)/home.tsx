@@ -282,7 +282,7 @@ export default function Home() {
       <View style={styles.joinInputRow}>
         <TextInput
           style={styles.joinInput}
-          placeholder="Enter community code..."
+          placeholder="Enter code"
           placeholderTextColor={colors.textMuted}
           value={joinCode}
           onChangeText={setJoinCode}
@@ -468,7 +468,7 @@ const styles = StyleSheet.create({
   
   // Toggle
   toggleContainer: {
-    flexDirection: 'row', marginHorizontal: 16, marginTop: 12,
+    flexDirection: 'row', marginHorizontal: 16, marginTop: 8,
     backgroundColor: colors.surface, borderRadius: 24, padding: 3,
     borderWidth: 1, borderColor: colors.border,
   },
@@ -482,13 +482,13 @@ const styles = StyleSheet.create({
   toggleTextActive: { color: '#fff' },
   
   // Feed tabs
-  feedTabs: { flexDirection: 'row', paddingHorizontal: 16, paddingTop: 12, gap: 8 },
+  feedTabs: { flexDirection: 'row', paddingHorizontal: 16, paddingTop: 8, gap: 8 },
   feedHelperText: { fontSize: 12, color: colors.textMuted, paddingHorizontal: 16, paddingTop: 6, fontStyle: 'italic' },
-  feedTab: { paddingVertical: 8, paddingHorizontal: 16, borderRadius: 20, backgroundColor: colors.surface },
-  feedTabActive: { backgroundColor: colors.primary },
-  feedTabActiveLocal: { backgroundColor: CORAL },
-  feedTabText: { fontSize: 14, fontWeight: '500', color: colors.textSecondary },
-  feedTabTextActive: { color: colors.white },
+  feedTab: { paddingVertical: 8, paddingHorizontal: 14, borderRadius: 18, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, height: 36, justifyContent: 'center' },
+  feedTabActive: { backgroundColor: '#E85D3A', borderColor: '#E85D3A' },
+  feedTabActiveLocal: { backgroundColor: '#E85D3A', borderColor: '#E85D3A' },
+  feedTabText: { fontSize: 13, fontWeight: '500', color: colors.text },
+  feedTabTextActive: { color: '#FFFFFF' },
   
   // Community header
   communityHeader: {
@@ -498,14 +498,14 @@ const styles = StyleSheet.create({
   communityStats: { fontSize: 13, color: colors.textMuted },
   
   // No community
-  noCommContainer: { alignItems: 'center', paddingVertical: 48, paddingHorizontal: 32 },
-  noCommTitle: { fontSize: 20, fontWeight: '700', color: colors.text, marginTop: 16 },
+  noCommContainer: { alignItems: 'center', paddingVertical: 32, paddingHorizontal: 32 },
+  noCommTitle: { fontSize: 20, fontWeight: '700', color: colors.text, marginTop: 12 },
   noCommSubtitle: { fontSize: 14, color: colors.textSecondary, marginTop: 6, textAlign: 'center' },
   joinInputRow: {
     flexDirection: 'row', marginTop: 24, width: '100%', gap: 8,
   },
   joinInput: {
-    flex: 1, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border,
+    flex: 1, backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#E8E1D6',
     borderRadius: 12, paddingHorizontal: 16, paddingVertical: 12, fontSize: 15, color: colors.text,
   },
   joinButton: {

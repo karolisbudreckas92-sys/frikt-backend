@@ -90,6 +90,8 @@ export default function Register() {
                 value={name}
                 onChangeText={setName}
                 autoCapitalize="words"
+                autoComplete="off"
+                textContentType="none"
               />
             </View>
 
@@ -104,6 +106,8 @@ export default function Register() {
                 keyboardType="email-address"
                 autoCapitalize="none"
                 autoCorrect={false}
+                autoComplete="off"
+                textContentType="none"
               />
             </View>
 
@@ -116,6 +120,8 @@ export default function Register() {
                 value={password}
                 onChangeText={setPassword}
                 secureTextEntry={!showPassword}
+                autoComplete="off"
+                textContentType="none"
               />
               <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={styles.eyeButton}>
                 <Ionicons
@@ -135,6 +141,8 @@ export default function Register() {
                 value={confirmPassword}
                 onChangeText={setConfirmPassword}
                 secureTextEntry={!showPassword}
+                autoComplete="off"
+                textContentType="none"
               />
             </View>
 
@@ -168,7 +176,7 @@ export default function Register() {
               {isLoading ? (
                 <ActivityIndicator color={colors.white} />
               ) : (
-                <Text style={styles.buttonText}>Create Account</Text>
+                <Text style={[styles.buttonText, (!isFormValid || isLoading) && styles.buttonTextDisabled]}>Create Account</Text>
               )}
             </TouchableOpacity>
 
@@ -262,7 +270,7 @@ const styles = StyleSheet.create({
     height: 22,
     borderRadius: 6,
     borderWidth: 2,
-    borderColor: colors.border,
+    borderColor: colors.primary,
     backgroundColor: '#FFFFFF',
     justifyContent: 'center',
     alignItems: 'center',
@@ -290,12 +298,15 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   buttonDisabled: {
-    opacity: 0.7,
+    backgroundColor: colors.disabledBg,
   },
   buttonText: {
     color: colors.white,
     fontSize: 16,
     fontWeight: '600',
+  },
+  buttonTextDisabled: {
+    color: colors.disabledText,
   },
   footer: {
     flexDirection: 'row',

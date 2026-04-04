@@ -8,6 +8,7 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
+  Switch,
   ActivityIndicator,
   Alert,
 } from 'react-native';
@@ -221,9 +222,8 @@ export default function PostWizard({ onComplete, onCancel }: PostWizardProps) {
 
       {/* Local toggle */}
       {myCommunity && (
-        <TouchableOpacity
+        <View
           style={[styles.localToggle, isLocal && styles.localToggleActive]}
-          onPress={() => setIsLocal(!isLocal)}
           data-testid="local-toggle-post"
         >
           <Ionicons name="location" size={18} color={isLocal ? '#fff' : '#E85D3A'} />
@@ -232,13 +232,16 @@ export default function PostWizard({ onComplete, onCancel }: PostWizardProps) {
               Post to {myCommunity.name}
             </Text>
             <Text style={[styles.localToggleHint, isLocal && { color: 'rgba(255,255,255,0.7)' }]}>
-              Only members can post and relate in your local feed
+              This frikt will appear in your local community feed.
             </Text>
           </View>
-          <View style={[styles.localCheckbox, isLocal && styles.localCheckboxActive]}>
-            {isLocal && <Ionicons name="checkmark" size={14} color="#fff" />}
-          </View>
-        </TouchableOpacity>
+          <Switch
+            value={isLocal}
+            onValueChange={setIsLocal}
+            trackColor={{ false: '#E8E1D6', true: 'rgba(255,255,255,0.4)' }}
+            thumbColor={isLocal ? '#FFFFFF' : '#E85D3A'}
+          />
+        </View>
       )}
 
       {isSearching && (
@@ -276,7 +279,7 @@ export default function PostWizard({ onComplete, onCancel }: PostWizardProps) {
   const renderStep2 = () => (
     <ScrollView style={styles.stepContent} contentContainerStyle={styles.stepContentContainer}>
       <Text style={styles.stepTitle}>Add quick details</Text>
-      <Text style={styles.stepHint}>Optional — helps others find your problem</Text>
+      <Text style={styles.stepHint}>Help others find your problem</Text>
 
       {/* Category */}
       <Text style={styles.fieldLabel}>Category</Text>
@@ -324,19 +327,19 @@ export default function PostWizard({ onComplete, onCancel }: PostWizardProps) {
 
       {/* Severity */}
       <Text style={styles.fieldLabel}>Severity (1-5)</Text>
-      <View style={styles.severityRow}>
+      <View style={styles.chipRow}>
         {SEVERITY_LEVELS.map((level) => (
           <TouchableOpacity
             key={level}
             style={[
-              styles.severityChip,
-              severity === level && styles.severityChipActive
+              styles.chip,
+              severity === level && styles.chipActive
             ]}
             onPress={() => setSeverity(severity === level ? null : level)}
           >
             <Text style={[
-              styles.severityText,
-              severity === level && styles.severityTextActive
+              styles.chipText,
+              severity === level && styles.chipTextActive
             ]}>
               {level}
             </Text>
@@ -446,8 +449,8 @@ export default function PostWizard({ onComplete, onCancel }: PostWizardProps) {
               onPress={handleContinue}
               disabled={!isStep1Valid}
             >
-              <Text style={styles.primaryButtonText}>Continue</Text>
-              <Ionicons name="arrow-forward" size={20} color={colors.white} />
+              <Text style={[styles.primaryButtonText, !isStep1Valid && styles.buttonDisabledText]}>Continue</Text>
+              {isStep1Valid && <Ionicons name="arrow-forward" size={20} color={colors.white} />}
             </TouchableOpacity>
           ) : (
             <View style={styles.footerRow}>
@@ -456,7 +459,7 @@ export default function PostWizard({ onComplete, onCancel }: PostWizardProps) {
                 onPress={handleSkip}
                 disabled={isSubmitting}
               >
-                <Text style={styles.skipButtonText}>Skip</Text>
+                <Text style={styles.skipButtonText}>Skip details</Text>
               </TouchableOpacity>
               
               <TouchableOpacity 
@@ -469,7 +472,7 @@ export default function PostWizard({ onComplete, onCancel }: PostWizardProps) {
                 ) : (
                   <>
                     <Ionicons name="checkmark" size={20} color={colors.white} />
-                    <Text style={styles.doneButtonText}>Done</Text>
+                    <Text style={styles.doneButtonText}>Post Frikt</Text>
                   </>
                 )}
               </TouchableOpacity>
@@ -637,12 +640,14 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   chip: {
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: radius.xl,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 18,
     borderWidth: 1,
     borderColor: colors.border,
     backgroundColor: colors.surface,
+    height: 36,
+    justifyContent: 'center',
   },
   chipActive: {
     backgroundColor: colors.primary,
@@ -745,7 +750,10 @@ const styles = StyleSheet.create({
     color: colors.white,
   },
   buttonDisabled: {
-    opacity: 0.5,
+    backgroundColor: '#E7E3DC',
+  },
+  buttonDisabledText: {
+    color: '#A19A90',
   },
   localToggle: {
     flexDirection: 'row',
@@ -793,24 +801,24 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     marginTop: 24,
-    padding: 16,
+    padding: 12,
     backgroundColor: colors.surface,
     borderRadius: radius.md,
-    borderWidth: 1,
-    borderColor: colors.border,
+    borderWidth: 0.5,
+    borderColor: colors.borderLight,
   },
   detailsToggleLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 8,
   },
   detailsToggleTitle: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: colors.text,
+    fontSize: 14,
+    fontWeight: '500',
+    color: colors.textSecondary,
   },
   detailsToggleSubtitle: {
-    fontSize: 13,
+    fontSize: 12,
     color: colors.textMuted,
     marginTop: 2,
   },

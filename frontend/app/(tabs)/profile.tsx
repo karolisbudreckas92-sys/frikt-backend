@@ -17,7 +17,6 @@ import { colors, radius } from '@/src/theme/colors';
 import { api } from '@/src/services/api';
 import { useAuth } from '@/src/context/AuthContext';
 import { BadgeSection } from '@/src/components/BadgeSection';
-import { useFocusEffect } from '@react-navigation/native';
 
 function CommunityCard() {
   const [community, setCommunity] = useState<any>(null);
@@ -31,27 +30,20 @@ function CommunityCard() {
       .finally(() => setLoading(false));
   }, []);
 
-  useFocusEffect(
-    useCallback(() => {
-      api.getMyCommunity()
-        .then(setCommunity)
-        .catch(() => setCommunity(null));
-    }, [])
-  );
-
   if (loading) return null;
 
   if (!community) {
     return (
-      <View style={commStyles.card}>
+      <TouchableOpacity style={commStyles.card} onPress={() => router.push('/(tabs)/home')} activeOpacity={0.7}>
         <View style={commStyles.row}>
           <Ionicons name="location-outline" size={22} color="#E85D3A" />
           <View style={{ flex: 1, marginLeft: 10 }}>
             <Text style={commStyles.title}>No community yet</Text>
-            <Text style={commStyles.subtitle}>Join a local community to see what bugs your area</Text>
+            <Text style={commStyles.subtitle}>Join a local community</Text>
           </View>
+          <Ionicons name="chevron-forward" size={20} color="#9A9A9A" />
         </View>
-      </View>
+      </TouchableOpacity>
     );
   }
 
@@ -309,22 +301,22 @@ export default function Profile() {
           </View>
         </View>
 
+        {/* Community Section */}
+        <CommunityCard />
+
+        {/* Badges Section */}
+        <BadgeSection />
+
         {/* Streak Card */}
         {stats?.streak_days > 0 && (
           <View style={styles.streakCard}>
-            <Ionicons name="flame" size={24} color={colors.warning} />
+            <Ionicons name="flame" size={24} color="#E85D3A" />
             <View style={styles.streakInfo}>
               <Text style={styles.streakTitle}>{stats.streak_days} day streak!</Text>
               <Text style={styles.streakText}>Keep contributing to maintain it</Text>
             </View>
           </View>
         )}
-
-        {/* Community Section */}
-        <CommunityCard />
-
-        {/* Badges Section */}
-        <BadgeSection />
 
         {/* Admin Section */}
         {isAdmin && (
@@ -571,11 +563,11 @@ const styles = StyleSheet.create({
   streakCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.softAmber,
+    backgroundColor: '#FFF1EB',
     marginHorizontal: 16,
-    marginTop: 16,
+    marginTop: 12,
     borderRadius: 12,
-    padding: 16,
+    padding: 14,
     gap: 12,
   },
   streakInfo: {

@@ -1,18 +1,22 @@
 export const colors = {
-  // Primary Accent (FRIKT Red/Coral)
-  primary: '#E55A3C',
+  // Primary Accent (FRIKT Coral)
+  primary: '#E85D3A',
   primaryDark: '#C94A30',
-  primaryLight: '#FEF2EF',
+  primaryLight: '#FFF1EB',
+  
+  // Disabled button
+  disabledBg: '#E7E3DC',
+  disabledText: '#A19A90',
   
   // Background (Warm Paper)
-  background: '#F6F4EF',
+  background: '#FAF8F3',
   surface: '#FFFFFF',
   surfaceLight: '#FAFAF8',
   
   // Text
   text: '#2D2D2D',
-  textSecondary: '#4B5563',
-  textMuted: '#8A8F98',
+  textSecondary: '#6B6B6B',
+  textMuted: '#9A9A9A',
   
   // Accent (Olive/Green for calm elements)
   accent: '#2F6F5E',
@@ -26,16 +30,16 @@ export const colors = {
   info: '#4B5563',
   
   // Relates (using primary red)
-  relateActive: '#E55A3C',
-  relateInactive: '#8A8F98',
+  relateActive: '#E85D3A',
+  relateInactive: '#9A9A9A',
   
   // Borders & Dividers
-  border: '#E7E1D7',
+  border: '#E8E1D6',
   borderLight: '#EFE9DF',
   divider: '#EFE9DF',
   
   // Card specific
-  cardBorder: '#E7E1D7',
+  cardBorder: '#E8E1D6',
   
   // Misc
   overlay: 'rgba(45, 45, 45, 0.5)',
@@ -43,9 +47,10 @@ export const colors = {
   black: '#2D2D2D',
   
   // Soft backgrounds for chips/badges
-  softRed: '#FEF2EF',
+  softRed: '#FFF1EB',
   softGreen: '#E8F5F1',
-  softAmber: '#FEF3C7',
+  softAmber: '#FFF1EB',
+  softCoral: '#FFF1EB',
 };
 
 // Shadow styles for cards
