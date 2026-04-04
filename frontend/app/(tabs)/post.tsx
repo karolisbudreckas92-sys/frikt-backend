@@ -5,6 +5,7 @@ import { colors, fonts} from '@/src/theme/colors';
 import PostWizard from '@/src/components/PostWizard';
 import Toast from 'react-native-root-toast';
 import { useBadges } from '@/src/contexts/BadgeContext';
+import { ErrorBoundary } from '@/src/components/ErrorBoundary';
 
 export default function PostTab() {
   const router = useRouter();
@@ -45,9 +46,11 @@ export default function PostTab() {
   };
 
   return (
+    <ErrorBoundary screenName="CreateFrikt">
     <View style={styles.container}>
       <PostWizard key={focusKey} onComplete={handleComplete} onCancel={handleCancel} />
     </View>
+    </ErrorBoundary>
   );
 }
 

@@ -17,6 +17,7 @@ import { colors, radius, fonts} from '@/src/theme/colors';
 import { api } from '@/src/services/api';
 import { useAuth } from '@/src/context/AuthContext';
 import { BadgeSection } from '@/src/components/BadgeSection';
+import { ErrorBoundary } from '@/src/components/ErrorBoundary';
 
 function CommunityCard({ router }: { router: any }) {
   const [community, setCommunity] = useState<any>(null);
@@ -96,13 +97,13 @@ const commStyles = StyleSheet.create({
     width: 36, height: 36, borderRadius: 18, backgroundColor: '#E85D3A',
     justifyContent: 'center', alignItems: 'center', marginRight: 10,
   },
-  icon: { fontSize: 15, color: colors.text, fontFamily: fonts.semibold },
+  title: { fontSize: 15, color: colors.text, fontFamily: fonts.semibold },
   subtitle: { fontSize: 13, color: colors.textMuted, marginTop: 2 },
   leaveBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 4, alignSelf: 'flex-end', marginTop: 10,
     paddingVertical: 6, paddingHorizontal: 12, borderRadius: 8, borderWidth: 1, borderColor: colors.error + '40',
   },
-  leaveBtn: { fontSize: 13, color: colors.error, fontFamily: fonts.medium },
+  leaveBtnText: { fontSize: 13, color: colors.error, fontFamily: fonts.medium },
 });
 
 export default function Profile() {
@@ -236,6 +237,7 @@ export default function Profile() {
   }
 
   return (
+    <ErrorBoundary screenName="Profile">
     <SafeAreaView style={styles.container} edges={['top']}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
         {/* Profile Header */}
@@ -438,6 +440,7 @@ export default function Profile() {
         </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>
+    </ErrorBoundary>
   );
 }
 
