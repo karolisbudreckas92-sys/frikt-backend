@@ -12,7 +12,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { formatDistanceToNow } from 'date-fns';
-import { colors } from '@/src/theme/colors';
+import { colors, fonts} from '@/src/theme/colors';
 import { api } from '@/src/services/api';
 import { useNotifications } from '@/src/contexts/NotificationContext';
 
@@ -167,7 +167,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 18,
-    fontWeight: '600',
+    fontFamily: fonts.semibold,
     color: colors.text,
   },
   loadingContainer: {
@@ -219,7 +219,7 @@ const styles = StyleSheet.create({
   },
   emptyTitle: {
     fontSize: 18,
-    fontWeight: '600',
+    fontFamily: fonts.semibold,
     color: colors.text,
     marginTop: 16,
   },

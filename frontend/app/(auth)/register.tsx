@@ -15,7 +15,7 @@ import { useRouter, Link } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '@/src/context/AuthContext';
-import { colors, radius } from '@/src/theme/colors';
+import { colors, radius, fonts} from '@/src/theme/colors';
 
 export default function Register() {
   const router = useRouter();
@@ -214,7 +214,7 @@ const styles = StyleSheet.create({
   },
   logo: {
     fontSize: 48,
-    fontWeight: '700',
+    fontFamily: fonts.bold,
     color: colors.text,
     letterSpacing: -2,
   },
@@ -228,7 +228,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 28,
-    fontWeight: '700',
+    fontFamily: fonts.bold,
     color: colors.text,
     marginBottom: 8,
   },
@@ -287,7 +287,7 @@ const styles = StyleSheet.create({
   },
   termsLink: {
     color: colors.primary,
-    fontWeight: '600',
+    fontFamily: fonts.semibold,
     textDecorationLine: 'underline',
   },
   button: {
@@ -303,7 +303,7 @@ const styles = StyleSheet.create({
   buttonText: {
     color: colors.white,
     fontSize: 16,
-    fontWeight: '600',
+    fontFamily: fonts.semibold,
   },
   buttonTextDisabled: {
     color: colors.disabledText,
@@ -320,6 +320,6 @@ const styles = StyleSheet.create({
   footerLink: {
     color: colors.primary,
     fontSize: 14,
-    fontWeight: '600',
+    fontFamily: fonts.semibold,
   },
 });

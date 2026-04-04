@@ -16,7 +16,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { formatDistanceToNow } from 'date-fns';
-import { colors, radius } from '@/src/theme/colors';
+import { colors, radius, fonts} from '@/src/theme/colors';
 import { api } from '@/src/services/api';
 import { getCategoryStyle } from '@/src/theme/categoryStyles';
 import { useAuth } from '@/src/context/AuthContext';
@@ -418,7 +418,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 18,
-    fontWeight: '600',
+    fontFamily: fonts.semibold,
     color: colors.text,
   },
   content: {
@@ -445,12 +445,12 @@ const styles = StyleSheet.create({
   },
   avatarText: {
     fontSize: 32,
-    fontWeight: '700',
+    fontFamily: fonts.bold,
     color: colors.white,
   },
   displayName: {
     fontSize: 22,
-    fontWeight: '700',
+    fontFamily: fonts.bold,
     color: colors.text,
     marginBottom: 4,
   },
@@ -476,7 +476,7 @@ const styles = StyleSheet.create({
   },
   communityTagText: {
     fontSize: 13,
-    fontWeight: '600',
+    fontFamily: fonts.semibold,
     color: '#E85D3A',
   },
   statsRow: {
@@ -493,7 +493,7 @@ const styles = StyleSheet.create({
   },
   statValue: {
     fontSize: 20,
-    fontWeight: '700',
+    fontFamily: fonts.bold,
     color: colors.text,
   },
   statLabel: {
@@ -517,7 +517,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 18,
-    fontWeight: '600',
+    fontFamily: fonts.semibold,
     color: colors.text,
   },
   sortTabs: {
@@ -536,7 +536,7 @@ const styles = StyleSheet.create({
   },
   sortTabText: {
     fontSize: 13,
-    fontWeight: '500',
+    fontFamily: fonts.medium,
     color: colors.textSecondary,
   },
   sortTabTextActive: {
@@ -548,7 +548,7 @@ const styles = StyleSheet.create({
   },
   emptyTitle: {
     fontSize: 16,
-    fontWeight: '600',
+    fontFamily: fonts.semibold,
     color: colors.text,
     marginTop: 12,
   },
@@ -575,11 +575,11 @@ const styles = StyleSheet.create({
   },
   categoryText: {
     fontSize: 11,
-    fontWeight: '600',
+    fontFamily: fonts.semibold,
   },
   postTitle: {
     fontSize: 15,
-    fontWeight: '600',
+    fontFamily: fonts.semibold,
     color: colors.text,
     lineHeight: 21,
     marginBottom: 10,
@@ -640,7 +640,7 @@ const styles = StyleSheet.create({
   },
   menuItemCancelText: {
     fontSize: 16,
-    fontWeight: '600',
+    fontFamily: fonts.semibold,
     color: colors.textSecondary,
     textAlign: 'center',
   },
@@ -664,7 +664,7 @@ const styles = StyleSheet.create({
   },
   reportTitle: {
     fontSize: 20,
-    fontWeight: '700',
+    fontFamily: fonts.bold,
     color: colors.text,
   },
   reportSubtitle: {
@@ -692,7 +692,7 @@ const styles = StyleSheet.create({
     color: colors.text,
   },
   reportReasonTextSelected: {
-    fontWeight: '600',
+    fontFamily: fonts.semibold,
     color: colors.primary,
   },
   reportSubmitButton: {
@@ -707,7 +707,7 @@ const styles = StyleSheet.create({
   },
   reportSubmitText: {
     fontSize: 16,
-    fontWeight: '600',
+    fontFamily: fonts.semibold,
     color: colors.white,
   },
 });

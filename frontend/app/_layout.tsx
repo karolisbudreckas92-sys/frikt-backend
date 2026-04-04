@@ -9,6 +9,10 @@ import { RootSiblingParent } from 'react-native-root-siblings';
 import { Alert } from 'react-native';
 import { BadgeProvider } from '@/src/contexts/BadgeContext';
 import { NotificationProvider } from '@/src/contexts/NotificationContext';
+import { useFonts, PlusJakartaSans_400Regular, PlusJakartaSans_500Medium, PlusJakartaSans_600SemiBold, PlusJakartaSans_700Bold } from '@expo-google-fonts/plus-jakarta-sans';
+import * as SplashScreen from 'expo-splash-screen';
+
+SplashScreen.preventAutoHideAsync();
 
 // Debug: Show backend URL on first launch
 const BACKEND_URL = 'https://frikt-backend-production.up.railway.app';
@@ -23,8 +27,6 @@ function RootLayoutNav() {
   useEffect(() => {
     if (!hasShownDebug) {
       hasShownDebug = true;
-      // Uncomment below line to see debug alert:
-      // Alert.alert('Debug', `Backend URL: ${BACKEND_URL}`);
       console.log('[APP] Backend URL:', BACKEND_URL);
     }
   }, []);
@@ -63,6 +65,19 @@ function RootLayoutNav() {
 }
 
 export default function RootLayout() {
+  const [fontsLoaded] = useFonts({
+    PlusJakartaSans_400Regular,
+    PlusJakartaSans_500Medium,
+    PlusJakartaSans_600SemiBold,
+    PlusJakartaSans_700Bold,
+  });
+
+  useEffect(() => {
+    if (fontsLoaded) SplashScreen.hideAsync();
+  }, [fontsLoaded]);
+
+  if (!fontsLoaded) return null;
+
   return (
     <RootSiblingParent>
       <SafeAreaProvider>

@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { api } from '@/src/services/api';
+import { fonts } from '@/src/theme/colors';
 
 const { width } = Dimensions.get('window');
 const BADGE_SIZE = (width - 80) / 4;
@@ -20,12 +21,12 @@ const colors = {
   background: '#1A1D24',
   cardBg: '#2B2F36',
   surface: '#3A3F47',
-  primary: '#E4572E',
+  primary: '#E85D3A',
   textPrimary: '#FFFFFF',
   textSecondary: '#9CA3AF',
   textMuted: '#6B7280',
   border: '#3A3F47',
-  unlocked: '#F59E0B',
+  unlocked: '#E85D3A',
   locked: '#4B5563',
 };
 
@@ -580,7 +581,7 @@ const styles = StyleSheet.create({
   },
   statsLabel: {
     fontSize: 16,
-    fontWeight: '500',
+    fontFamily: fonts.medium,
     color: '#1A1A1A',
     flex: 1,
   },
@@ -599,8 +600,8 @@ const styles = StyleSheet.create({
   },
   statsCount: {
     fontSize: 14,
-    fontWeight: '700',
-    color: '#D97706',
+    fontFamily: fonts.bold,
+    color: '#E85D3A',
   },
   
   // Modal styles
@@ -625,7 +626,7 @@ const styles = StyleSheet.create({
   },
   modalTitle: {
     fontSize: 18,
-    fontWeight: '600',
+    fontFamily: fonts.semibold,
     color: colors.textPrimary,
   },
   modalScroll: {
@@ -641,7 +642,7 @@ const styles = StyleSheet.create({
   },
   summaryText: {
     fontSize: 16,
-    fontWeight: '600',
+    fontFamily: fonts.semibold,
     color: colors.textPrimary,
     marginBottom: 8,
   },
@@ -653,7 +654,7 @@ const styles = StyleSheet.create({
   },
   summaryProgressFill: {
     height: '100%',
-    backgroundColor: '#F59E0B',
+    backgroundColor: '#E85D3A',
     borderRadius: 4,
   },
   
@@ -663,7 +664,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 18,
-    fontWeight: '700',
+    fontFamily: fonts.bold,
     color: colors.textPrimary,
     marginBottom: 4,
   },
@@ -742,7 +743,7 @@ const styles = StyleSheet.create({
   },
   miniProgressFill: {
     height: '100%',
-    backgroundColor: '#F59E0B',
+    backgroundColor: '#E85D3A',
     borderRadius: 2,
   },
   miniProgressText: {
@@ -779,7 +780,7 @@ const styles = StyleSheet.create({
   },
   detailTitle: {
     fontSize: 22,
-    fontWeight: '700',
+    fontFamily: fonts.bold,
     color: colors.textPrimary,
     marginBottom: 16,
     textAlign: 'center',
@@ -793,7 +794,7 @@ const styles = StyleSheet.create({
   },
   requirementLabel: {
     fontSize: 12,
-    fontWeight: '600',
+    fontFamily: fonts.semibold,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
     marginBottom: 6,
@@ -802,7 +803,7 @@ const styles = StyleSheet.create({
     color: '#10B981',
   },
   requirementLabelLocked: {
-    color: '#F59E0B',
+    color: '#E85D3A',
   },
   requirementText: {
     fontSize: 15,
@@ -827,7 +828,7 @@ const styles = StyleSheet.create({
   },
   progressFill: {
     height: '100%',
-    backgroundColor: '#F59E0B',
+    backgroundColor: '#E85D3A',
     borderRadius: 5,
   },
   progressText: {
@@ -845,7 +846,7 @@ const styles = StyleSheet.create({
   detailCloseText: {
     color: '#FFFFFF',
     fontSize: 16,
-    fontWeight: '600',
+    fontFamily: fonts.semibold,
   },
 });
 

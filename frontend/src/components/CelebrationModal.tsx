@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { View, Text, Modal, StyleSheet, TouchableOpacity, Animated, Dimensions, Platform } from 'react-native';
+import { fonts } from '@/src/theme/colors';
 
 const { width: screenWidth } = Dimensions.get('window');
 
@@ -16,7 +17,7 @@ if (Platform.OS !== 'web') {
 const colors = {
   background: '#F6F3EE',
   cardBg: '#FFFFFF',
-  primary: '#E4572E',
+  primary: '#E85D3A',
   textPrimary: '#1A1A1A',
   textSecondary: '#666666',
   gold: '#FFD700',
@@ -193,7 +194,7 @@ const styles = StyleSheet.create({
   },
   congratsText: {
     fontSize: 14,
-    fontWeight: '600',
+    fontFamily: fonts.semibold,
     color: colors.primary,
     textTransform: 'uppercase',
     letterSpacing: 2,
@@ -201,7 +202,7 @@ const styles = StyleSheet.create({
   },
   badgeName: {
     fontSize: 26,
-    fontWeight: '800',
+    fontFamily: fonts.bold,
     color: colors.textPrimary,
     marginBottom: 12,
     textAlign: 'center',
@@ -222,7 +223,7 @@ const styles = StyleSheet.create({
   },
   additionalBadgesText: {
     fontSize: 14,
-    fontWeight: '600',
+    fontFamily: fonts.semibold,
     color: colors.primary,
   },
   dismissButton: {
@@ -236,7 +237,7 @@ const styles = StyleSheet.create({
   dismissText: {
     color: '#FFFFFF',
     fontSize: 18,
-    fontWeight: '700',
+    fontFamily: fonts.bold,
   },
 });
 

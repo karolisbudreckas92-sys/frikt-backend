@@ -14,7 +14,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, radius } from '@/src/theme/colors';
+import { colors, radius, fonts} from '@/src/theme/colors';
 import { api } from '@/src/services/api';
 
 export default function ChangePassword() {
@@ -158,7 +158,7 @@ export default function ChangePassword() {
             {isLoading ? (
               <ActivityIndicator color={colors.white} />
             ) : (
-              <Text style={styles.buttonText}>Update Password</Text>
+              <Text style={[styles.buttonText, (!isFormValid || isLoading) && styles.buttonTextDisabled]}>Update Password</Text>
             )}
           </TouchableOpacity>
         </ScrollView>
@@ -186,7 +186,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 17,
-    fontWeight: '600',
+    fontFamily: fonts.semibold,
     color: colors.text,
   },
   keyboardView: {
@@ -252,11 +252,14 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   buttonDisabled: {
-    opacity: 0.6,
+    backgroundColor: colors.disabledBg,
+  },
+  buttonTextDisabled: {
+    color: colors.disabledText,
   },
   buttonText: {
     color: colors.white,
     fontSize: 16,
-    fontWeight: '600',
+    fontFamily: fonts.semibold,
   },
 });

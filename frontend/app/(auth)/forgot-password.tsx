@@ -14,7 +14,7 @@ import {
 import { useRouter, Link } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { colors } from '@/src/theme/colors';
+import { colors, fonts} from '@/src/theme/colors';
 import api from '@/src/services/api';
 
 type Step = 'email' | 'code' | 'newPassword';
@@ -312,7 +312,7 @@ export default function ForgotPassword() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F6F3EE',
+    backgroundColor: colors.background,
   },
   keyboardView: {
     flex: 1,
@@ -342,7 +342,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 28,
-    fontWeight: '700',
+    fontFamily: fonts.bold,
     color: '#2B2F36',
     marginBottom: 8,
     textAlign: 'center',
@@ -379,7 +379,7 @@ const styles = StyleSheet.create({
   codeInput: {
     textAlign: 'center',
     fontSize: 24,
-    fontWeight: '600',
+    fontFamily: fonts.semibold,
     letterSpacing: 8,
   },
   eyeButton: {
@@ -393,12 +393,12 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   buttonDisabled: {
-    opacity: 0.7,
+    backgroundColor: colors.disabledBg,
   },
   buttonText: {
     color: colors.white,
     fontSize: 16,
-    fontWeight: '600',
+    fontFamily: fonts.semibold,
   },
   resendButton: {
     alignItems: 'center',
@@ -422,6 +422,6 @@ const styles = StyleSheet.create({
   footerLink: {
     color: colors.primary,
     fontSize: 14,
-    fontWeight: '600',
+    fontFamily: fonts.semibold,
   },
 });

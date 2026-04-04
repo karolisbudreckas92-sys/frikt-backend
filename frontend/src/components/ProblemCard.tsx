@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, shadows, radius } from '../theme/colors';
+import { colors, shadows, radius, fonts} from '../theme/colors';
 import { getCategoryStyle } from '../theme/categoryStyles';
 import { formatTimeAgo } from '../utils/formatTimeAgo';
 
@@ -116,7 +116,7 @@ const styles = StyleSheet.create({
   },
   categoryText: {
     fontSize: 12,
-    fontWeight: '600',
+    fontFamily: fonts.semibold,
     color: colors.primary,
   },
   localTag: {
@@ -133,12 +133,12 @@ const styles = StyleSheet.create({
   },
   localTagText: {
     fontSize: 11,
-    fontWeight: '600',
+    fontFamily: fonts.semibold,
     color: '#E85D3A',
   },
   title: {
     fontSize: 16,
-    fontWeight: '600',
+    fontFamily: fonts.semibold,
     color: colors.text,
     lineHeight: 22,
     marginBottom: 6,
@@ -176,7 +176,7 @@ const styles = StyleSheet.create({
   },
   relateText: {
     fontSize: 13,
-    fontWeight: '500',
+    fontFamily: fonts.medium,
     color: colors.textSecondary,
   },
   relateTextActive: {

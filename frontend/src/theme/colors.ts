@@ -78,3 +78,11 @@ export const radius = {
   lg: 16,
   xl: 20,
 };
+
+// Font families (Plus Jakarta Sans)
+export const fonts = {
+  regular: 'PlusJakartaSans_400Regular',
+  medium: 'PlusJakartaSans_500Medium',
+  semibold: 'PlusJakartaSans_600SemiBold',
+  bold: 'PlusJakartaSans_700Bold',
+};

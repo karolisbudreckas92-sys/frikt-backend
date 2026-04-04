@@ -12,7 +12,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { colors } from '@/src/theme/colors';
+import { colors, fonts} from '@/src/theme/colors';
 import { api } from '@/src/services/api';
 import { registerForPushNotificationsAsync } from '@/src/services/notifications';
 
@@ -282,7 +282,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 18,
-    fontWeight: '600',
+    fontFamily: fonts.semibold,
     color: colors.text,
   },
   loadingContainer: {
@@ -315,7 +315,7 @@ const styles = StyleSheet.create({
   },
   statusTitle: {
     fontSize: 15,
-    fontWeight: '600',
+    fontFamily: fonts.semibold,
     color: colors.text,
   },
   statusText: {
@@ -325,7 +325,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 14,
-    fontWeight: '600',
+    fontFamily: fonts.semibold,
     color: colors.textSecondary,
     marginBottom: 12,
     textTransform: 'uppercase',
@@ -361,7 +361,7 @@ const styles = StyleSheet.create({
   },
   settingTitle: {
     fontSize: 15,
-    fontWeight: '600',
+    fontFamily: fonts.semibold,
     color: colors.text,
   },
   settingDesc: {

@@ -18,7 +18,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { formatTimeAgo } from '@/src/utils/formatTimeAgo';
-import { colors, radius } from '@/src/theme/colors';
+import { colors, radius, fonts} from '@/src/theme/colors';
 import { api } from '@/src/services/api';
 import { useAuth } from '@/src/context/AuthContext';
 import { useBadges } from '@/src/contexts/BadgeContext';
@@ -548,7 +548,7 @@ export default function ProblemDetail() {
                 size={22} 
                 color={problem.user_has_related ? colors.primary : colors.primary} 
               />
-              <Text style={[styles.actionText, { color: colors.primary, fontWeight: '600' }, problem.user_has_related && styles.actionTextActive]}>
+              <Text style={[styles.actionText, { color: colors.primary, fontFamily: fonts.semibold }, problem.user_has_related && styles.actionTextActive]}>
                 Relate
               </Text>
             </TouchableOpacity>
@@ -1051,7 +1051,7 @@ const styles = StyleSheet.create({
   },
   retryButtonText: {
     fontSize: 14,
-    fontWeight: '600',
+    fontFamily: fonts.semibold,
     color: colors.white,
   },
   header: {
@@ -1068,7 +1068,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 18,
-    fontWeight: '600',
+    fontFamily: fonts.semibold,
     color: colors.text,
   },
   headerRight: {
@@ -1100,7 +1100,7 @@ const styles = StyleSheet.create({
   },
   categoryText: {
     fontSize: 13,
-    fontWeight: '600',
+    fontFamily: fonts.semibold,
     color: colors.primary,
   },
   timeText: {
@@ -1109,7 +1109,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 22,
-    fontWeight: '700',
+    fontFamily: fonts.bold,
     color: colors.text,
     lineHeight: 30,
     marginBottom: 12,
@@ -1136,13 +1136,13 @@ const styles = StyleSheet.create({
   },
   authorAvatarText: {
     fontSize: 14,
-    fontWeight: '600',
+    fontFamily: fonts.semibold,
     color: colors.white,
   },
   authorName: {
     flex: 1,
     fontSize: 14,
-    fontWeight: '500',
+    fontFamily: fonts.medium,
     color: colors.text,
   },
   signalSummary: {
@@ -1158,7 +1158,7 @@ const styles = StyleSheet.create({
   },
   signalValue: {
     fontSize: 18,
-    fontWeight: '700',
+    fontFamily: fonts.bold,
     color: colors.text,
   },
   signalLabel: {
@@ -1194,7 +1194,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 16,
-    fontWeight: '600',
+    fontFamily: fonts.semibold,
     color: colors.text,
     marginBottom: 12,
   },
@@ -1224,7 +1224,7 @@ const styles = StyleSheet.create({
   chipText: {
     fontSize: 12,
     color: colors.primary,
-    fontWeight: '500',
+    fontFamily: fonts.medium,
   },
   commentInput: {
     fontSize: 14,
@@ -1282,7 +1282,7 @@ const styles = StyleSheet.create({
   },
   commentAvatarText: {
     fontSize: 14,
-    fontWeight: '600',
+    fontFamily: fonts.semibold,
     color: colors.white,
   },
   commentMeta: {
@@ -1290,7 +1290,7 @@ const styles = StyleSheet.create({
   },
   commentAuthor: {
     fontSize: 14,
-    fontWeight: '600',
+    fontFamily: fonts.semibold,
     color: colors.text,
   },
   commentTime: {
@@ -1361,7 +1361,7 @@ const styles = StyleSheet.create({
   },
   reportTitle: {
     fontSize: 20,
-    fontWeight: '700',
+    fontFamily: fonts.bold,
     color: colors.text,
   },
   reportSubtitle: {
@@ -1389,7 +1389,7 @@ const styles = StyleSheet.create({
     color: colors.text,
   },
   reportReasonTextSelected: {
-    fontWeight: '600',
+    fontFamily: fonts.semibold,
     color: colors.primary,
   },
   reportSubmitButton: {
@@ -1404,7 +1404,7 @@ const styles = StyleSheet.create({
   },
   reportSubmitText: {
     fontSize: 16,
-    fontWeight: '600',
+    fontFamily: fonts.semibold,
     color: colors.white,
   },
   // Comment edit/delete styles
@@ -1486,7 +1486,7 @@ const styles = StyleSheet.create({
   },
   editSaveText: {
     fontSize: 14,
-    fontWeight: '600',
+    fontFamily: fonts.semibold,
     color: colors.white,
   },
   // Reply styles
@@ -1503,7 +1503,7 @@ const styles = StyleSheet.create({
   replyIndicatorText: {
     fontSize: 13,
     color: colors.primary,
-    fontWeight: '500',
+    fontFamily: fonts.medium,
   },
   cancelReplyButton: {
     padding: 4,
@@ -1542,7 +1542,7 @@ const styles = StyleSheet.create({
   viewRepliesText: {
     fontSize: 13,
     color: colors.primary,
-    fontWeight: '500',
+    fontFamily: fonts.medium,
   },
   replyCard: {
     marginBottom: 12,
@@ -1565,7 +1565,7 @@ const styles = StyleSheet.create({
   },
   replyAvatarText: {
     fontSize: 11,
-    fontWeight: '600',
+    fontFamily: fonts.semibold,
     color: colors.white,
   },
   replyMeta: {
@@ -1580,7 +1580,7 @@ const styles = StyleSheet.create({
   },
   replyAuthor: {
     fontSize: 13,
-    fontWeight: '600',
+    fontFamily: fonts.semibold,
     color: colors.text,
   },
   replyToIndicator: {

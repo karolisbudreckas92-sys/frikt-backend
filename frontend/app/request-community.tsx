@@ -13,7 +13,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, radius } from '@/src/theme/colors';
+import { colors, radius, fonts} from '@/src/theme/colors';
 import { api } from '@/src/services/api';
 import { useAuth } from '@/src/context/AuthContext';
 import Toast from 'react-native-root-toast';
@@ -125,7 +125,7 @@ export default function RequestCommunity() {
             {isSubmitting ? (
               <ActivityIndicator color="#fff" size="small" />
             ) : (
-              <Text style={styles.submitButtonText}>Submit Request</Text>
+              <Text style={[styles.submitButtonText, (!email.trim() || !communityName.trim()) && styles.submitButtonTextDisabled]}>Submit Request</Text>
             )}
           </TouchableOpacity>
         </ScrollView>
@@ -141,11 +141,11 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface, borderBottomWidth: 1, borderBottomColor: colors.border,
   },
   backButton: { padding: 4 },
-  headerTitle: { flex: 1, fontSize: 18, fontWeight: '600', color: colors.text, textAlign: 'center' },
+  headerTitle: { flex: 1, fontSize: 18, fontFamily: fonts.semibold, color: colors.text, textAlign: 'center' },
   content: { padding: 24 },
-  title: { fontSize: 22, fontWeight: '700', color: colors.text, textAlign: 'center', marginTop: 16 },
+  title: { fontSize: 22, fontFamily: fonts.bold, color: colors.text, textAlign: 'center', marginTop: 16 },
   subtitle: { fontSize: 14, color: colors.textSecondary, textAlign: 'center', marginTop: 8, marginBottom: 28, lineHeight: 20 },
-  label: { fontSize: 14, fontWeight: '600', color: colors.text, marginBottom: 8, marginTop: 16 },
+  label: { fontSize: 14, fontFamily: fonts.semibold, color: colors.text, marginBottom: 8, marginTop: 16 },
   input: {
     backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border,
     borderRadius: radius.md, padding: 14, fontSize: 15, color: colors.text,
@@ -155,13 +155,14 @@ const styles = StyleSheet.create({
     backgroundColor: CORAL, borderRadius: radius.md, paddingVertical: 16,
     alignItems: 'center', marginTop: 28,
   },
-  buttonDisabled: { opacity: 0.5 },
-  submitButtonText: { color: '#fff', fontSize: 16, fontWeight: '700' },
+  buttonDisabled: { backgroundColor: colors.disabledBg },
+  submitButtonTextDisabled: { color: colors.disabledText },
+  submitButtonText: { color: '#fff', fontSize: 16, fontFamily: fonts.bold },
   successContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 32 },
-  successTitle: { fontSize: 22, fontWeight: '700', color: colors.text, marginTop: 16 },
+  successTitle: { fontSize: 22, fontFamily: fonts.bold, color: colors.text, marginTop: 16 },
   successText: { fontSize: 15, color: colors.textSecondary, textAlign: 'center', marginTop: 10, lineHeight: 22 },
   doneButton: {
     backgroundColor: CORAL, borderRadius: radius.md, paddingVertical: 14, paddingHorizontal: 40, marginTop: 28,
   },
-  doneButtonText: { color: '#fff', fontSize: 16, fontWeight: '600' },
+  doneButtonText: { color: '#fff', fontSize: 16, fontFamily: fonts.semibold },
 });

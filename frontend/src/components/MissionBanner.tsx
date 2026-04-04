@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, shadows, radius } from '../theme/colors';
+import { colors, shadows, radius, fonts} from '../theme/colors';
 import { api } from '../services/api';
 
 interface MissionBannerProps {
@@ -92,7 +92,7 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 12,
-    fontWeight: '600',
+    fontFamily: fonts.semibold,
     color: colors.accent,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
@@ -100,7 +100,7 @@ const styles = StyleSheet.create({
   },
   prompt: {
     fontSize: 15,
-    fontWeight: '500',
+    fontFamily: fonts.medium,
     color: colors.text,
     lineHeight: 21,
   },
@@ -115,7 +115,7 @@ const styles = StyleSheet.create({
   },
   buttonText: {
     fontSize: 14,
-    fontWeight: '600',
+    fontFamily: fonts.semibold,
     color: colors.white,
   },
   buttonHint: {

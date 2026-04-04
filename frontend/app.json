@@ -67,7 +67,8 @@
           "photosPermission": "Upload a profile photo"
         }
       ],
-      "expo-secure-store"
+      "expo-secure-store",
+      "expo-font"
     ],
     "experiments": {
       "typedRoutes": true

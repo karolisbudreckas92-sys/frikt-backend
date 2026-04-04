@@ -13,7 +13,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, radius } from '@/src/theme/colors';
+import { colors, radius, fonts} from '@/src/theme/colors';
 import { api } from '@/src/services/api';
 import { useAuth } from '@/src/context/AuthContext';
 import { BadgeSection } from '@/src/components/BadgeSection';
@@ -101,13 +101,13 @@ const commStyles = StyleSheet.create({
     width: 36, height: 36, borderRadius: 18, backgroundColor: '#E85D3A',
     justifyContent: 'center', alignItems: 'center', marginRight: 10,
   },
-  title: { fontSize: 15, fontWeight: '600', color: colors.text },
+  title: { fontSize: 15, fontFamily: fonts.semibold, color: colors.text },
   subtitle: { fontSize: 13, color: colors.textMuted, marginTop: 2 },
   leaveBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 4, alignSelf: 'flex-end', marginTop: 10,
     paddingVertical: 6, paddingHorizontal: 12, borderRadius: 8, borderWidth: 1, borderColor: colors.error + '40',
   },
-  leaveBtnText: { fontSize: 13, color: colors.error, fontWeight: '500' },
+  leaveBtnText: { fontSize: 13, color: colors.error, fontFamily: fonts.medium },
 });
 
 export default function Profile() {
@@ -484,12 +484,12 @@ const styles = StyleSheet.create({
   },
   avatarText: {
     fontSize: 36,
-    fontWeight: '700',
+    fontFamily: fonts.bold,
     color: colors.white,
   },
   name: {
     fontSize: 24,
-    fontWeight: '700',
+    fontFamily: fonts.bold,
     color: colors.text,
   },
   bio: {
@@ -520,7 +520,7 @@ const styles = StyleSheet.create({
   },
   editProfileText: {
     fontSize: 14,
-    fontWeight: '600',
+    fontFamily: fonts.semibold,
     color: colors.text,
   },
   badge: {
@@ -535,7 +535,7 @@ const styles = StyleSheet.create({
   },
   badgeText: {
     fontSize: 12,
-    fontWeight: '600',
+    fontFamily: fonts.semibold,
     color: colors.accent,
   },
   statsContainer: {
@@ -552,7 +552,7 @@ const styles = StyleSheet.create({
   },
   statValue: {
     fontSize: 24,
-    fontWeight: '700',
+    fontFamily: fonts.bold,
     color: colors.text,
   },
   statLabel: {
@@ -579,7 +579,7 @@ const styles = StyleSheet.create({
   },
   streakTitle: {
     fontSize: 16,
-    fontWeight: '600',
+    fontFamily: fonts.semibold,
     color: colors.text,
   },
   streakText: {
@@ -593,7 +593,7 @@ const styles = StyleSheet.create({
   },
   menuTitle: {
     fontSize: 14,
-    fontWeight: '600',
+    fontFamily: fonts.semibold,
     color: colors.textSecondary,
     marginBottom: 12,
     textTransform: 'uppercase',
@@ -637,7 +637,7 @@ const styles = StyleSheet.create({
   },
   adminBadgeText: {
     fontSize: 10,
-    fontWeight: '700',
+    fontFamily: fonts.bold,
     color: colors.primary,
     letterSpacing: 0.5,
   },
@@ -669,7 +669,7 @@ const styles = StyleSheet.create({
   },
   logoutText: {
     fontSize: 16,
-    fontWeight: '600',
+    fontFamily: fonts.semibold,
     color: colors.error,
   },
   legalSection: {
@@ -679,7 +679,7 @@ const styles = StyleSheet.create({
   },
   legalTitle: {
     fontSize: 12,
-    fontWeight: '600',
+    fontFamily: fonts.semibold,
     color: colors.textMuted,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
@@ -714,6 +714,6 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 16,
     color: colors.error,
-    fontWeight: '500',
+    fontFamily: fonts.medium,
   },
 });

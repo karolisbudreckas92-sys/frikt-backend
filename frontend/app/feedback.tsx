@@ -12,7 +12,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, shadows, radius } from '@/src/theme/colors';
+import { colors, shadows, radius, fonts} from '@/src/theme/colors';
 import { api } from '@/src/services/api';
 import Toast from 'react-native-root-toast';
 import Constants from 'expo-constants';
@@ -105,7 +105,7 @@ export default function FeedbackScreen() {
             {isSubmitting ? (
               <ActivityIndicator color={colors.white} />
             ) : (
-              <Text style={styles.submitButtonText}>Send</Text>
+              <Text style={[styles.submitButtonText, (!message.trim() || isSubmitting) && styles.submitButtonTextDisabled]}>Send</Text>
             )}
           </TouchableOpacity>
         </View>
@@ -136,7 +136,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 17,
-    fontWeight: '600',
+    fontFamily: fonts.semibold,
     color: colors.text,
   },
   placeholder: {
@@ -170,12 +170,15 @@ const styles = StyleSheet.create({
     marginTop: 24,
   },
   submitButtonDisabled: {
-    backgroundColor: colors.textMuted,
+    backgroundColor: colors.disabledBg,
+  },
+  submitButtonTextDisabled: {
+    color: colors.disabledText,
   },
   submitButtonText: {
     color: colors.white,
     fontSize: 16,
-    fontWeight: '600',
+    fontFamily: fonts.semibold,
   },
   successContainer: {
     flex: 1,
@@ -184,7 +187,7 @@ const styles = StyleSheet.create({
   },
   successText: {
     fontSize: 24,
-    fontWeight: '600',
+    fontFamily: fonts.semibold,
     color: colors.accent,
     marginTop: 16,
   },

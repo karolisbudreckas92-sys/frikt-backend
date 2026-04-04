@@ -13,7 +13,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, radius } from '@/src/theme/colors';
+import { colors, radius, fonts} from '@/src/theme/colors';
 import { api } from '@/src/services/api';
 import ProblemCard from '@/src/components/ProblemCard';
 import Toast from 'react-native-root-toast';
@@ -434,7 +434,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 28,
-    fontWeight: '700',
+    fontFamily: fonts.bold,
     color: colors.text,
   },
   subtitle: {
@@ -467,7 +467,7 @@ const styles = StyleSheet.create({
   },
   segmentText: {
     fontSize: 14,
-    fontWeight: '600',
+    fontFamily: fonts.semibold,
     color: colors.textSecondary,
   },
   segmentTextActive: {
@@ -508,7 +508,7 @@ const styles = StyleSheet.create({
   searchButtonText: {
     color: colors.white,
     fontSize: 14,
-    fontWeight: '600',
+    fontFamily: fonts.semibold,
   },
   loadingContainer: {
     flex: 1,
@@ -526,7 +526,7 @@ const styles = StyleSheet.create({
   },
   emptyTitle: {
     fontSize: 18,
-    fontWeight: '600',
+    fontFamily: fonts.semibold,
     color: colors.text,
     marginTop: 16,
   },
@@ -559,7 +559,7 @@ const styles = StyleSheet.create({
   },
   userAvatarText: {
     fontSize: 18,
-    fontWeight: '600',
+    fontFamily: fonts.semibold,
     color: colors.white,
   },
   userInfo: {
@@ -568,7 +568,7 @@ const styles = StyleSheet.create({
   },
   userName: {
     fontSize: 16,
-    fontWeight: '600',
+    fontFamily: fonts.semibold,
     color: colors.text,
   },
   userBio: {
@@ -604,7 +604,7 @@ const styles = StyleSheet.create({
   },
   communityName: {
     fontSize: 16,
-    fontWeight: '600',
+    fontFamily: fonts.semibold,
     color: colors.text,
   },
   communityStats: {

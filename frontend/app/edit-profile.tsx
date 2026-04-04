@@ -17,7 +17,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
-import { colors, radius } from '@/src/theme/colors';
+import { colors, radius, fonts} from '@/src/theme/colors';
 import { api } from '@/src/services/api';
 import { useAuth } from '@/src/context/AuthContext';
 import Toast from 'react-native-root-toast';
@@ -333,7 +333,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 17,
-    fontWeight: '600',
+    fontFamily: fonts.semibold,
     color: colors.text,
   },
   cancelText: {
@@ -342,7 +342,7 @@ const styles = StyleSheet.create({
   },
   saveText: {
     fontSize: 16,
-    fontWeight: '600',
+    fontFamily: fonts.semibold,
     color: colors.primary,
     textAlign: 'right',
   },
@@ -377,7 +377,7 @@ const styles = StyleSheet.create({
   },
   avatarInitial: {
     fontSize: 40,
-    fontWeight: '700',
+    fontFamily: fonts.bold,
     color: colors.white,
   },
   uploadingOverlay: {
@@ -406,7 +406,7 @@ const styles = StyleSheet.create({
   },
   changePhotoText: {
     fontSize: 15,
-    fontWeight: '600',
+    fontFamily: fonts.semibold,
     color: colors.primary,
   },
   form: {
@@ -417,7 +417,7 @@ const styles = StyleSheet.create({
   },
   fieldLabel: {
     fontSize: 14,
-    fontWeight: '600',
+    fontFamily: fonts.semibold,
     color: colors.textSecondary,
     marginBottom: 8,
   },
@@ -474,7 +474,7 @@ const styles = StyleSheet.create({
   },
   toggleLabel: {
     fontSize: 15,
-    fontWeight: '500',
+    fontFamily: fonts.medium,
     color: colors.text,
   },
   toggleDescription: {

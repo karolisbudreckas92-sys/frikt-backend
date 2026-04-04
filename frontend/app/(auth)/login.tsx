@@ -15,7 +15,7 @@ import { useRouter, Link } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '@/src/context/AuthContext';
-import { colors } from '@/src/theme/colors';
+import { colors, fonts} from '@/src/theme/colors';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Custom Logo Mark Component - exact brand specs from SVG
@@ -199,7 +199,7 @@ export default function Login() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F6F3EE', // App background color
+    backgroundColor: colors.background,
   },
   keyboardView: {
     flex: 1,
@@ -221,7 +221,7 @@ const styles = StyleSheet.create({
   },
   logoText: {
     fontSize: 56, // Doubled from 28
-    fontWeight: '700', // Bold
+    fontFamily: fonts.bold, // Bold
     color: '#2B2F36', // Wordmark color
     letterSpacing: -0.56, // -1% tracking
     marginLeft: 16, // Doubled from 8px
@@ -236,7 +236,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 28,
-    fontWeight: '700',
+    fontFamily: fonts.bold,
     color: '#2B2F36',
     marginBottom: 8,
   },
@@ -275,12 +275,12 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   buttonDisabled: {
-    opacity: 0.7,
+    backgroundColor: colors.disabledBg,
   },
   buttonText: {
     color: colors.white,
     fontSize: 16,
-    fontWeight: '600',
+    fontFamily: fonts.semibold,
   },
   forgotPassword: {
     alignItems: 'center',
@@ -290,7 +290,7 @@ const styles = StyleSheet.create({
   forgotPasswordText: {
     color: colors.primary,
     fontSize: 14,
-    fontWeight: '500',
+    fontFamily: fonts.medium,
   },
   footer: {
     flexDirection: 'row',
@@ -304,6 +304,6 @@ const styles = StyleSheet.create({
   footerLink: {
     color: colors.primary,
     fontSize: 14,
-    fontWeight: '600',
+    fontFamily: fonts.semibold,
   },
 });

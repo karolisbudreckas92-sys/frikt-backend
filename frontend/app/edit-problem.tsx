@@ -14,7 +14,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, radius } from '@/src/theme/colors';
+import { colors, radius, fonts} from '@/src/theme/colors';
 import { api } from '@/src/services/api';
 import { useAuth } from '@/src/context/AuthContext';
 import Toast from 'react-native-root-toast';
@@ -383,7 +383,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 17,
-    fontWeight: '600',
+    fontFamily: fonts.semibold,
     color: colors.text,
   },
   cancelText: {
@@ -392,7 +392,7 @@ const styles = StyleSheet.create({
   },
   saveText: {
     fontSize: 16,
-    fontWeight: '600',
+    fontFamily: fonts.semibold,
     color: colors.primary,
     textAlign: 'right',
   },
@@ -408,7 +408,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 14,
-    fontWeight: '600',
+    fontFamily: fonts.semibold,
     color: colors.textSecondary,
     marginBottom: 12,
   },
@@ -443,10 +443,12 @@ const styles = StyleSheet.create({
   chip: {
     paddingHorizontal: 16,
     paddingVertical: 10,
-    borderRadius: radius.xl,
+    borderRadius: 18,
     borderWidth: 1,
     borderColor: colors.border,
     backgroundColor: colors.surface,
+    height: 36,
+    justifyContent: 'center' as const,
   },
   chipActive: {
     backgroundColor: colors.primary,
@@ -454,7 +456,7 @@ const styles = StyleSheet.create({
   },
   chipText: {
     fontSize: 14,
-    fontWeight: '500',
+    fontFamily: fonts.medium,
     color: colors.textSecondary,
   },
   chipTextActive: {
@@ -466,20 +468,22 @@ const styles = StyleSheet.create({
   },
   severityChip: {
     flex: 1,
-    paddingVertical: 14,
-    borderRadius: radius.md,
+    paddingVertical: 8,
+    borderRadius: 18,
     borderWidth: 1,
     borderColor: colors.border,
     backgroundColor: colors.surface,
-    alignItems: 'center',
+    alignItems: 'center' as const,
+    height: 36,
+    justifyContent: 'center' as const,
   },
   severityChipActive: {
     backgroundColor: colors.primary,
     borderColor: colors.primary,
   },
   severityText: {
-    fontSize: 18,
-    fontWeight: '600',
+    fontSize: 14,
+    fontFamily: fonts.medium,
     color: colors.textSecondary,
   },
   severityTextActive: {
@@ -505,7 +509,7 @@ const styles = StyleSheet.create({
   },
   detailLabel: {
     fontSize: 14,
-    fontWeight: '500',
+    fontFamily: fonts.medium,
     color: colors.textSecondary,
     marginBottom: 8,
   },
@@ -534,7 +538,7 @@ const styles = StyleSheet.create({
   },
   deleteButtonText: {
     fontSize: 16,
-    fontWeight: '600',
+    fontFamily: fonts.semibold,
     color: colors.error,
   },
   bottomPadding: {
