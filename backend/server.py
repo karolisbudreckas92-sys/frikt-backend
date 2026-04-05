@@ -3828,6 +3828,26 @@ async def delete_problem(problem_id: str, admin: dict = Depends(require_admin)):
     await db.problems.delete_one({"id": problem_id})
     
     await log_admin_action(admin, "delete_problem", "problem", problem_id, {"title": problem["title"]})
+    
+    # Notify the frikt creator
+    if problem.get("user_id") and problem["user_id"] != admin["id"]:
+        notification = {
+            "id": str(uuid.uuid4()),
+            "user_id": problem["user_id"],
+            "type": "content_removed",
+            "title": "Frikt removed",
+            "message": f'Your frikt "{problem["title"][:50]}" was removed by FRIKT admin for violating community guidelines.',
+            "data": {},
+            "read": False,
+            "created_at": datetime.utcnow(),
+        }
+        await db.notifications.insert_one(notification)
+        await send_notification_to_user(
+            problem["user_id"],
+            "Frikt removed",
+            f'Your frikt "{problem["title"][:50]}" was removed for violating community guidelines.'
+        )
+    
     return {"success": True, "deleted": True}
 
 @api_router.post("/admin/problems/{problem_id}/pin")
