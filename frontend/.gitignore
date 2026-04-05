@@ -40,6 +40,6 @@ yarn-error.*
 app-example
 
 
-# Firebase config (contains API keys - never commit)
-google-services.json
+# Firebase config
+# google-services.json must be tracked for EAS builds
 GoogleService-Info.plist
