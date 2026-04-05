@@ -190,6 +190,30 @@ export default function AdminPanel() {
     }
   };
 
+  const handleDeleteContent = (report: any) => {
+    Alert.alert(
+      'Delete Frikt',
+      'Are you sure you want to delete this frikt? This cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await api.deleteProblemAdmin(report.target_id);
+              await api.markReportReviewed(report.id);
+              setReports(reports.filter(r => r.id !== report.id));
+              Alert.alert('Success', 'Frikt deleted permanently');
+            } catch (error) {
+              Alert.alert('Error', 'Failed to delete frikt');
+            }
+          },
+        },
+      ]
+    );
+  };
+
   const handleBanUser = async (userId: string, userName: string) => {
     Alert.alert(
       'Ban User',
@@ -636,8 +660,17 @@ export default function AdminPanel() {
                     onPress={() => handleHideContent(report)}
                   >
                     <Ionicons name="eye-off-outline" size={18} color={colors.primary} />
-                    <Text style={[styles.actionBtnText, { color: colors.primary }]}>Hide Content</Text>
+                    <Text style={[styles.actionBtnText, { color: colors.primary }]}>Hide</Text>
                   </TouchableOpacity>
+                  {report.target_type === 'problem' && (
+                    <TouchableOpacity 
+                      style={[styles.actionBtn, { borderColor: colors.error + '40' }]}
+                      onPress={() => handleDeleteContent(report)}
+                    >
+                      <Ionicons name="trash-outline" size={18} color={colors.error} />
+                      <Text style={[styles.actionBtnText, { color: colors.error }]}>Delete</Text>
+                    </TouchableOpacity>
+                  )}
                 </View>
               )}
             </View>

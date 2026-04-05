@@ -59,7 +59,7 @@ const showToast = (message: string, isError: boolean = false) => {
 export default function ProblemDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
   const { showCelebration } = useBadges();
   
   const [problem, setProblem] = useState<any>(null);
@@ -243,6 +243,33 @@ export default function ProblemDetail() {
 
   const handleEdit = () => {
     router.push(`/edit-problem?id=${problem.id}`);
+  };
+
+  const handleDeleteProblem = () => {
+    Alert.alert(
+      'Delete Frikt',
+      'Are you sure you want to delete this frikt? This cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              if (isAdmin) {
+                await api.deleteProblemAdmin(problem.id);
+              } else {
+                await api.deleteProblem(problem.id);
+              }
+              showToast('Frikt deleted');
+              router.back();
+            } catch (error) {
+              showToast('Failed to delete frikt', true);
+            }
+          },
+        },
+      ]
+    );
   };
 
   const handleAddComment = async () => {
@@ -457,15 +484,20 @@ export default function ProblemDetail() {
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Frikt</Text>
           <View style={styles.headerRight}>
-            {isOwner && (
+            {(isOwner || isAdmin) && (
               <TouchableOpacity onPress={handleEdit} style={styles.headerIconButton} activeOpacity={0.7}>
                 <Ionicons name="pencil-outline" size={20} color={colors.text} />
+              </TouchableOpacity>
+            )}
+            {(isOwner || isAdmin) && (
+              <TouchableOpacity onPress={handleDeleteProblem} style={styles.headerIconButton} activeOpacity={0.7}>
+                <Ionicons name="trash-outline" size={20} color={colors.error} />
               </TouchableOpacity>
             )}
             <TouchableOpacity onPress={handleShare} style={styles.headerIconButton} activeOpacity={0.7}>
               <Ionicons name="share-outline" size={22} color={colors.text} />
             </TouchableOpacity>
-            {!isOwner && (
+            {!isOwner && !isAdmin && (
               <TouchableOpacity onPress={handleReportFrikt} style={styles.headerIconButton} activeOpacity={0.7}>
                 <Ionicons name="flag-outline" size={20} color={colors.textMuted} />
               </TouchableOpacity>
