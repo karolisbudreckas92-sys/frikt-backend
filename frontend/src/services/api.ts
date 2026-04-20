@@ -630,6 +630,12 @@ class ApiService {
     return response.data;
   }
 
+  async getPopularCommunities(limit: number = 20) {
+    const response = await this.client.get('/communities/popular', { params: { limit } });
+    return response.data;
+  }
+
+
   async getCommunity(communityId: string) {
     const response = await this.client.get(`/communities/${communityId}`);
     return response.data;

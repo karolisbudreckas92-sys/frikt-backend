@@ -4855,6 +4855,17 @@ async def leave_community(user: dict = Depends(require_auth)):
         raise HTTPException(status_code=404, detail="You are not in any community")
     return {"success": True}
 
+
+@api_router.get("/communities/popular")
+async def popular_communities(limit: int = 20):
+    """Top communities by member count. No auth required."""
+    communities = await db.communities.find({}, {"_id": 0}).to_list(500)
+    for c in communities:
+        c["member_count"] = await db.community_members.count_documents({"community_id": c["id"]})
+    communities.sort(key=lambda x: x["member_count"], reverse=True)
+    return communities[:limit]
+
+
 @api_router.get("/communities")
 async def list_communities(search: Optional[str] = None, user: dict = Depends(require_auth)):
     """List all communities with stats."""

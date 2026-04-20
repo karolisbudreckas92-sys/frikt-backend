@@ -62,6 +62,7 @@ export default function Home() {
   const [communityLoaded, setCommunityLoaded] = useState(false);
   const [joinCode, setJoinCode] = useState('');
   const [isJoining, setIsJoining] = useState(false);
+  const [popularCommunities, setPopularCommunities] = useState<any[]>([]);
   
   const { unreadCount, refreshCount } = useNotifications();
   
@@ -75,8 +76,16 @@ export default function Home() {
     try {
       const data = await api.getMyCommunity();
       setMyCommunity(data);
+      if (!data) {
+        const popular = await api.getPopularCommunities(20);
+        setPopularCommunities(popular);
+      }
     } catch (error) {
       setMyCommunity(null);
+      try {
+        const popular = await api.getPopularCommunities(20);
+        setPopularCommunities(popular);
+      } catch (e) {}
     } finally {
       setCommunityLoaded(true);
     }
@@ -323,6 +332,36 @@ export default function Home() {
       >
         <Text style={styles.requestLink}>Want a local community? Request one here</Text>
       </TouchableOpacity>
+
+      {popularCommunities.length > 0 && (
+        <View style={styles.popularSection} data-testid="popular-communities-section">
+          <Text style={styles.popularTitle}>Popular communities</Text>
+          {popularCommunities.map((c: any) => (
+            <TouchableOpacity
+              key={c.id}
+              style={styles.popularRow}
+              onPress={() => router.push(`/community/${c.id}`)}
+              activeOpacity={0.7}
+              data-testid={`popular-community-${c.id}`}
+            >
+              {c.avatar_url ? (
+                <Image source={{ uri: c.avatar_url }} style={styles.popularAvatar} />
+              ) : (
+                <View style={[styles.popularAvatar, styles.popularAvatarPlaceholder]}>
+                  <Ionicons name="people" size={18} color={colors.textMuted} />
+                </View>
+              )}
+              <View style={styles.popularInfo}>
+                <Text style={styles.popularName} numberOfLines={1}>{c.name}</Text>
+                <Text style={styles.popularMembers}>
+                  {c.member_count} {c.member_count === 1 ? 'member' : 'members'}
+                </Text>
+              </View>
+              <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
+            </TouchableOpacity>
+          ))}
+        </View>
+      )}
     </View>
   );
 
@@ -522,6 +561,22 @@ const styles = StyleSheet.create({
   },
   browseButtonText: { color: CORAL, fontSize: 14, fontFamily: fonts.semibold },
   requestLink: { color: CORAL, fontSize: 13, marginTop: 20, textDecorationLine: 'underline' },
+
+  // Popular communities
+  popularSection: { width: '100%', marginTop: 32, paddingHorizontal: 0 },
+  popularTitle: { fontSize: 16, color: colors.text, fontFamily: fonts.bold, marginBottom: 12 },
+  popularRow: {
+    flexDirection: 'row', alignItems: 'center', paddingVertical: 12,
+    borderBottomWidth: 1, borderBottomColor: colors.border,
+  },
+  popularAvatar: { width: 40, height: 40, borderRadius: 20, marginRight: 12 },
+  popularAvatarPlaceholder: {
+    backgroundColor: colors.surface, justifyContent: 'center', alignItems: 'center',
+    borderWidth: 1, borderColor: colors.border,
+  },
+  popularInfo: { flex: 1 },
+  popularName: { fontSize: 15, color: colors.text, fontFamily: fonts.semibold },
+  popularMembers: { fontSize: 13, color: colors.textMuted, marginTop: 2 },
   
   listContent: { paddingBottom: 100 },
   emptyContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingVertical: 80 },
