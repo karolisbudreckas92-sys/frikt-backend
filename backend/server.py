@@ -1754,8 +1754,16 @@ async def update_problem(problem_id: str, update: ProblemUpdate, user: dict = De
         update_data["what_tried"] = update.what_tried.strip() if update.what_tried else None
     if update.is_local is not None:
         update_data["is_local"] = update.is_local
-        if update.is_local and update.community_id:
-            update_data["community_id"] = update.community_id
+        if update.is_local:
+            # Use provided community_id, or look up the creator's community
+            if update.community_id:
+                update_data["community_id"] = update.community_id
+            else:
+                creator_membership = await db.community_members.find_one(
+                    {"user_id": problem["user_id"]}, {"_id": 0}
+                )
+                if creator_membership:
+                    update_data["community_id"] = creator_membership["community_id"]
         elif not update.is_local:
             update_data["community_id"] = None
     

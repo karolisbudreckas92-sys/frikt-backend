@@ -316,7 +316,9 @@ export default function EditProblem() {
                     </Text>
                     <Text style={styles.localToggleHint}>
                       {isLocal 
-                        ? `Visible in ${myCommunity?.name || 'your community'}` 
+                        ? (isAdmin && problem?.user_id !== user?.id
+                            ? "Will appear in the creator's community"
+                            : `Visible in ${myCommunity?.name || 'your community'}`)
                         : 'Visible to everyone'}
                     </Text>
                   </View>
