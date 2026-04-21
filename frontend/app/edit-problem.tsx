@@ -10,6 +10,7 @@ import {
   Platform,
   ActivityIndicator,
   Alert,
+  Switch,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -61,10 +62,22 @@ export default function EditProblem() {
   const [whenHappens, setWhenHappens] = useState('');
   const [whoAffected, setWhoAffected] = useState('');
   const [whatTried, setWhatTried] = useState('');
+  
+  // Local toggle
+  const [isLocal, setIsLocal] = useState(false);
+  const [myCommunity, setMyCommunity] = useState<any>(null);
 
   useEffect(() => {
     loadProblem();
+    loadMyCommunity();
   }, [id]);
+
+  const loadMyCommunity = async () => {
+    try {
+      const data = await api.getMyCommunity();
+      setMyCommunity(data);
+    } catch (e) {}
+  };
 
   const loadProblem = async () => {
     if (!id) return;
@@ -79,6 +92,7 @@ export default function EditProblem() {
       setWhenHappens(data.when_happens || '');
       setWhoAffected(data.who_affected || '');
       setWhatTried(data.what_tried || '');
+      setIsLocal(data.is_local || false);
       
       // Show details section if any context is filled
       // (no longer needed - always visible in edit mode)
@@ -114,6 +128,11 @@ export default function EditProblem() {
   const handleSave = async () => {
     if (!isValid) return;
     
+    if (isLocal && !myCommunity && !isAdmin) {
+      showToast('Join a community first to post locally', true);
+      return;
+    }
+    
     setIsSaving(true);
     try {
       await api.updateProblem(id!, {
@@ -124,6 +143,8 @@ export default function EditProblem() {
         when_happens: whenHappens.trim() || null,
         who_affected: whoAffected.trim() || null,
         what_tried: whatTried.trim() || null,
+        is_local: isLocal,
+        community_id: isLocal && myCommunity ? myCommunity.id : null,
       });
       
       showToast('Updated ✅');
@@ -281,6 +302,35 @@ export default function EditProblem() {
               <Text style={styles.severityLabel}>Severe</Text>
             </View>
           </View>
+
+          {/* Local Toggle */}
+          {(myCommunity || isAdmin) && (
+            <View style={styles.section} data-testid="local-toggle-section">
+              <Text style={styles.sectionTitle}>Visibility</Text>
+              <View style={styles.localToggleRow}>
+                <View style={styles.localToggleInfo}>
+                  <Ionicons name="location" size={20} color={isLocal ? '#E85D3A' : colors.textMuted} />
+                  <View style={styles.localToggleText}>
+                    <Text style={styles.localToggleLabel}>
+                      {isLocal ? 'Local' : 'Global'}
+                    </Text>
+                    <Text style={styles.localToggleHint}>
+                      {isLocal 
+                        ? `Visible in ${myCommunity?.name || 'your community'}` 
+                        : 'Visible to everyone'}
+                    </Text>
+                  </View>
+                </View>
+                <Switch
+                  value={isLocal}
+                  onValueChange={setIsLocal}
+                  trackColor={{ false: colors.border, true: '#E85D3A' }}
+                  thumbColor="#fff"
+                  data-testid="local-toggle-switch"
+                />
+              </View>
+            </View>
+          )}
 
           {/* Details Section - Always visible in edit mode */}
           <View style={styles.section}>
@@ -503,6 +553,35 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
     marginBottom: 16,
     marginTop: -4,
+  },
+  localToggleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: colors.surface,
+    borderRadius: radius.md,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  localToggleInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    flex: 1,
+  },
+  localToggleText: {
+    flex: 1,
+  },
+  localToggleLabel: {
+    fontSize: 15,
+    fontFamily: fonts.semibold,
+    color: colors.text,
+  },
+  localToggleHint: {
+    fontSize: 13,
+    color: colors.textMuted,
+    marginTop: 2,
   },
   detailField: {
     marginBottom: 16,

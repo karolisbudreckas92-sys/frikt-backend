@@ -1722,16 +1722,18 @@ class ProblemUpdate(BaseModel):
     when_happens: Optional[str] = None
     who_affected: Optional[str] = None
     what_tried: Optional[str] = None
+    is_local: Optional[bool] = None
+    community_id: Optional[str] = None
 
 @api_router.patch("/problems/{problem_id}")
 async def update_problem(problem_id: str, update: ProblemUpdate, user: dict = Depends(require_auth)):
-    """Update a problem (owner only)"""
+    """Update a problem (owner or admin)"""
     problem = await db.problems.find_one({"id": problem_id})
     if not problem:
         raise HTTPException(status_code=404, detail="Problem not found")
     
-    # Check ownership
-    if problem["user_id"] != user["id"]:
+    is_admin = user.get("role") == "admin"
+    if problem["user_id"] != user["id"] and not is_admin:
         raise HTTPException(status_code=403, detail="Not authorized to edit this problem")
     
     # Build update dict with only provided fields
@@ -1750,6 +1752,12 @@ async def update_problem(problem_id: str, update: ProblemUpdate, user: dict = De
         update_data["who_affected"] = update.who_affected.strip() if update.who_affected else None
     if update.what_tried is not None:
         update_data["what_tried"] = update.what_tried.strip() if update.what_tried else None
+    if update.is_local is not None:
+        update_data["is_local"] = update.is_local
+        if update.is_local and update.community_id:
+            update_data["community_id"] = update.community_id
+        elif not update.is_local:
+            update_data["community_id"] = None
     
     if update_data:
         await db.problems.update_one({"id": problem_id}, {"$set": update_data})
