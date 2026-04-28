@@ -3,6 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
 import { api } from '../services/api';
+import * as Sentry from '@sentry/react-native';
 
 // Helper functions for secure token storage
 // SecureStore works on iOS and Android, but not on web
@@ -124,6 +125,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     api.setToken(access_token);
     setToken(access_token);
     setUser(userData);
+    Sentry.setUser({ id: userData.id, username: userData.displayName || userData.name });
   };
 
   const register = async (name: string, email: string, password: string) => {
@@ -137,6 +139,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     api.setToken(access_token);
     setToken(access_token);
     setUser(userData);
+    Sentry.setUser({ id: userData.id, username: userData.displayName || userData.name });
   };
 
   const logout = async () => {
@@ -146,6 +149,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     api.setToken(null);
     setToken(null);
     setUser(null);
+    Sentry.setUser(null);
   };
 
   const refreshUser = async () => {

@@ -12,6 +12,16 @@ import { useFonts } from 'expo-font';
 import * as Font from 'expo-font';
 import * as SplashScreen from 'expo-splash-screen';
 import { Alert, Platform } from 'react-native';
+import * as Sentry from '@sentry/react-native';
+
+// Initialize Sentry BEFORE anything else
+Sentry.init({
+  dsn: process.env.EXPO_PUBLIC_SENTRY_DSN,
+  environment: __DEV__ ? 'development' : 'production',
+  tracesSampleRate: 0.2,
+  enableNative: true,
+  enabled: !__DEV__, // Only send in production builds
+});
 
 // Catch native crashes globally and show them
 if ((global as any).ErrorUtils) {

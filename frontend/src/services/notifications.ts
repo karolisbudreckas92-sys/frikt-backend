@@ -1,9 +1,13 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Platform } from 'react-native';
+import { Platform, AppState, AppStateStatus } from 'react-native';
 import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
 import Constants from 'expo-constants';
 import { api } from './api';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+const LAST_TOKEN_REGISTRATION_KEY = 'push_token_last_registered';
+const TOKEN_REFRESH_INTERVAL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
 
 // Configure notification behavior
 Notifications.setNotificationHandler({
@@ -14,24 +18,75 @@ Notifications.setNotificationHandler({
   }),
 });
 
-export interface PushNotificationState {
-  expoPushToken: string | null;
-  notification: Notifications.Notification | null;
-}
+export function usePushNotifications() {
+  const [expoPushToken, setExpoPushToken] = useState<string | undefined>();
+  const notificationListener = useRef<any>();
+  const responseListener = useRef<any>();
+  const tokenListener = useRef<any>();
 
-export async function registerForPushNotificationsAsync(): Promise<string | null> {
-  let token: string | null = null;
+  useEffect(() => {
+    registerForPushNotifications();
 
-  if (Platform.OS === 'android') {
-    await Notifications.setNotificationChannelAsync('default', {
-      name: 'default',
-      importance: Notifications.AndroidImportance.MAX,
-      vibrationPattern: [0, 250, 250, 250],
-      lightColor: '#6366F1',
+    notificationListener.current = Notifications.addNotificationReceivedListener(notification => {
+      // Notification received in foreground
     });
-  }
 
-  if (Device.isDevice) {
+    responseListener.current = Notifications.addNotificationResponseReceivedListener(response => {
+      // User tapped on notification
+    });
+
+    // Listen for token rotation
+    tokenListener.current = Notifications.addPushTokenListener(async (tokenData) => {
+      const newToken = tokenData.data;
+      if (newToken) {
+        setExpoPushToken(newToken);
+        try {
+          await api.registerPushToken(newToken);
+          await AsyncStorage.setItem(LAST_TOKEN_REGISTRATION_KEY, Date.now().toString());
+        } catch (e) {
+          console.error('Failed to re-register rotated push token:', e);
+        }
+      }
+    });
+
+    // Re-register token on app foreground if stale (>7 days)
+    const appStateListener = AppState.addEventListener('change', handleAppStateChange);
+
+    return () => {
+      if (notificationListener.current) {
+        Notifications.removeNotificationSubscription(notificationListener.current);
+      }
+      if (responseListener.current) {
+        Notifications.removeNotificationSubscription(responseListener.current);
+      }
+      if (tokenListener.current) {
+        tokenListener.current.remove();
+      }
+      appStateListener.remove();
+    };
+  }, []);
+
+  const handleAppStateChange = async (state: AppStateStatus) => {
+    if (state === 'active') {
+      const lastRegistered = await AsyncStorage.getItem(LAST_TOKEN_REGISTRATION_KEY);
+      const now = Date.now();
+      if (!lastRegistered || (now - parseInt(lastRegistered)) > TOKEN_REFRESH_INTERVAL_MS) {
+        await registerForPushNotifications();
+      }
+    }
+  };
+
+  async function registerForPushNotifications() {
+    if (!Device.isDevice) return;
+
+    if (Platform.OS === 'android') {
+      await Notifications.setNotificationChannelAsync('default', {
+        name: 'default',
+        importance: Notifications.AndroidImportance.MAX,
+        vibrationPattern: [0, 250, 250, 250],
+      });
+    }
+
     const { status: existingStatus } = await Notifications.getPermissionsAsync();
     let finalStatus = existingStatus;
     
@@ -40,124 +95,29 @@ export async function registerForPushNotificationsAsync(): Promise<string | null
       finalStatus = status;
     }
     
-    if (finalStatus !== 'granted') {
-      console.log('Failed to get push token for push notification!');
-      return null;
-    }
-    
+    if (finalStatus !== 'granted') return;
+
     try {
-      const projectId = Constants.expoConfig?.extra?.eas?.projectId ?? Constants.easConfig?.projectId;
+      const projectId = Constants.expoConfig?.extra?.eas?.projectId;
+      const tokenData = await Notifications.getExpoPushTokenAsync({
+        projectId,
+      });
+      const token = tokenData.data;
+      setExpoPushToken(token);
       
-      if (projectId) {
-        token = (await Notifications.getExpoPushTokenAsync({ projectId })).data;
-      } else {
-        // Fallback - try without projectId
-        token = (await Notifications.getExpoPushTokenAsync()).data;
-      }
-      console.log('[Push] Got token:', token?.substring(0, 30) + '...');
+      await api.registerPushToken(token);
+      await AsyncStorage.setItem(LAST_TOKEN_REGISTRATION_KEY, Date.now().toString());
     } catch (error) {
-      console.log('[Push] Error getting push token:', error);
-      // Return null instead of fake token - indicates real failure
-      return null;
+      console.error('Error getting push token:', error);
     }
-  } else {
-    console.log('Must use physical device for Push Notifications');
-    // Return null for simulator/emulator
-    return null;
   }
 
-  return token;
+  return { expoPushToken };
 }
 
-export function usePushNotifications(isAuthenticated: boolean = false) {
-  const [expoPushToken, setExpoPushToken] = useState<string | null>(null);
-  const [notification, setNotification] = useState<Notifications.Notification | null>(null);
-  const notificationListener = useRef<Notifications.EventSubscription>();
-  const responseListener = useRef<Notifications.EventSubscription>();
-  const hasRegistered = useRef(false);
-
-  // Get push token on mount
-  useEffect(() => {
-    registerForPushNotificationsAsync().then((token) => {
-      if (token) {
-        setExpoPushToken(token);
-      }
-    });
-
-    // Listen for incoming notifications
-    notificationListener.current = Notifications.addNotificationReceivedListener((notification) => {
-      setNotification(notification);
-    });
-
-    // Listen for notification responses (user taps notification)
-    responseListener.current = Notifications.addNotificationResponseReceivedListener((response) => {
-      const data = response.notification.request.content.data;
-      console.log('Notification response:', data);
-      // Handle navigation based on notification data
-      if (data.problemId) {
-        // Navigation will be handled by the component using this hook
-      }
-    });
-
-    return () => {
-      if (notificationListener.current) {
-        notificationListener.current.remove();
-      }
-      if (responseListener.current) {
-        responseListener.current.remove();
-      }
-    };
-  }, []);
-
-  // Register token with backend when user is authenticated
-  useEffect(() => {
-    if (isAuthenticated && expoPushToken && !hasRegistered.current) {
-      hasRegistered.current = true;
-      api.registerPushToken(expoPushToken)
-        .then(() => console.log('[Push] Token registered successfully'))
-        .catch((error) => {
-          console.log('[Push] Failed to register push token:', error);
-          hasRegistered.current = false; // Allow retry
-        });
-    }
-    
-    // Reset when user logs out
-    if (!isAuthenticated) {
-      hasRegistered.current = false;
-    }
-  }, [isAuthenticated, expoPushToken]);
-
-  return {
-    expoPushToken,
-    notification,
-  };
-}
-
-// Schedule a local notification (for testing)
-export async function scheduleLocalNotification(title: string, body: string, data?: any) {
-  await Notifications.scheduleNotificationAsync({
-    content: {
-      title,
-      body,
-      data: data || {},
-      sound: true,
-    },
-    trigger: null, // Immediate
-  });
-}
-
-// Get badge count
-export async function getBadgeCount(): Promise<number> {
-  return await Notifications.getBadgeCountAsync();
-}
-
-// Set badge count
-export async function setBadgeCount(count: number): Promise<void> {
-  await Notifications.setBadgeCountAsync(count);
-}
-
-// Clear all notifications
-export async function clearAllNotifications(): Promise<void> {
+// Helper function to clear notification badge
+export async function clearNotificationBadge() {
+  const { setBadgeCount } = await import('expo-notifications');
   await Notifications.dismissAllNotificationsAsync();
   await setBadgeCount(0);
 }

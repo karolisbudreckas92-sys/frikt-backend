@@ -8,6 +8,7 @@ from motor.motor_asyncio import AsyncIOMotorClient
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
+import sentry_sdk
 import os
 import logging
 import asyncio
@@ -34,6 +35,16 @@ except ImportError:
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
+
+# Sentry initialization (before app creation)
+SENTRY_DSN = os.environ.get("SENTRY_DSN")
+if SENTRY_DSN:
+    sentry_sdk.init(
+        dsn=SENTRY_DSN,
+        environment=os.environ.get("ENVIRONMENT", "production"),
+        traces_sample_rate=0.1,
+        send_default_pii=False,
+    )
 
 # MongoDB connection
 mongo_url = os.environ['MONGO_URL']
@@ -3263,9 +3274,15 @@ async def upload_avatar(file: UploadFile = FastAPIFile(...), user: dict = Depend
             folder="frikt/avatars",
             public_id=user["id"],
             overwrite=True,
-            resource_type="image"
+            resource_type="image",
+            transformation=[
+                {"width": 400, "height": 400, "crop": "fill", "gravity": "face", "quality": "auto", "fetch_format": "auto"}
+            ],
+            eager=[
+                {"width": 400, "height": 400, "crop": "fill", "gravity": "face", "quality": "auto", "fetch_format": "auto"}
+            ]
         )
-        avatar_url = result["secure_url"]
+        avatar_url = result.get("eager", [{}])[0].get("secure_url") or result["secure_url"]
     except Exception as e:
         logger.error(f"Cloudinary upload error: {e}")
         raise HTTPException(status_code=500, detail="Failed to upload image")
@@ -3310,9 +3327,15 @@ async def upload_avatar_base64(data: AvatarBase64Upload, user: dict = Depends(re
             folder="frikt/avatars",
             public_id=user["id"],
             overwrite=True,
-            resource_type="image"
+            resource_type="image",
+            transformation=[
+                {"width": 400, "height": 400, "crop": "fill", "gravity": "face", "quality": "auto", "fetch_format": "auto"}
+            ],
+            eager=[
+                {"width": 400, "height": 400, "crop": "fill", "gravity": "face", "quality": "auto", "fetch_format": "auto"}
+            ]
         )
-        avatar_url = result["secure_url"]
+        avatar_url = result.get("eager", [{}])[0].get("secure_url") or result["secure_url"]
     except Exception as e:
         logger.error(f"Cloudinary upload error: {e}")
         raise HTTPException(status_code=500, detail="Failed to upload image")
@@ -5104,9 +5127,15 @@ async def admin_upload_community_avatar(community_id: str, data: CommunityAvatar
             folder="frikt/communities",
             public_id=community_id,
             overwrite=True,
-            resource_type="image"
+            resource_type="image",
+            transformation=[
+                {"width": 400, "height": 400, "crop": "fill", "gravity": "center", "quality": "auto", "fetch_format": "auto"}
+            ],
+            eager=[
+                {"width": 400, "height": 400, "crop": "fill", "gravity": "center", "quality": "auto", "fetch_format": "auto"}
+            ]
         )
-        avatar_url = result["secure_url"]
+        avatar_url = result.get("eager", [{}])[0].get("secure_url") or result["secure_url"]
     except Exception as e:
         logger.error(f"Cloudinary community avatar upload error: {e}")
         raise HTTPException(status_code=500, detail="Failed to upload image")
