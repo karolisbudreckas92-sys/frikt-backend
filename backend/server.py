@@ -68,8 +68,14 @@ security = HTTPBearer(auto_error=False)
 app = FastAPI(title="FRIKT API")
 api_router = APIRouter(prefix="/api")
 
-# Rate limiter
-limiter = Limiter(key_func=get_remote_address)
+# Rate limiter - use X-Forwarded-For behind reverse proxy (Railway)
+def get_real_ip(request: Request) -> str:
+    forwarded = request.headers.get("x-forwarded-for")
+    if forwarded:
+        return forwarded.split(",")[0].strip()
+    return request.client.host if request.client else "unknown"
+
+limiter = Limiter(key_func=get_real_ip)
 app.state.limiter = limiter
 
 @app.exception_handler(RateLimitExceeded)
