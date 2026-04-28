@@ -78,7 +78,8 @@
             "./assets/fonts/PlusJakartaSans_700Bold.ttf"
           ]
         }
-      ]
+      ],
+      "expo-web-browser"
     ],
     "experiments": {
       "typedRoutes": true
