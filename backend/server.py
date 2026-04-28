@@ -1398,7 +1398,7 @@ async def register(request: Request, user_data: UserCreate):
     )
 
 @api_router.post("/auth/login", response_model=TokenResponse)
-@limiter.limit("5/minute;20/hour")
+@limiter.limit("10/minute;30/hour")
 async def login(request: Request, credentials: UserLogin):
     # Normalize email to lowercase for case-insensitive lookup
     email_lower = credentials.email.lower().strip()
