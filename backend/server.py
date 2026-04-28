@@ -5313,7 +5313,7 @@ async def sync_problem_stats(admin: dict = Depends(require_admin)):
 # Include router
 app.include_router(api_router)
 
-ALLOWED_ORIGINS = os.environ.get("FRONTEND_ORIGINS", "https://frikt.app,https://www.frikt.app,exp://*,https://*.expo.dev").split(",")
+ALLOWED_ORIGINS = os.environ.get("FRONTEND_ORIGINS", "https://frikt.com,https://www.frikt.com").split(",")
 
 app.add_middleware(
     CORSMiddleware,
