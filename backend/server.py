@@ -1,10 +1,13 @@
-from fastapi import FastAPI, APIRouter, HTTPException, Depends, status, BackgroundTasks, UploadFile
+from fastapi import FastAPI, APIRouter, HTTPException, Depends, status, BackgroundTasks, UploadFile, Request
 from fastapi import File as FastAPIFile
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.staticfiles import StaticFiles
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
+from slowapi import Limiter
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
 import os
 import logging
 import asyncio
@@ -64,6 +67,23 @@ security = HTTPBearer(auto_error=False)
 # Create the main app
 app = FastAPI(title="FRIKT API")
 api_router = APIRouter(prefix="/api")
+
+# Rate limiter
+limiter = Limiter(key_func=get_remote_address)
+app.state.limiter = limiter
+
+@app.exception_handler(RateLimitExceeded)
+async def rate_limit_handler(request: Request, exc: RateLimitExceeded):
+    from fastapi.responses import JSONResponse
+    return JSONResponse(
+        status_code=429,
+        content={"detail": "Too many requests. Try again later."}
+    )
+
+# Regex safety helper
+def safe_regex(text: str) -> str:
+    """Escape user input for safe use in MongoDB $regex, capped at 100 chars."""
+    return re.escape(text.strip()[:100])
 
 # Create uploads directory (kept as fallback for old URLs)
 UPLOADS_DIR = Path("/app/backend/uploads/avatars")
@@ -285,13 +305,13 @@ class TokenResponse(BaseModel):
 
 # Problem Models
 class ProblemCreate(BaseModel):
-    title: str = Field(..., min_length=10)
+    title: str = Field(..., min_length=10, max_length=200)
     category_id: str = "other"
     frequency: Optional[str] = None
     pain_level: Optional[int] = Field(None, ge=1, le=5)
-    when_happens: Optional[str] = None
-    who_affected: Optional[str] = None
-    what_tried: Optional[str] = None
+    when_happens: Optional[str] = Field(None, max_length=2000)
+    who_affected: Optional[str] = Field(None, max_length=2000)
+    what_tried: Optional[str] = Field(None, max_length=2000)
     is_problem_not_solution: bool = True
     is_local: bool = False
     community_id: Optional[str] = None
@@ -334,7 +354,7 @@ class ProblemResponse(Problem):
 # Comment Models
 class CommentCreate(BaseModel):
     problem_id: str
-    content: str = Field(..., min_length=10)
+    content: str = Field(..., min_length=10, max_length=1000)
     parent_comment_id: Optional[str] = None  # For replies
     reply_to_user_id: Optional[str] = None  # User whose Reply button was tapped
 
@@ -1337,7 +1357,8 @@ def is_valid_email_format(email: str) -> bool:
     return bool(EMAIL_REGEX.match(email))
 
 @api_router.post("/auth/register", response_model=TokenResponse)
-async def register(user_data: UserCreate):
+@limiter.limit("3/minute;10/hour")
+async def register(request: Request, user_data: UserCreate):
     # Normalize email to lowercase for consistent storage and lookup
     email_lower = user_data.email.lower().strip()
     
@@ -1377,7 +1398,8 @@ async def register(user_data: UserCreate):
     )
 
 @api_router.post("/auth/login", response_model=TokenResponse)
-async def login(credentials: UserLogin):
+@limiter.limit("5/minute;20/hour")
+async def login(request: Request, credentials: UserLogin):
     # Normalize email to lowercase for case-insensitive lookup
     email_lower = credentials.email.lower().strip()
     user = await db.users.find_one({"email": email_lower})
@@ -1463,9 +1485,10 @@ async def send_password_reset_email(email: str, token: str, user_name: str):
         return False
 
 @api_router.post("/auth/forgot-password")
-async def forgot_password(request: PasswordResetRequest, background_tasks: BackgroundTasks):
+@limiter.limit("3/hour")
+async def forgot_password(request: Request, reset_request: PasswordResetRequest, background_tasks: BackgroundTasks):
     """Request a password reset email"""
-    email_lower = request.email.lower().strip()
+    email_lower = reset_request.email.lower().strip()
     
     # Rate limit: max 3 reset requests per email per hour
     one_hour_ago = datetime.utcnow() - timedelta(hours=1)
@@ -1846,7 +1869,7 @@ async def get_problems(
         query["category_id"] = category_id
     
     if search:
-        query["title"] = {"$regex": search, "$options": "i"}
+        query["title"] = {"$regex": safe_regex(search), "$options": "i"}
     
     # NEW feed: simply sort by created_at desc (latest first)
     if feed == "new":
@@ -2045,7 +2068,7 @@ async def get_similar_problems(title: str, limit: int = 3, is_local: bool = Fals
     
     query = {
         "is_hidden": False,
-        "$or": [{"title": {"$regex": kw, "$options": "i"}} for kw in keywords[:3]]
+        "$or": [{"title": {"$regex": safe_regex(kw), "$options": "i"}} for kw in keywords[:3]]
     }
     
     # Context-aware: local vs global
@@ -2817,8 +2840,8 @@ async def search_users(
     # Search by normalized display name or email prefix
     query = {
         "$or": [
-            {"normalizedDisplayName": {"$regex": search_term, "$options": "i"}},
-            {"name": {"$regex": search_term, "$options": "i"}},
+            {"normalizedDisplayName": {"$regex": safe_regex(search_term), "$options": "i"}},
+            {"name": {"$regex": safe_regex(search_term), "$options": "i"}},
         ],
         "status": "active"
     }
@@ -4887,7 +4910,7 @@ async def list_communities(search: Optional[str] = None, user: dict = Depends(re
     """List all communities with stats."""
     query = {}
     if search:
-        query["name"] = {"$regex": search, "$options": "i"}
+        query["name"] = {"$regex": safe_regex(search), "$options": "i"}
     
     communities = await db.communities.find(query, {"_id": 0}).sort("name", 1).to_list(100)
     
@@ -5032,7 +5055,7 @@ async def admin_list_communities(search: Optional[str] = None, limit: int = 50, 
     """List all communities with detailed stats for admin."""
     query = {}
     if search:
-        query["name"] = {"$regex": search, "$options": "i"}
+        query["name"] = {"$regex": safe_regex(search), "$options": "i"}
     
     communities = await db.communities.find(query, {"_id": 0}).sort("created_at", -1).skip(skip).limit(limit).to_list(limit)
     
@@ -5150,9 +5173,9 @@ async def admin_get_community_members(community_id: str, search: str = "", skip:
     user_query = {"id": {"$in": user_ids}}
     if search:
         user_query["$or"] = [
-            {"name": {"$regex": search, "$options": "i"}},
-            {"email": {"$regex": search, "$options": "i"}},
-            {"displayName": {"$regex": search, "$options": "i"}},
+            {"name": {"$regex": safe_regex(search), "$options": "i"}},
+            {"email": {"$regex": safe_regex(search), "$options": "i"}},
+            {"displayName": {"$regex": safe_regex(search), "$options": "i"}},
         ]
     
     users = await db.users.find(user_query, {"_id": 0, "id": 1, "name": 1, "email": 1, "displayName": 1}).to_list(1000)
@@ -5290,10 +5313,12 @@ async def sync_problem_stats(admin: dict = Depends(require_admin)):
 # Include router
 app.include_router(api_router)
 
+ALLOWED_ORIGINS = os.environ.get("FRONTEND_ORIGINS", "https://frikt.app,https://www.frikt.app,exp://*,https://*.expo.dev").split(",")
+
 app.add_middleware(
     CORSMiddleware,
     allow_credentials=True,
-    allow_origins=["*"],
+    allow_origins=ALLOWED_ORIGINS,
     allow_methods=["*"],
     allow_headers=["*"],
 )
