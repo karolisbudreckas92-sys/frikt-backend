@@ -147,6 +147,9 @@ export default function EditProfile() {
       if (error?.response?.status === 409) {
         setNameError('Name already taken. Try another.');
         showToast('Name already taken. Try another.', true);
+      } else if (error?.response?.status === 400 && error?.response?.data?.detail) {
+        // Surface backend validation errors (e.g. profanity filter, length, format)
+        showToast(error.response.data.detail, true);
       } else {
         showToast("Couldn't save. Try again.", true);
       }

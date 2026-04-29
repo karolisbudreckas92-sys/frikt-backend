@@ -397,6 +397,11 @@ class ApiService {
     return response.data;
   }
 
+  async getPendingReportsCount() {
+    const response = await this.client.get('/admin/reports/pending-count');
+    return response.data as { count: number };
+  }
+
   async dismissReport(reportId: string) {
     const response = await this.client.post(`/admin/reports/${reportId}/dismiss`);
     return response.data;

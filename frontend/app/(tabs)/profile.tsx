@@ -111,6 +111,7 @@ export default function Profile() {
   const { user, logout, isAdmin, refreshUser } = useAuth();
   const [stats, setStats] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [pendingReports, setPendingReports] = useState<number>(0);
 
   const loadStats = async () => {
     if (!user) return;
@@ -125,9 +126,20 @@ export default function Profile() {
     }
   };
 
+  const loadPendingReports = async () => {
+    if (!isAdmin) return;
+    try {
+      const data = await api.getPendingReportsCount();
+      setPendingReports(data?.count || 0);
+    } catch (e) {
+      // Silent fail - badge just won't show
+    }
+  };
+
   useEffect(() => {
     loadStats();
-  }, [user]);
+    loadPendingReports();
+  }, [user, isAdmin]);
 
   // Refresh user data when screen comes into focus
   useEffect(() => {
@@ -324,11 +336,18 @@ export default function Profile() {
           <View style={styles.menuSection}>
             <Text style={styles.menuTitle}>Administration</Text>
             
-            <TouchableOpacity style={styles.adminMenuItem} onPress={() => router.push('/admin')}>
+            <TouchableOpacity style={styles.adminMenuItem} onPress={() => router.push('/admin')} data-testid="admin-panel-link">
               <View style={styles.adminMenuIcon}>
                 <Ionicons name="shield-checkmark" size={22} color={colors.white} />
               </View>
               <Text style={styles.menuText}>Admin Panel</Text>
+              {pendingReports > 0 && (
+                <View style={styles.pendingReportsBadge} data-testid="admin-pending-reports-badge">
+                  <Text style={styles.pendingReportsBadgeText}>
+                    {pendingReports > 99 ? '99+' : pendingReports}
+                  </Text>
+                </View>
+              )}
               <View style={styles.adminBadge}>
                 <Text style={styles.adminBadgeText}>ADMIN</Text>
               </View>
@@ -638,6 +657,21 @@ const styles = StyleSheet.create({
     fontFamily: fonts.bold,
     color: colors.primary,
     letterSpacing: 0.5,
+  },
+  pendingReportsBadge: {
+    backgroundColor: colors.primary,
+    minWidth: 22,
+    height: 22,
+    borderRadius: 11,
+    paddingHorizontal: 6,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 8,
+  },
+  pendingReportsBadgeText: {
+    fontSize: 11,
+    fontFamily: fonts.bold,
+    color: colors.white,
   },
   menuIcon: {
     width: 36,

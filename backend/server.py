@@ -85,6 +85,7 @@ ADMIN_EMAILS = [e.strip().lower() for e in os.environ.get('ADMIN_EMAILS', '').sp
 # Email Settings (Resend)
 RESEND_API_KEY = os.environ.get('RESEND_API_KEY', '')
 SENDER_EMAIL = os.environ.get('SENDER_EMAIL', 'onboarding@resend.dev')
+ADMIN_ALERT_EMAIL = os.environ.get('ADMIN_ALERT_EMAIL', '').strip()
 APP_NAME = "FRIKT"
 RESET_TOKEN_EXPIRE_HOURS = 1  # Password reset tokens expire after 1 hour
 
@@ -3222,6 +3223,9 @@ async def update_profile(profile: ProfileUpdate, user: dict = Depends(require_au
         if not re.search(r'[a-zA-Z0-9]', display_name):
             raise HTTPException(status_code=400, detail="Name must contain at least one letter or number")
         
+        # Profanity check on display name
+        check_profanity(display_name)
+        
         normalized_name = display_name.lower().strip()
         
         existing_user = await db.users.find_one({
@@ -3236,7 +3240,10 @@ async def update_profile(profile: ProfileUpdate, user: dict = Depends(require_au
     
     # Handle other profile fields
     if profile.bio is not None:
-        update_data["bio"] = profile.bio.strip()[:80]
+        bio_clean = profile.bio.strip()[:80]
+        if bio_clean:
+            check_profanity(bio_clean)
+        update_data["bio"] = bio_clean
     if profile.city is not None:
         update_data["city"] = profile.city.strip()[:50]
     if profile.showCity is not None:
@@ -3705,6 +3712,14 @@ async def create_problem_report(problem_id: str, report_data: ReportRequest, use
         {"$set": {"reports_count": new_count, "is_hidden": is_hidden, "status": status}}
     )
     
+    # Fire-and-forget admin alert (push + email)
+    asyncio.create_task(notify_admins_of_report(
+        target_type="problem",
+        target_id=problem_id,
+        reporter_name=user["name"],
+        reason=report_data.reason
+    ))
+    
     return {"reported": True, "is_hidden": is_hidden, "report_count": new_count}
 
 @api_router.post("/report/comment/{comment_id}")
@@ -3746,6 +3761,14 @@ async def create_comment_report(comment_id: str, report_data: ReportRequest, use
         {"$set": {"reports_count": new_count, "status": status}}
     )
     
+    # Fire-and-forget admin alert (push + email)
+    asyncio.create_task(notify_admins_of_report(
+        target_type="comment",
+        target_id=comment_id,
+        reporter_name=user["name"],
+        reason=report_data.reason
+    ))
+    
     return {"reported": True, "is_hidden": is_hidden, "report_count": new_count}
 
 @api_router.post("/report/user/{user_id}")
@@ -3781,11 +3804,25 @@ async def create_user_report(user_id: str, report_data: ReportRequest, user: dic
     )
     await db.reports.insert_one(report.dict())
     
+    # Fire-and-forget admin alert (push + email)
+    asyncio.create_task(notify_admins_of_report(
+        target_type="user",
+        target_id=user_id,
+        reporter_name=user["name"],
+        reason=report_data.reason
+    ))
+    
     return {"reported": True, "message": "Report submitted"}
 
 # ===================== ADMIN ROUTES =====================
 
 # --- Admin: Moderation ---
+
+@api_router.get("/admin/reports/pending-count")
+async def get_pending_reports_count(admin: dict = Depends(require_admin)):
+    """Lightweight count of pending reports for admin badge"""
+    count = await db.reports.count_documents({"status": "pending"})
+    return {"count": count}
 
 @api_router.get("/admin/reports")
 async def get_reports(
@@ -4697,6 +4734,58 @@ async def send_notification_to_user(user_id: str, title: str, body: str, data: d
     
     if tokens:
         await send_push_notification(tokens, title, body, data)
+
+async def notify_admins_of_report(target_type: str, target_id: str, reporter_name: str, reason: str):
+    """Send push + email alert to all admins about a new report. Throttled per target_type."""
+    try:
+        # Throttle: avoid spamming admins more than once per ADMIN_ALERT_THROTTLE_SECONDS per target_type
+        now_ts = datetime.utcnow().timestamp()
+        last_sent = _last_admin_alert_time.get(target_type, 0)
+        should_send_push = (now_ts - last_sent) >= ADMIN_ALERT_THROTTLE_SECONDS
+
+        if should_send_push:
+            _last_admin_alert_time[target_type] = now_ts
+            # Find all admin users
+            admin_users = await db.users.find(
+                {"role": "admin"},
+                {"_id": 0, "id": 1}
+            ).to_list(100)
+            admin_ids = [a["id"] for a in admin_users]
+            if admin_ids:
+                tokens_cursor = db.push_tokens.find({
+                    "user_id": {"$in": admin_ids},
+                    "is_active": True
+                })
+                admin_tokens = [t["token"] async for t in tokens_cursor]
+                if admin_tokens:
+                    await send_push_notification(
+                        admin_tokens,
+                        "New report received",
+                        f"{reporter_name} reported a {target_type} ({reason})",
+                        {"type": "admin_report", "target_type": target_type, "target_id": target_id}
+                    )
+
+        # Always send email (lightweight, async, no throttle)
+        if RESEND_API_KEY and RESEND_AVAILABLE and ADMIN_ALERT_EMAIL:
+            params = {
+                "from": SENDER_EMAIL,
+                "to": [ADMIN_ALERT_EMAIL],
+                "subject": f"[FRIKT] New {target_type} report",
+                "html": f"""
+                <h3>New report received</h3>
+                <p><strong>Reporter:</strong> {reporter_name}</p>
+                <p><strong>Target type:</strong> {target_type}</p>
+                <p><strong>Target ID:</strong> {target_id}</p>
+                <p><strong>Reason:</strong> {reason}</p>
+                <p>Review it in the FRIKT admin panel.</p>
+                """
+            }
+            try:
+                await asyncio.to_thread(resend.Emails.send, params)
+            except Exception as e:
+                logger.error(f"Failed to send admin alert email: {e}")
+    except Exception as e:
+        logger.error(f"notify_admins_of_report failed: {e}")
 
 @api_router.post("/push/register")
 async def register_push_token(token_data: PushTokenCreate, user: dict = Depends(require_auth)):

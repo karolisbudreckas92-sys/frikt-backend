@@ -33,6 +33,33 @@ FRIKT is a social platform for sharing everyday frustrations ("frikts"). Users c
 - Global ErrorHandler added for native crash capture
 - ErrorBoundary wrappers on Profile and CreateFrikt screens
 
+## Recently Completed (Tandas — Apr 2026)
+### Tanda 1 — Security (DONE, in production)
+- `slowapi` rate limiting on auth endpoints
+- `re.escape` applied to all `$regex` MongoDB queries
+- Pydantic `max_length` caps on Problem/Comment models
+- Explicit CORS origin list
+
+### Tanda 2 — Stability (DONE)
+- Sentry crash reporting (frontend `@sentry/react-native`, backend `sentry-sdk[fastapi]`)
+- Cloudinary explicit transformations (size/format)
+- Push token rotation listener
+
+### Tanda 3 — Apple UGC Compliance (DONE — pending deploy)
+- `better-profanity` with `/app/backend/moderation/blocklist.txt` custom slurs
+- `check_profanity()` injected on:
+  - `POST /api/problems` (title, when, who, what)
+  - `POST /api/comments` (content)
+  - `PUT /api/comments/{id}` (content)
+  - `PUT /api/users/me/profile` (displayName, bio)
+- Returns 400 with `"Content violates community guidelines. Please rephrase."`
+- Admin alerts on every report (`/api/report/problem|comment|user`):
+  - Push notifications to all admins (throttled 5 min/target_type)
+  - Email to `ADMIN_ALERT_EMAIL` (no throttle)
+- Frontend toasts surface backend 400 detail (PostWizard, edit-profile, problem comments)
+- Admin badge shows pending reports count via `GET /api/admin/reports/pending-count`
+- `better-profanity==0.7.0` added to ROOT `/app/requirements.txt` (Railway-critical)
+
 ## Auth Credentials
 - Admin: karolisbudreckas92@gmail.com / Admin123!
 - Test: karolis@test.com / Test123!

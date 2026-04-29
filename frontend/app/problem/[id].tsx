@@ -315,8 +315,13 @@ export default function ProblemDetail() {
       if (response.newly_awarded_badges && response.newly_awarded_badges.length > 0) {
         showCelebration(response.newly_awarded_badges);
       }
-    } catch (error) {
-      showToast('Failed to add comment', true);
+    } catch (error: any) {
+      const detail = error?.response?.data?.detail;
+      if (error?.response?.status === 400 && detail) {
+        showToast(detail, true);
+      } else {
+        showToast('Failed to add comment', true);
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -393,8 +398,13 @@ export default function ProblemDetail() {
       setEditingCommentId(null);
       setEditedContent('');
       Toast.show('Comment updated', { duration: Toast.durations.SHORT });
-    } catch (error) {
-      Alert.alert('Error', 'Failed to update comment');
+    } catch (error: any) {
+      const detail = error?.response?.data?.detail;
+      if (error?.response?.status === 400 && detail) {
+        Alert.alert('Cannot save', detail);
+      } else {
+        Alert.alert('Error', 'Failed to update comment');
+      }
     }
   };
 
