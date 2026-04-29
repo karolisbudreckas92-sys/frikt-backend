@@ -13,6 +13,8 @@ import os
 import logging
 import asyncio
 import re
+from better_profanity import profanity
+from pathlib import Path
 import cloudinary
 import cloudinary.uploader
 from pathlib import Path
@@ -45,6 +47,27 @@ if SENTRY_DSN:
         traces_sample_rate=0.1,
         send_default_pii=False,
     )
+
+# Profanity filter initialization
+MODERATION_DIR = ROOT_DIR / "moderation"
+BLOCKLIST_PATH = MODERATION_DIR / "blocklist.txt"
+profanity.load_censor_words()
+if BLOCKLIST_PATH.exists():
+    with open(BLOCKLIST_PATH) as f:
+        custom_words = [w.strip() for w in f.readlines() if w.strip()]
+    profanity.add_censor_words(custom_words)
+
+CONTENT_VIOLATION_MSG = "Content violates community guidelines. Please rephrase."
+
+def check_profanity(*texts: str):
+    """Raise 400 if any text contains profanity."""
+    for text in texts:
+        if text and profanity.contains_profanity(text):
+            raise HTTPException(status_code=400, detail=CONTENT_VIOLATION_MSG)
+
+# Admin report alert throttle (in-memory, per-admin)
+_last_admin_alert_time: dict = {}
+ADMIN_ALERT_THROTTLE_SECONDS = 300  # 5 minutes
 
 # MongoDB connection
 mongo_url = os.environ['MONGO_URL']
@@ -1685,6 +1708,14 @@ async def create_problem(problem_data: ProblemCreate, user: dict = Depends(requi
     if len(title_stripped) < 10:
         raise HTTPException(status_code=400, detail="Title must have at least 10 non-whitespace characters")
     
+    # Profanity check
+    check_profanity(
+        title_stripped,
+        problem_data.when_happens,
+        problem_data.who_affected,
+        problem_data.what_tried
+    )
+    
     # Check rate limit (max 10 posts/day - generous for MVP)
     today = datetime.utcnow().strftime("%Y-%m-%d")
     if user.get("last_post_date") == today and user.get("posts_today", 0) >= 10:
@@ -2383,6 +2414,9 @@ async def unfollow_category(category_id: str, user: dict = Depends(require_auth)
 
 @api_router.post("/comments")
 async def create_comment(comment_data: CommentCreate, user: dict = Depends(require_auth)):
+    # Profanity check
+    check_profanity(comment_data.content)
+    
     problem = await db.problems.find_one({"id": comment_data.problem_id})
     if not problem:
         raise HTTPException(status_code=404, detail="Problem not found")
@@ -2725,6 +2759,9 @@ class CommentEditRequest(BaseModel):
 @api_router.put("/comments/{comment_id}")
 async def edit_comment(comment_id: str, request: CommentEditRequest, user: dict = Depends(require_auth)):
     """Edit a comment. Only the comment author can edit."""
+    # Profanity check
+    check_profanity(request.content)
+    
     comment = await db.comments.find_one({"id": comment_id})
     if not comment:
         raise HTTPException(status_code=404, detail="Comment not found")
