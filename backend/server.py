@@ -1397,6 +1397,13 @@ def is_valid_email_format(email: str) -> bool:
     """Validate email format using regex"""
     return bool(EMAIL_REGEX.match(email))
 
+# ===================== TEMPORARY: SENTRY DEBUG =====================
+# REMOVE this endpoint after Sentry verification in production.
+@api_router.get("/debug/sentry-test")
+async def sentry_test():
+    """Temporary endpoint to verify Sentry is wired correctly in production."""
+    raise Exception("Sentry test from production")
+
 @api_router.post("/auth/register", response_model=TokenResponse)
 @limiter.limit("3/minute;10/hour")
 async def register(request: Request, user_data: UserCreate):
