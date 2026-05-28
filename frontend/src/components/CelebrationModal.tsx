@@ -3,6 +3,7 @@ import { View, Text, Modal, StyleSheet, TouchableOpacity, Animated, Dimensions, 
 import { captureRef } from 'react-native-view-shot';
 import * as Sharing from 'expo-sharing';
 import { fonts } from '@/src/theme/colors';
+import { useAuth } from '@/src/context/AuthContext';
 
 const { width: screenWidth } = Dimensions.get('window');
 
@@ -58,6 +59,8 @@ export function CelebrationModal({
   const confettiRef = useRef<any>(null);
   const shareCardRef = useRef<View>(null);
   const [isSharing, setIsSharing] = useState(false);
+  const { user } = useAuth();
+  const usernameHandle = user ? `@${(user.displayName || user.name || '').trim()}` : '';
 
   useEffect(() => {
     if (visible && badge) {
@@ -211,6 +214,11 @@ export function CelebrationModal({
           <Text style={styles.shareTagline} numberOfLines={3}>
             {badge.description}
           </Text>
+          {!!usernameHandle && usernameHandle !== '@' && (
+            <Text style={styles.shareUsername} numberOfLines={1}>
+              {usernameHandle}
+            </Text>
+          )}
           <Text style={styles.shareFooter}>frikt.com</Text>
         </View>
       </View>
@@ -388,6 +396,14 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 50,
     maxWidth: 880,
+    marginBottom: 32,
+  },
+  shareUsername: {
+    color: colors.shareText,
+    fontSize: 28,
+    fontFamily: fonts.semibold,
+    textAlign: 'center',
+    opacity: 0.85,
     marginBottom: 60,
   },
   shareFooter: {
