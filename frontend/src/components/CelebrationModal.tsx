@@ -190,7 +190,7 @@ export function CelebrationModal({
             data-testid="celebration-share-btn"
           >
             <Text style={styles.shareButtonText}>
-              {isSharing ? 'Preparing…' : 'Share'}
+              {isSharing ? 'Preparing…' : 'Share my badge'}
             </Text>
           </TouchableOpacity>
         </Animated.View>
