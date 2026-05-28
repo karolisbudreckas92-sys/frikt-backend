@@ -96,22 +96,9 @@ export default function PostWizard({ onComplete, onCancel }: PostWizardProps) {
     api.getMyCommunity().then(setMyCommunity).catch(() => setMyCommunity(null));
   }, []);
 
-  // Duplicate detection
-  const searchSimilar = useCallback(async (text: string) => {
-    if (text.length < 10) {
-      setSimilarProblems([]);
-      return;
-    }
-    
-    setIsSearching(true);
-    try {
-      const data = await api.getSimilarProblems(text);
-      setSimilarProblems(data.slice(0, 2)); // Show max 2
-    } catch (error) {
-      console.error('Error searching similar:', error);
-    } finally {
-      setIsSearching(false);
-    }
+  // Duplicate detection (disabled — Similar Frikts UI removed)
+  const searchSimilar = useCallback(async (_text: string) => {
+    return;
   }, []);
 
   useEffect(() => {
@@ -245,33 +232,10 @@ export default function PostWizard({ onComplete, onCancel }: PostWizardProps) {
       )}
 
       {isSearching && (
-        <View style={styles.searchingContainer}>
-          <ActivityIndicator size="small" color={colors.primary} />
-          <Text style={styles.searchingText}>Looking for similar Frikts...</Text>
-        </View>
+        <View style={styles.searchingContainer} pointerEvents="none" accessibilityElementsHidden importantForAccessibility="no-hide-descendants" />
       )}
 
-      {similarProblems.length > 0 && (
-        <View style={styles.similarSection}>
-          <Text style={styles.similarTitle}>Similar Frikts found</Text>
-          <Text style={styles.similarHint}>Join an existing thread to concentrate signal</Text>
-          
-          {similarProblems.map((problem) => (
-            <TouchableOpacity 
-              key={problem.id} 
-              style={styles.similarCard}
-            >
-              <Text style={styles.similarCardTitle} numberOfLines={2}>{problem.title}</Text>
-              <View style={styles.similarStats}>
-                <Ionicons name="heart" size={14} color={colors.primary} />
-                <Text style={styles.similarStatText}>{problem.relates_count} relates</Text>
-                <Ionicons name="chatbubble" size={14} color={colors.textMuted} style={{ marginLeft: 12 }} />
-                <Text style={styles.similarStatText}>{problem.comments_count} comments</Text>
-              </View>
-            </TouchableOpacity>
-          ))}
-        </View>
-      )}
+      {/* Similar Frikts UI removed for cleaner write experience */}
     </ScrollView>
   );
 

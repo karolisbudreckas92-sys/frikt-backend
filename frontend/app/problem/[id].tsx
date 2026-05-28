@@ -64,7 +64,7 @@ export default function ProblemDetail() {
   
   const [problem, setProblem] = useState<any>(null);
   const [comments, setComments] = useState<any[]>([]);
-  const [relatedProblems, setRelatedProblems] = useState<any[]>([]);
+  const [relatedProblems, setRelatedProblems] = useState<any[]>([]); // kept for backwards compat; unused
   const [isLoading, setIsLoading] = useState(true);
   const [commentText, setCommentText] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -90,14 +90,12 @@ export default function ProblemDetail() {
     if (!id) return;
     
     try {
-      const [problemData, commentsData, relatedData] = await Promise.all([
+      const [problemData, commentsData] = await Promise.all([
         api.getProblem(id),
         api.getComments(id),
-        api.getRelatedProblems(id),
       ]);
       setProblem(problemData);
       setComments(commentsData);
-      setRelatedProblems(relatedData);
       
       // Show celebration modal if new badges were awarded
       if (problemData.newly_awarded_badges && problemData.newly_awarded_badges.length > 0) {
@@ -980,25 +978,7 @@ export default function ProblemDetail() {
             )}
           </View>
 
-          {/* Related Frikts */}
-          {relatedProblems.length > 0 && (
-            <View style={styles.relatedSection}>
-              <Text style={styles.sectionTitle}>Related Frikts</Text>
-              {relatedProblems.map((related) => (
-                <TouchableOpacity 
-                  key={related.id} 
-                  style={styles.relatedCard}
-                  onPress={() => router.push(`/problem/${related.id}`)}
-                >
-                  <Text style={styles.relatedTitle} numberOfLines={2}>{related.title}</Text>
-                  <View style={styles.relatedStats}>
-                    <Ionicons name="heart" size={14} color={colors.primary} />
-                    <Text style={styles.relatedStatText}>{related.relates_count}</Text>
-                  </View>
-                </TouchableOpacity>
-              ))}
-            </View>
-          )}
+          {/* Related Frikts removed for cleaner UX */}
         </ScrollView>
       </KeyboardAvoidingView>
 
