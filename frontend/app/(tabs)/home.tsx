@@ -49,7 +49,7 @@ export default function Home() {
   const router = useRouter();
   const [viewMode, setViewMode] = useState<ViewMode>('global');
   const [feed, setFeed] = useState<FeedType>('new');
-  const [localSort, setLocalSort] = useState<LocalSortType>('trending');
+  const [localSort, setLocalSort] = useState<LocalSortType>('new');
   const [problems, setProblems] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
