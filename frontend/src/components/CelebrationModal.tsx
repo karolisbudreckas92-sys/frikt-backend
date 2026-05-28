@@ -1,5 +1,7 @@
-import React, { useEffect, useRef } from 'react';
-import { View, Text, Modal, StyleSheet, TouchableOpacity, Animated, Dimensions, Platform } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { View, Text, Modal, StyleSheet, TouchableOpacity, Animated, Dimensions, Platform, Alert } from 'react-native';
+import { captureRef } from 'react-native-view-shot';
+import * as Sharing from 'expo-sharing';
 import { fonts } from '@/src/theme/colors';
 
 const { width: screenWidth } = Dimensions.get('window');
@@ -21,7 +23,13 @@ const colors = {
   textPrimary: '#1A1A1A',
   textSecondary: '#666666',
   gold: '#FFD700',
+  shareBg: '#0A0A0A',
+  shareText: '#FFFFFF',
+  shareTagline: '#9A9A9A',
 };
+
+// Off-screen render size for the share image (square)
+const SHARE_IMAGE_SIZE = 1080;
 
 interface Badge {
   badge_id: string;
@@ -39,15 +47,17 @@ interface CelebrationModalProps {
   onViewAllBadges?: () => void;
 }
 
-export function CelebrationModal({ 
-  visible, 
-  badge, 
-  additionalBadgesCount = 0, 
+export function CelebrationModal({
+  visible,
+  badge,
+  additionalBadgesCount = 0,
   onDismiss,
-  onViewAllBadges 
+  onViewAllBadges,
 }: CelebrationModalProps) {
   const scaleAnim = useRef(new Animated.Value(0)).current;
   const confettiRef = useRef<any>(null);
+  const shareCardRef = useRef<View>(null);
+  const [isSharing, setIsSharing] = useState(false);
 
   useEffect(() => {
     if (visible && badge) {
@@ -69,6 +79,43 @@ export function CelebrationModal({
       scaleAnim.setValue(0);
     }
   }, [visible, badge]);
+
+  const handleShare = async () => {
+    if (!badge || isSharing) return;
+    setIsSharing(true);
+
+    try {
+      if (Platform.OS === 'web') {
+        Alert.alert('Sharing', 'Image sharing is available on mobile.');
+        return;
+      }
+
+      // Capture the off-screen share card
+      const uri = await captureRef(shareCardRef, {
+        format: 'png',
+        quality: 1,
+        width: SHARE_IMAGE_SIZE,
+        height: SHARE_IMAGE_SIZE,
+      });
+
+      const isAvailable = await Sharing.isAvailableAsync();
+      if (!isAvailable) {
+        Alert.alert('Sharing not available', 'Cannot open share sheet on this device.');
+        return;
+      }
+
+      await Sharing.shareAsync(uri, {
+        mimeType: 'image/png',
+        dialogTitle: `I just unlocked ${badge.name} on FRIKT`,
+        UTI: 'public.png',
+      });
+    } catch (err) {
+      console.warn('Badge share failed', err);
+      Alert.alert('Could not share', 'Please try again.');
+    } finally {
+      setIsSharing(false);
+    }
+  };
 
   if (!badge) return null;
 
@@ -94,10 +141,10 @@ export function CelebrationModal({
           />
         )}
 
-        <Animated.View 
+        <Animated.View
           style={[
             styles.modalContent,
-            { transform: [{ scale: scaleAnim }] }
+            { transform: [{ scale: scaleAnim }] },
           ]}
         >
           {/* Badge icon */}
@@ -124,8 +171,8 @@ export function CelebrationModal({
             </View>
           )}
 
-          {/* Dismiss button */}
-          <TouchableOpacity 
+          {/* Dismiss button (primary) */}
+          <TouchableOpacity
             style={styles.dismissButton}
             onPress={onDismiss}
             data-testid="celebration-dismiss-btn"
@@ -134,7 +181,38 @@ export function CelebrationModal({
               {additionalBadgesCount > 0 ? 'Next' : 'Nice!'}
             </Text>
           </TouchableOpacity>
+
+          {/* Share button (secondary) */}
+          <TouchableOpacity
+            style={[styles.shareButton, isSharing && styles.shareButtonDisabled]}
+            onPress={handleShare}
+            disabled={isSharing}
+            data-testid="celebration-share-btn"
+          >
+            <Text style={styles.shareButtonText}>
+              {isSharing ? 'Preparing…' : 'Share'}
+            </Text>
+          </TouchableOpacity>
         </Animated.View>
+
+        {/* Off-screen share card — rendered but positioned absolute outside viewport */}
+        <View
+          ref={shareCardRef}
+          collapsable={false}
+          style={styles.shareCard}
+        >
+          <View style={styles.shareIconWrap}>
+            <View style={styles.shareIconGlow} />
+            <View style={styles.shareIconCircle}>
+              <Text style={styles.shareIconEmoji}>{badge.icon}</Text>
+            </View>
+          </View>
+          <Text style={styles.shareName}>{badge.name}</Text>
+          <Text style={styles.shareTagline} numberOfLines={3}>
+            {badge.description}
+          </Text>
+          <Text style={styles.shareFooter}>frikt.com</Text>
+        </View>
       </View>
     </Modal>
   );
@@ -238,6 +316,87 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 18,
     fontFamily: fonts.bold,
+  },
+  shareButton: {
+    marginTop: 12,
+    paddingHorizontal: 32,
+    paddingVertical: 10,
+    borderRadius: 24,
+    minWidth: 140,
+    alignItems: 'center',
+  },
+  shareButtonDisabled: {
+    opacity: 0.5,
+  },
+  shareButtonText: {
+    color: colors.textSecondary,
+    fontSize: 15,
+    fontFamily: fonts.semibold,
+  },
+  // Off-screen share card (1080x1080 PNG export target)
+  shareCard: {
+    position: 'absolute',
+    top: -10000,
+    left: -10000,
+    width: SHARE_IMAGE_SIZE,
+    height: SHARE_IMAGE_SIZE,
+    backgroundColor: colors.shareBg,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 80,
+    paddingTop: 100,
+    paddingBottom: 100,
+  },
+  shareIconWrap: {
+    position: 'relative',
+    marginBottom: 60,
+  },
+  shareIconGlow: {
+    position: 'absolute',
+    top: -40,
+    left: -40,
+    right: -40,
+    bottom: -40,
+    backgroundColor: colors.gold,
+    borderRadius: 240,
+    opacity: 0.18,
+  },
+  shareIconCircle: {
+    width: 400,
+    height: 400,
+    borderRadius: 200,
+    backgroundColor: 'rgba(255, 215, 0, 0.18)',
+    borderWidth: 8,
+    borderColor: colors.gold,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  shareIconEmoji: {
+    fontSize: 220,
+  },
+  shareName: {
+    color: colors.shareText,
+    fontSize: 88,
+    fontFamily: fonts.bold,
+    textAlign: 'center',
+    marginBottom: 28,
+  },
+  shareTagline: {
+    color: colors.shareTagline,
+    fontSize: 36,
+    fontFamily: fonts.regular,
+    textAlign: 'center',
+    lineHeight: 50,
+    maxWidth: 880,
+    marginBottom: 60,
+  },
+  shareFooter: {
+    color: colors.primary,
+    fontSize: 32,
+    fontFamily: fonts.semibold,
+    letterSpacing: 3,
+    position: 'absolute',
+    bottom: 80,
   },
 });
 
