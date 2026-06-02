@@ -38,7 +38,7 @@ export default function CommunityDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const [community, setCommunity] = useState<any>(null);
   const [problems, setProblems] = useState<any[]>([]);
-  const [sortBy, setSortBy] = useState<SortType>('trending');
+  const [sortBy, setSortBy] = useState<SortType>('new');
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [requestMessage, setRequestMessage] = useState('');
