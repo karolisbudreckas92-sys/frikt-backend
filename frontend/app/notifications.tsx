@@ -15,6 +15,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { colors, fonts} from '@/src/theme/colors';
 import { api } from '@/src/services/api';
 import { useNotifications } from '@/src/contexts/NotificationContext';
+import { clearNotificationBadge } from '@/src/services/notifications';
 
 export default function Notifications() {
   const router = useRouter();
@@ -39,7 +40,8 @@ export default function Notifications() {
   };
 
   useEffect(() => {
-    // On mount: clear badge count immediately then load notifications
+    // On mount: clear iOS app icon badge + clear pending notifications + mark all as read in DB
+    clearNotificationBadge().catch(() => {});
     markAllAsRead();
     loadNotifications();
   }, []);

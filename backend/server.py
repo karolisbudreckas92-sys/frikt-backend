@@ -4777,8 +4777,11 @@ async def admin_sync_user_stats(user_id: str, admin: dict = Depends(require_admi
 
 EXPO_PUSH_URL = "https://exp.host/--/api/v2/push/send"
 
-async def send_push_notification(tokens: List[str], title: str, body: str, data: dict = None):
-    """Send push notification via Expo's push notification service"""
+async def send_push_notification(tokens: List[str], title: str, body: str, data: dict = None, badge: int = None):
+    """Send push notification via Expo's push notification service.
+    
+    If `badge` is provided, iOS will set the app icon badge to that number.
+    """
     if not tokens:
         logger.warning("send_push_notification called with empty tokens list")
         return
@@ -4808,6 +4811,8 @@ async def send_push_notification(tokens: List[str], title: str, body: str, data:
             "priority": "high",  # Ensure high priority for immediate delivery
             "channelId": "default",  # Android notification channel
         }
+        if badge is not None:
+            message["badge"] = badge
         messages.append(message)
     
     if skipped_tokens:
@@ -4862,7 +4867,11 @@ async def send_push_notification(tokens: List[str], title: str, body: str, data:
         logger.error(f"Failed to send push notification: {e}")
 
 async def send_notification_to_user(user_id: str, title: str, body: str, data: dict = None):
-    """Send push notification to a specific user"""
+    """Send push notification to a specific user.
+    
+    Computes the user's unread notification count and sends it as the iOS
+    badge value so the app icon shows a red bubble with the number.
+    """
     # Get user's notification settings
     settings = await db.notification_settings.find_one({"user_id": user_id})
     
@@ -4870,8 +4879,19 @@ async def send_notification_to_user(user_id: str, title: str, body: str, data: d
     tokens_cursor = db.push_tokens.find({"user_id": user_id, "is_active": True})
     tokens = [t["token"] async for t in tokens_cursor]
     
-    if tokens:
-        await send_push_notification(tokens, title, body, data)
+    if not tokens:
+        return
+
+    # Compute unread notification count for the badge
+    try:
+        unread_count = await db.notifications.count_documents({
+            "user_id": user_id,
+            "read": False,
+        })
+    except Exception:
+        unread_count = None
+    
+    await send_push_notification(tokens, title, body, data, badge=unread_count)
 
 async def notify_admins_of_report(target_type: str, target_id: str, reporter_name: str, reason: str):
     """Send push + email alert to all admins about a new report. Throttled per target_type."""
