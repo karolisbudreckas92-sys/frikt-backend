@@ -27,6 +27,7 @@ export default function NotificationSettings() {
     commentReplies: true,
     follows: true,
     trending: true,
+    localNewFrikts: true,
   });
   const [pushEnabled, setPushEnabled] = useState(false);
 
@@ -45,6 +46,7 @@ export default function NotificationSettings() {
         commentReplies: data.comment_replies ?? true,
         follows: data.follows ?? true,
         trending: data.trending,
+        localNewFrikts: data.local_new_frikts ?? true,
       });
     } catch (error) {
       console.error('Error loading settings:', error);
@@ -73,6 +75,7 @@ export default function NotificationSettings() {
         comment_replies: newSettings.commentReplies,
         follows: newSettings.follows,
         trending: newSettings.trending,
+        local_new_frikts: newSettings.localNewFrikts,
       });
     } catch (error) {
       console.error('Error saving settings:', error);
@@ -250,6 +253,26 @@ export default function NotificationSettings() {
             trackColor={{ false: colors.border, true: colors.primary }}
             thumbColor={colors.white}
             disabled={!settings.pushNotifications}
+          />
+        </View>
+
+        <View style={[styles.settingCard, !settings.pushNotifications && styles.settingDisabled]}>
+          <View style={styles.settingInfo}>
+            <View style={[styles.settingIcon, { backgroundColor: colors.primary + '20' }]}>
+              <Ionicons name="location" size={20} color={colors.primary} />
+            </View>
+            <View style={styles.settingText}>
+              <Text style={styles.settingTitle}>New Local Frikts</Text>
+              <Text style={styles.settingDesc}>When someone in your Local posts a new Frikt</Text>
+            </View>
+          </View>
+          <Switch
+            value={settings.localNewFrikts}
+            onValueChange={(value) => handleToggle('localNewFrikts', value)}
+            trackColor={{ false: colors.border, true: colors.primary }}
+            thumbColor={colors.white}
+            disabled={!settings.pushNotifications}
+            data-testid="toggle-local-new-frikts"
           />
         </View>
 

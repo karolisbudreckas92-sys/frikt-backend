@@ -314,11 +314,7 @@ class ApiService {
     return response.data;
   }
 
-  async updateNotificationSettings(settings: {
-    newComments: boolean;
-    newRelates: boolean;
-    trending: boolean;
-  }) {
+  async updateNotificationSettings(settings: any) {
     const response = await this.client.put('/push/settings', settings);
     return response.data;
   }

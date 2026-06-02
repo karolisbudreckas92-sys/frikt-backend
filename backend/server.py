@@ -480,6 +480,7 @@ class NotificationSettings(BaseModel):
     comment_replies: bool = True
     follows: bool = True
     trending: bool = True
+    local_new_frikts: bool = True  # Notify when new frikt posted in my Local
 
 class NotificationSettingsUpdate(BaseModel):
     push_notifications: Optional[bool] = None  # Global toggle
@@ -488,6 +489,7 @@ class NotificationSettingsUpdate(BaseModel):
     comment_replies: Optional[bool] = None
     follows: Optional[bool] = None
     trending: Optional[bool] = None
+    local_new_frikts: Optional[bool] = None
 
 # Report Model (for posts and comments)
 REPORT_REASONS = ["spam", "harassment", "hate", "sexual", "other", "abuse", "off-topic", "duplicate"]
@@ -1762,6 +1764,19 @@ async def create_problem(problem_data: ProblemCreate, user: dict = Depends(requi
     problem_dict["signal_score"] = calculate_signal_score(problem_dict)
     
     await db.problems.insert_one(problem_dict)
+    
+    # If this is a local frikt, notify all members of the community (except author)
+    # who have local_new_frikts enabled.
+    if is_local and local_community_id:
+        asyncio.create_task(
+            notify_local_members_of_new_frikt(
+                community_id=local_community_id,
+                problem_id=problem.id,
+                problem_title=problem.title,
+                author_id=user["id"],
+                author_name=user["name"],
+            )
+        )
     
     # Update user post count
     if user.get("last_post_date") == today:
@@ -4922,6 +4937,70 @@ async def send_notification_to_user(user_id: str, title: str, body: str, data: d
     
     await send_push_notification(tokens, title, body, data, badge=unread_count)
 
+async def notify_local_members_of_new_frikt(community_id: str, problem_id: str, problem_title: str, author_id: str, author_name: str):
+    """Push notification to all members of a local community when a new frikt
+    is posted there. Skips the author. Respects users' per-user
+    notification_settings.local_new_frikts (default True)."""
+    try:
+        # Get all members of this community except the author
+        members_cursor = db.community_members.find(
+            {"community_id": community_id, "user_id": {"$ne": author_id}},
+            {"_id": 0, "user_id": 1}
+        )
+        member_ids = [m["user_id"] async for m in members_cursor]
+        if not member_ids:
+            return
+
+        # Filter to those who have local_new_frikts enabled (or no settings → default True)
+        settings_cursor = db.notification_settings.find(
+            {"user_id": {"$in": member_ids}},
+            {"_id": 0, "user_id": 1, "push_notifications": 1, "local_new_frikts": 1}
+        )
+        opted_out = set()
+        async for s in settings_cursor:
+            if s.get("push_notifications") is False:
+                opted_out.add(s["user_id"])
+            elif s.get("local_new_frikts") is False:
+                opted_out.add(s["user_id"])
+
+        target_ids = [uid for uid in member_ids if uid not in opted_out]
+        if not target_ids:
+            return
+
+        truncated_title = problem_title if len(problem_title) <= 80 else problem_title[:77] + "..."
+
+        # Insert in-app notifications so the bell shows them and badge increments
+        in_app_notifs = [
+            {
+                "id": str(uuid.uuid4()),
+                "user_id": uid,
+                "type": "local_new_frikt",
+                "problem_id": problem_id,
+                "message": f"{author_name} posted a new local Frikt: {truncated_title}",
+                "is_read": False,
+                "created_at": datetime.utcnow(),
+            }
+            for uid in target_ids
+        ]
+        try:
+            await db.notifications.insert_many(in_app_notifs)
+        except Exception as e:
+            logger.error(f"Failed inserting local-frikt in-app notifications: {e}")
+
+        # Send push per user so each gets the right iOS badge count
+        for uid in target_ids:
+            try:
+                await send_notification_to_user(
+                    uid,
+                    "New local Frikt",
+                    f"{author_name}: {truncated_title}",
+                    {"type": "local_new_frikt", "problemId": problem_id}
+                )
+            except Exception as e:
+                logger.error(f"Local new frikt push failed for user {uid}: {e}")
+    except Exception as e:
+        logger.error(f"notify_local_members_of_new_frikt failed: {e}")
+
 async def notify_admins_of_report(target_type: str, target_id: str, reporter_name: str, reason: str):
     """Send push + email alert to all admins about a new report. Throttled per target_type."""
     try:
@@ -5040,21 +5119,16 @@ async def unregister_push_token(user: dict = Depends(require_auth)):
 
 @api_router.get("/push/settings")
 async def get_push_settings(user: dict = Depends(require_auth)):
-    """Get user's notification settings"""
-    settings = await db.notification_settings.find_one({"user_id": user["id"]})
-    if not settings:
-        # Return defaults
-        return {
-            "push_notifications": True,
-            "new_comments": True,
-            "new_relates": True,
-            "trending": True
-        }
+    """Get user's notification settings (returns all toggles with defaults)"""
+    settings = await db.notification_settings.find_one({"user_id": user["id"]}) or {}
     return {
         "push_notifications": settings.get("push_notifications", True),
         "new_comments": settings.get("new_comments", True),
         "new_relates": settings.get("new_relates", True),
-        "trending": settings.get("trending", True)
+        "comment_replies": settings.get("comment_replies", True),
+        "follows": settings.get("follows", True),
+        "trending": settings.get("trending", True),
+        "local_new_frikts": settings.get("local_new_frikts", True),
     }
 
 @api_router.put("/push/settings")
