@@ -4038,12 +4038,12 @@ async def get_reported_comments(limit: int = 50, skip: int = 0, admin: dict = De
 
 @api_router.post("/admin/reports/{report_id}/dismiss")
 async def dismiss_report(report_id: str, admin: dict = Depends(require_admin)):
-    """Dismiss a report"""
+    """Dismiss a report (idempotent)"""
     result = await db.reports.update_one(
         {"id": report_id},
         {"$set": {"status": "dismissed"}}
     )
-    if result.modified_count == 0:
+    if result.matched_count == 0:
         raise HTTPException(status_code=404, detail="Report not found")
     
     await log_admin_action(admin, "dismiss_report", "report", report_id)
@@ -4051,12 +4051,12 @@ async def dismiss_report(report_id: str, admin: dict = Depends(require_admin)):
 
 @api_router.post("/admin/reports/{report_id}/reviewed")
 async def mark_report_reviewed(report_id: str, admin: dict = Depends(require_admin)):
-    """Mark a report as reviewed"""
+    """Mark a report as reviewed (idempotent)"""
     result = await db.reports.update_one(
         {"id": report_id},
         {"$set": {"status": "reviewed"}}
     )
-    if result.modified_count == 0:
+    if result.matched_count == 0:
         raise HTTPException(status_code=404, detail="Report not found")
     
     await log_admin_action(admin, "review_report", "report", report_id)

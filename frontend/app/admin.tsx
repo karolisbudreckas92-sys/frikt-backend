@@ -177,8 +177,16 @@ export default function AdminPanel() {
       await api.dismissReport(reportId);
       setReports(reports.filter(r => r.id !== reportId));
       Alert.alert('Success', 'Report dismissed');
-    } catch (error) {
-      Alert.alert('Error', 'Failed to dismiss report');
+    } catch (error: any) {
+      const status = error?.response?.status;
+      if (status === 404) {
+        // Stale state — report no longer exists; just remove from list and refresh
+        setReports(reports.filter(r => r.id !== reportId));
+        Alert.alert('Already actioned', 'This report was already handled. Refreshing the list.');
+        loadData(true);
+      } else {
+        Alert.alert('Error', 'Failed to dismiss report');
+      }
     }
   };
 
@@ -192,8 +200,16 @@ export default function AdminPanel() {
       await api.markReportReviewed(report.id);
       setReports(reports.filter(r => r.id !== report.id));
       Alert.alert('Success', 'Content hidden');
-    } catch (error) {
-      Alert.alert('Error', 'Failed to hide content');
+    } catch (error: any) {
+      const status = error?.response?.status;
+      if (status === 404) {
+        // Content or report already gone — clean up stale UI
+        setReports(reports.filter(r => r.id !== report.id));
+        Alert.alert('Already actioned', 'This content was already removed or the report was handled. Refreshing the list.');
+        loadData(true);
+      } else {
+        Alert.alert('Error', 'Failed to hide content');
+      }
     }
   };
 
@@ -209,11 +225,20 @@ export default function AdminPanel() {
           onPress: async () => {
             try {
               await api.deleteProblemAdmin(report.target_id);
-              await api.markReportReviewed(report.id);
+              try { await api.markReportReviewed(report.id); } catch (_) {}
               setReports(reports.filter(r => r.id !== report.id));
               Alert.alert('Success', 'Frikt deleted permanently');
-            } catch (error) {
-              Alert.alert('Error', 'Failed to delete frikt');
+            } catch (error: any) {
+              const status = error?.response?.status;
+              if (status === 404) {
+                // Frikt no longer exists — remove report from list and refresh
+                try { await api.markReportReviewed(report.id); } catch (_) {}
+                setReports(reports.filter(r => r.id !== report.id));
+                Alert.alert('Already deleted', 'This frikt was already removed. Refreshing the list.');
+                loadData(true);
+              } else {
+                Alert.alert('Error', 'Failed to delete frikt');
+              }
             }
           },
         },
