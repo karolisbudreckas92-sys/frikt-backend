@@ -3,7 +3,7 @@ import { Stack, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { AuthProvider, useAuth } from '@/src/context/AuthContext';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { usePushNotifications } from '@/src/services/notifications';
+import { usePushNotifications, syncBadgeWithUnreadCount } from '@/src/services/notifications';
 import * as Notifications from 'expo-notifications';
 import { RootSiblingParent } from 'react-native-root-siblings';
 import { BadgeProvider } from '@/src/contexts/BadgeContext';
@@ -56,6 +56,19 @@ function RootLayoutNav() {
       console.log('[APP] Backend URL:', BACKEND_URL);
     }
   }, []);
+
+  // Sync iOS app icon badge with server's unread count whenever user logs in
+  // or when the app comes to foreground (catches stale badges after kills/relogin).
+  useEffect(() => {
+    if (!user) return;
+    syncBadgeWithUnreadCount();
+    const sub = require('react-native').AppState.addEventListener('change', (state: string) => {
+      if (state === 'active') {
+        syncBadgeWithUnreadCount();
+      }
+    });
+    return () => sub.remove();
+  }, [user]);
 
   useEffect(() => {
     const subscription = Notifications.addNotificationResponseReceivedListener((response) => {

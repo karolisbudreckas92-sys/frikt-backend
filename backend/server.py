@@ -4171,6 +4171,16 @@ async def mark_needs_context(problem_id: str, admin: dict = Depends(require_admi
         message="Your problem needs more context. Please add more details."
     )
     await db.notifications.insert_one(notification.dict())
+    # Also send a push so the user knows immediately
+    try:
+        await send_notification_to_user(
+            problem["user_id"],
+            "Your Frikt needs more context",
+            "Add more details so others can engage with it.",
+            {"type": "needs_context", "problemId": problem_id}
+        )
+    except Exception as e:
+        logger.error(f"needs_context push failed: {e}")
     
     await log_admin_action(admin, "mark_needs_context", "problem", problem_id, {"title": problem["title"]})
     return {"success": True, "needs_context": True}
@@ -4243,17 +4253,10 @@ async def broadcast_notification(request: BroadcastNotificationRequest, admin: d
     # Send notifications in batches
     tokens_list = [t["token"] for t in active_tokens]
     recipient_count = len(set(t["user_id"] for t in active_tokens))  # Unique users
-    
-    # Send the push notification
-    await send_push_notification(
-        tokens=tokens_list,
-        title=request.title.strip(),
-        body=request.body.strip(),
-        data={"type": "broadcast"}
-    )
-    
-    # Store broadcast in each recipient's notifications collection
     recipient_user_ids = list(set(t["user_id"] for t in active_tokens))
+    
+    # Store broadcast in each recipient's notifications collection FIRST so the
+    # unread count is correct when send_notification_to_user computes the badge.
     broadcast_notifications = [
         {
             "id": str(uuid.uuid4()),
@@ -4268,6 +4271,18 @@ async def broadcast_notification(request: BroadcastNotificationRequest, admin: d
     ]
     if broadcast_notifications:
         await db.notifications.insert_many(broadcast_notifications)
+    
+    # Send push per-user so each gets the right iOS badge count
+    for user_id in recipient_user_ids:
+        try:
+            await send_notification_to_user(
+                user_id,
+                request.title.strip(),
+                request.body.strip(),
+                {"type": "broadcast"}
+            )
+        except Exception as e:
+            logger.error(f"Broadcast push failed for user {user_id}: {e}")
     
     # Log the broadcast
     broadcast_log = {
@@ -4924,18 +4939,36 @@ async def notify_admins_of_report(target_type: str, target_id: str, reporter_nam
             ).to_list(100)
             admin_ids = [a["id"] for a in admin_users]
             if admin_ids:
-                tokens_cursor = db.push_tokens.find({
-                    "user_id": {"$in": admin_ids},
-                    "is_active": True
-                })
-                admin_tokens = [t["token"] async for t in tokens_cursor]
-                if admin_tokens:
-                    await send_push_notification(
-                        admin_tokens,
-                        "New report received",
-                        f"{reporter_name} reported a {target_type} ({reason})",
-                        {"type": "admin_report", "target_type": target_type, "target_id": target_id}
-                    )
+                # Insert in-app notification per admin so the iOS badge
+                # increments correctly and they see it in the bell list.
+                admin_notifications = [
+                    {
+                        "id": str(uuid.uuid4()),
+                        "user_id": admin_id,
+                        "type": "admin_report",
+                        "problem_id": target_id if target_type == "problem" else "",
+                        "message": f"{reporter_name} reported a {target_type} ({reason})",
+                        "is_read": False,
+                        "created_at": datetime.utcnow(),
+                    }
+                    for admin_id in admin_ids
+                ]
+                try:
+                    await db.notifications.insert_many(admin_notifications)
+                except Exception as e:
+                    logger.error(f"Failed inserting admin alert notifications: {e}")
+
+                # Send push per admin so each gets the right iOS badge count
+                for admin_id in admin_ids:
+                    try:
+                        await send_notification_to_user(
+                            admin_id,
+                            "New report received",
+                            f"{reporter_name} reported a {target_type} ({reason})",
+                            {"type": "admin_report", "target_type": target_type, "target_id": target_id}
+                        )
+                    except Exception as e:
+                        logger.error(f"Admin alert push failed for {admin_id}: {e}")
 
         # Always send email (lightweight, async, no throttle)
         if RESEND_API_KEY and RESEND_AVAILABLE and ADMIN_ALERT_EMAIL:

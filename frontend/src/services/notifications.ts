@@ -15,8 +15,23 @@ Notifications.setNotificationHandler({
     shouldShowAlert: true,
     shouldPlaySound: true,
     shouldSetBadge: true,
+    // SDK 53+ keys (kept alongside legacy ones for compatibility)
+    shouldShowBanner: true,
+    shouldShowList: true,
   }),
 });
+
+// Sync iOS app icon badge with server's unread count
+export async function syncBadgeWithUnreadCount() {
+  try {
+    const { setBadgeCount } = await import('expo-notifications');
+    const data = await api.getNotifications();
+    const count = data?.unread_count ?? 0;
+    await setBadgeCount(count);
+  } catch (e) {
+    // Silent fail — don't block app start
+  }
+}
 
 export function usePushNotifications() {
   const [expoPushToken, setExpoPushToken] = useState<string | undefined>();
