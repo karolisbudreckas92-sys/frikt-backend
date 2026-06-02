@@ -3824,6 +3824,144 @@ async def get_pending_reports_count(admin: dict = Depends(require_admin)):
     count = await db.reports.count_documents({"status": "pending"})
     return {"count": count}
 
+@api_router.get("/admin/activity")
+async def get_admin_activity(admin: dict = Depends(require_admin)):
+    """Real-time feed of recent app activity (last 100 actions).
+    Aggregates from users (signups), problems (posts), comments, and relates.
+    """
+    LIMIT = 100
+    activities: List[dict] = []
+
+    # 1) Recent signups
+    users_cursor = db.users.find(
+        {"status": {"$ne": "deleted"}},
+        {"_id": 0, "id": 1, "name": 1, "created_at": 1}
+    ).sort("created_at", -1).limit(LIMIT)
+    async for u in users_cursor:
+        ts = u.get("created_at")
+        if not ts:
+            continue
+        activities.append({
+            "type": "user_joined",
+            "user_id": u.get("id"),
+            "username": u.get("name", "Unknown"),
+            "target_id": None,
+            "target_title": None,
+            "created_at": ts,
+        })
+
+    # 2) Recent problems
+    problems_cursor = db.problems.find(
+        {"status": "active"},
+        {"_id": 0, "id": 1, "user_id": 1, "title": 1, "created_at": 1}
+    ).sort("created_at", -1).limit(LIMIT)
+    problem_user_ids = set()
+    pending_problems = []
+    async for p in problems_cursor:
+        problem_user_ids.add(p.get("user_id"))
+        pending_problems.append(p)
+
+    # 3) Recent comments
+    comments_cursor = db.comments.find(
+        {"status": "active"},
+        {"_id": 0, "id": 1, "user_id": 1, "problem_id": 1, "content": 1, "created_at": 1}
+    ).sort("created_at", -1).limit(LIMIT)
+    pending_comments = []
+    comment_user_ids = set()
+    comment_problem_ids = set()
+    async for c in comments_cursor:
+        comment_user_ids.add(c.get("user_id"))
+        comment_problem_ids.add(c.get("problem_id"))
+        pending_comments.append(c)
+
+    # 4) Recent relates
+    relates_cursor = db.relates.find(
+        {},
+        {"_id": 0, "user_id": 1, "problem_id": 1, "created_at": 1}
+    ).sort("created_at", -1).limit(LIMIT)
+    pending_relates = []
+    relate_user_ids = set()
+    relate_problem_ids = set()
+    async for r in relates_cursor:
+        relate_user_ids.add(r.get("user_id"))
+        relate_problem_ids.add(r.get("problem_id"))
+        pending_relates.append(r)
+
+    # Bulk fetch user names for problems/comments/relates
+    all_user_ids = problem_user_ids | comment_user_ids | relate_user_ids
+    user_name_map: Dict[str, str] = {}
+    if all_user_ids:
+        users_lookup = db.users.find(
+            {"id": {"$in": list(all_user_ids)}},
+            {"_id": 0, "id": 1, "name": 1}
+        )
+        async for u in users_lookup:
+            user_name_map[u["id"]] = u.get("name", "Unknown")
+
+    # Bulk fetch problem titles for comments/relates
+    all_problem_ids = comment_problem_ids | relate_problem_ids
+    problem_title_map: Dict[str, str] = {}
+    if all_problem_ids:
+        problems_lookup = db.problems.find(
+            {"id": {"$in": list(all_problem_ids)}},
+            {"_id": 0, "id": 1, "title": 1}
+        )
+        async for p in problems_lookup:
+            problem_title_map[p["id"]] = p.get("title", "")
+
+    # Build problem activity entries
+    for p in pending_problems:
+        ts = p.get("created_at")
+        if not ts:
+            continue
+        activities.append({
+            "type": "problem_posted",
+            "user_id": p.get("user_id"),
+            "username": user_name_map.get(p.get("user_id"), "Unknown"),
+            "target_id": p.get("id"),
+            "target_title": p.get("title", ""),
+            "created_at": ts,
+        })
+
+    # Build comment activity entries
+    for c in pending_comments:
+        ts = c.get("created_at")
+        if not ts:
+            continue
+        activities.append({
+            "type": "comment_posted",
+            "user_id": c.get("user_id"),
+            "username": user_name_map.get(c.get("user_id"), "Unknown"),
+            "target_id": c.get("problem_id"),
+            "target_title": problem_title_map.get(c.get("problem_id"), ""),
+            "created_at": ts,
+        })
+
+    # Build relate activity entries
+    for r in pending_relates:
+        ts = r.get("created_at")
+        if not ts:
+            continue
+        activities.append({
+            "type": "relate_added",
+            "user_id": r.get("user_id"),
+            "username": user_name_map.get(r.get("user_id"), "Unknown"),
+            "target_id": r.get("problem_id"),
+            "target_title": problem_title_map.get(r.get("problem_id"), ""),
+            "created_at": ts,
+        })
+
+    # Sort by created_at desc and keep top 100
+    activities.sort(key=lambda a: a["created_at"], reverse=True)
+    activities = activities[:LIMIT]
+
+    # Serialize datetimes
+    for a in activities:
+        if isinstance(a["created_at"], datetime):
+            a["created_at"] = a["created_at"].isoformat()
+
+    return {"activities": activities}
+
 @api_router.get("/admin/reports")
 async def get_reports(
     status: str = "pending",

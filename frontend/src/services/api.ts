@@ -402,6 +402,11 @@ class ApiService {
     return response.data as { count: number };
   }
 
+  async getAdminActivity() {
+    const response = await this.client.get('/admin/activity');
+    return response.data as { activities: any[] };
+  }
+
   async dismissReport(reportId: string) {
     const response = await this.client.post(`/admin/reports/${reportId}/dismiss`);
     return response.data;

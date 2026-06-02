@@ -24,7 +24,7 @@ import { formatDistanceToNow } from 'date-fns';
 import Toast from 'react-native-root-toast';
 import * as ImagePicker from 'expo-image-picker';
 
-type Tab = 'overview' | 'feedback' | 'reports' | 'broadcast' | 'users' | 'audit' | 'communities';
+type Tab = 'overview' | 'feedback' | 'reports' | 'broadcast' | 'users' | 'audit' | 'communities' | 'activity';
 
 export default function AdminPanel() {
   const router = useRouter();
@@ -77,6 +77,9 @@ export default function AdminPanel() {
   const [selectedRequest, setSelectedRequest] = useState<any>(null);
   const [commMembers, setCommMembers] = useState<Record<string, { members: any[]; total: number }>>({});
   const [commMemberSearch, setCommMemberSearch] = useState<Record<string, string>>({});
+
+  // Activity feed data
+  const [activities, setActivities] = useState<any[]>([]);
 
   useEffect(() => {
     if (!isAdmin) {
@@ -143,6 +146,10 @@ export default function AdminPanel() {
           setCommRequests(commReqs || []);
           setCommList(commListData.communities || []);
           setCommTotal(commListData.total || 0);
+          break;
+        case 'activity':
+          const activityData = await api.getAdminActivity();
+          setActivities(activityData.activities || []);
           break;
       }
     } catch (error) {
@@ -1386,9 +1393,69 @@ export default function AdminPanel() {
     </ScrollView>
   );
 
-  if (!isAdmin) {
-    return null;
-  }
+  const renderActivity = () => {
+    const iconFor = (type: string) => {
+      switch (type) {
+        case 'user_joined': return { name: 'person-add', color: '#4ECDC4' };
+        case 'problem_posted': return { name: 'create', color: '#E85D3A' };
+        case 'comment_posted': return { name: 'chatbubble', color: '#FFB347' };
+        case 'relate_added': return { name: 'heart', color: '#FF6B6B' };
+        default: return { name: 'ellipse', color: colors.textMuted };
+      }
+    };
+    const verbFor = (type: string, title: string) => {
+      const truncated = title && title.length > 50 ? title.slice(0, 50) + '…' : title;
+      switch (type) {
+        case 'user_joined': return 'joined';
+        case 'problem_posted': return `posted: '${truncated}'`;
+        case 'comment_posted': return `commented on: '${truncated}'`;
+        case 'relate_added': return `related to: '${truncated}'`;
+        default: return '';
+      }
+    };
+
+    return (
+      <ScrollView
+        style={styles.tabContent}
+        refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={() => loadData(true)} />}
+      >
+        <View style={styles.activityHeader}>
+          <Text style={styles.activityHeaderTitle}>Live activity</Text>
+          <Text style={styles.activityHeaderSubtitle}>Last {activities.length} actions across the app</Text>
+        </View>
+
+        {activities.length === 0 ? (
+          <View style={styles.emptyState}>
+            <Ionicons name="pulse" size={48} color={colors.textMuted} />
+            <Text style={styles.emptyStateText}>No activity yet</Text>
+          </View>
+        ) : (
+          activities.map((a, idx) => {
+            const ic = iconFor(a.type);
+            let timeAgo = '';
+            try { timeAgo = formatDistanceToNow(new Date(a.created_at), { addSuffix: true }); } catch (_) { timeAgo = ''; }
+            return (
+              <View key={`${a.type}-${a.user_id || ''}-${a.created_at}-${idx}`} style={styles.activityItem} data-testid={`activity-item-${idx}`}>
+                <View style={[styles.activityIcon, { backgroundColor: ic.color + '20' }]}>
+                  <Ionicons name={ic.name as any} size={18} color={ic.color} />
+                </View>
+                <View style={styles.activityBody}>
+                  <Text style={styles.activityText} numberOfLines={2}>
+                    <Text style={styles.activityUsername}>{a.username || 'Unknown'}</Text>
+                    {' '}{verbFor(a.type, a.target_title || '')}
+                  </Text>
+                  <Text style={styles.activityTime}>{timeAgo}</Text>
+                </View>
+              </View>
+            );
+          })
+        )}
+
+        <View style={{ height: 40 }} />
+      </ScrollView>
+    );
+  };
+
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -1411,6 +1478,7 @@ export default function AdminPanel() {
           { key: 'users', label: 'Users', icon: 'people' },
           { key: 'audit', label: 'Audit', icon: 'list' },
           { key: 'communities', label: 'Local', icon: 'location' },
+          { key: 'activity', label: 'Activity', icon: 'pulse' },
         ].map((tab) => (
           <TouchableOpacity
             key={tab.key}
@@ -1451,6 +1519,7 @@ export default function AdminPanel() {
           {activeTab === 'users' && renderUsers()}
           {activeTab === 'audit' && renderAudit()}
           {activeTab === 'communities' && renderCommunities()}
+          {activeTab === 'activity' && renderActivity()}
         </View>
       )}
     </SafeAreaView>
@@ -1724,6 +1793,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 60,
+  },
+  emptyStateText: {
+    fontSize: 16,
+    color: colors.textSecondary,
+    marginTop: 12,
+    fontFamily: fonts.medium,
   },
   emptyTitle: {
     fontSize: 16,
@@ -2311,5 +2386,58 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 14,
     fontFamily: fonts.semibold,
+  },
+  // Activity feed
+  activityHeader: {
+    paddingHorizontal: 4,
+    paddingBottom: 12,
+    marginBottom: 4,
+  },
+  activityHeaderTitle: {
+    fontSize: 18,
+    fontFamily: fonts.bold,
+    color: colors.textPrimary,
+  },
+  activityHeaderSubtitle: {
+    fontSize: 13,
+    fontFamily: fonts.regular,
+    color: colors.textMuted,
+    marginTop: 2,
+  },
+  activityItem: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    backgroundColor: colors.surface,
+    padding: 12,
+    borderRadius: radius.md,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: colors.border,
+    gap: 12,
+  },
+  activityIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  activityBody: {
+    flex: 1,
+    minWidth: 0,
+  },
+  activityText: {
+    fontSize: 14,
+    color: colors.textPrimary,
+    lineHeight: 20,
+  },
+  activityUsername: {
+    fontFamily: fonts.semibold,
+    color: colors.textPrimary,
+  },
+  activityTime: {
+    fontSize: 12,
+    color: colors.textMuted,
+    marginTop: 4,
   },
 });
