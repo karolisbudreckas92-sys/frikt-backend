@@ -4118,7 +4118,7 @@ async def delete_problem(problem_id: str, admin: dict = Depends(require_admin)):
             "title": "Frikt removed",
             "message": f'Your frikt "{problem["title"][:50]}" was removed by FRIKT admin for violating community guidelines.',
             "data": {},
-            "read": False,
+            "is_read": False,
             "created_at": datetime.utcnow(),
         }
         await db.notifications.insert_one(notification)
@@ -4402,7 +4402,7 @@ async def test_push_notification(admin: dict = Depends(require_admin)):
     try:
         unread_count = await db.notifications.count_documents({
             "user_id": admin["id"],
-            "read": False,
+            "is_read": False,
         })
     except Exception:
         unread_count = 1
@@ -4897,10 +4897,13 @@ async def send_notification_to_user(user_id: str, title: str, body: str, data: d
     try:
         unread_count = await db.notifications.count_documents({
             "user_id": user_id,
-            "read": False,
+            "is_read": False,
         })
+        # Ensure at least 1 if there's no record yet but we're sending a push
+        if unread_count == 0:
+            unread_count = 1
     except Exception:
-        unread_count = None
+        unread_count = 1
     
     await send_push_notification(tokens, title, body, data, badge=unread_count)
 
