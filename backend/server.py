@@ -4398,12 +4398,23 @@ async def test_push_notification(admin: dict = Depends(require_admin)):
             "tokens_preview": [t[:30] for t in tokens[:3]]
         }
     
-    # Send test notification
+    # Send test notification with badge for testing badge functionality
+    try:
+        unread_count = await db.notifications.count_documents({
+            "user_id": admin["id"],
+            "read": False,
+        })
+    except Exception:
+        unread_count = 1
+    # Always pass at least 1 so admin can verify the iOS badge UI
+    badge_value = max(unread_count, 1)
+
     await send_push_notification(
         tokens=valid_tokens,
         title="Test Notification",
-        body="This is a test push notification from FRIKT admin panel.",
-        data={"type": "test", "timestamp": datetime.utcnow().isoformat()}
+        body=f"This is a test push notification from FRIKT admin panel. (badge: {badge_value})",
+        data={"type": "test", "timestamp": datetime.utcnow().isoformat()},
+        badge=badge_value,
     )
     
     return {
