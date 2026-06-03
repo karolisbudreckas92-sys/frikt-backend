@@ -1240,7 +1240,7 @@ export default function AdminPanel() {
               <View style={{ flex: 1 }}>
                 <Text style={{ fontSize: 15, color: colors.text }}>{comm.name}</Text>
                 <Text style={{ fontSize: 12, color: colors.textMuted, marginTop: 2 }}>
-                  Code: {comm.active_code} | {comm.member_count} members | {comm.frikt_count} frikts
+                  Code{(comm.access_codes && comm.access_codes.length > 1) ? 's' : ''}: {(comm.access_codes && comm.access_codes.length > 0) ? comm.access_codes.join(', ') : comm.active_code} | {comm.member_count} members | {comm.frikt_count} frikts
                   {comm.pending_join_requests > 0 && ` | ${comm.pending_join_requests} pending`}
                 </Text>
               </View>
@@ -1273,19 +1273,24 @@ export default function AdminPanel() {
 
                 {/* Change Code */}
                 <View style={{ marginBottom: 12 }}>
-                  <Text style={{ fontSize: 13, color: colors.text, marginBottom: 6 }}>Change Code</Text>
+                  <Text style={{ fontSize: 13, color: colors.text, marginBottom: 6 }}>Invite Codes</Text>
+                  <Text style={{ fontSize: 11, color: colors.textMuted, marginBottom: 6 }}>
+                    Separate multiple codes with commas. Each works independently.
+                  </Text>
                   {changeCodeId === comm.id ? (
                     <View style={{ flexDirection: 'row', gap: 8 }}>
                       <TextInput
                         style={[styles.input, { flex: 1 }]}
-                        placeholder="New code"
+                        placeholder="CODE1, CODE2, CODE3"
                         value={newCode}
                         onChangeText={setNewCode}
                         autoCapitalize="characters"
+                        data-testid={`comm-code-input-${comm.id}`}
                       />
                       <TouchableOpacity
                         style={[styles.primaryButton, { backgroundColor: CORAL, paddingHorizontal: 16 }]}
                         onPress={() => handleChangeCode(comm.id)}
+                        data-testid={`comm-code-save-${comm.id}`}
                       >
                         <Text style={styles.primaryButtonText}>Save</Text>
                       </TouchableOpacity>
@@ -1298,10 +1303,22 @@ export default function AdminPanel() {
                     </View>
                   ) : (
                     <TouchableOpacity
-                      style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}
-                      onPress={() => { setChangeCodeId(comm.id); setNewCode(comm.active_code); }}
+                      style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}
+                      onPress={() => {
+                        setChangeCodeId(comm.id);
+                        // Pre-fill with all current codes joined by ", "
+                        const all = (comm.access_codes && comm.access_codes.length > 0)
+                          ? comm.access_codes.join(', ')
+                          : comm.active_code;
+                        setNewCode(all);
+                      }}
+                      data-testid={`comm-code-edit-${comm.id}`}
                     >
-                      <Text style={{ fontSize: 15, color: CORAL }}>{comm.active_code}</Text>
+                      <Text style={{ fontSize: 15, color: CORAL }}>
+                        {(comm.access_codes && comm.access_codes.length > 0)
+                          ? comm.access_codes.join(', ')
+                          : comm.active_code}
+                      </Text>
                       <Ionicons name="pencil" size={14} color={CORAL} />
                     </TouchableOpacity>
                   )}

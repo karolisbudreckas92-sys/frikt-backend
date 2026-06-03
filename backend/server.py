@@ -577,6 +577,7 @@ class Community(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     name: str
     active_code: str
+    access_codes: List[str] = Field(default_factory=list)
     moderator_email: str
     avatar_url: Optional[str] = None
     created_at: datetime = Field(default_factory=datetime.utcnow)
@@ -5272,10 +5273,13 @@ async def delete_feedback(feedback_id: str, admin: dict = Depends(require_admin)
 
 @api_router.post("/communities/join")
 async def join_community(data: CommunityJoinCode, user: dict = Depends(require_auth)):
-    """Join a community using an invite code."""
+    """Join a community using an invite code (matches any of the community's codes)."""
     normalized_code = data.code.strip().upper()
     community = await db.communities.find_one(
-        {"active_code": normalized_code},
+        {"$or": [
+            {"active_code": normalized_code},
+            {"access_codes": normalized_code},
+        ]},
         {"_id": 0}
     )
     if not community:
@@ -5302,10 +5306,13 @@ async def join_community(data: CommunityJoinCode, user: dict = Depends(require_a
 
 @api_router.post("/communities/switch")
 async def switch_community(data: CommunityJoinCode, user: dict = Depends(require_auth)):
-    """Switch to a new community (leaves old one)."""
+    """Switch to a new community (leaves old one). Accepts any of the community's codes."""
     normalized_code = data.code.strip().upper()
     community = await db.communities.find_one(
-        {"active_code": normalized_code},
+        {"$or": [
+            {"active_code": normalized_code},
+            {"access_codes": normalized_code},
+        ]},
         {"_id": 0}
     )
     if not community:
@@ -5445,18 +5452,36 @@ async def request_join_community(community_id: str, data: CommunityJoinRequestCr
 
 @api_router.post("/admin/communities")
 async def admin_create_community(data: AdminCommunityCreate, admin: dict = Depends(require_admin)):
-    """Create a new community."""
-    normalized_code = data.code.strip().upper()
-    # Check code uniqueness
+    """Create a new community. Accepts comma-separated codes."""
+    raw_codes = [c.strip().upper() for c in (data.code or "").split(",") if c.strip()]
+    seen = set()
+    normalized_codes: list[str] = []
+    for c in raw_codes:
+        if c not in seen:
+            seen.add(c)
+            normalized_codes.append(c)
+    if not normalized_codes:
+        raise HTTPException(status_code=400, detail="Please provide at least one code")
+    for c in normalized_codes:
+        if len(c) > 32:
+            raise HTTPException(status_code=400, detail=f"Code '{c}' is too long (max 32 chars)")
+        if not re.match(r'^[A-Z0-9_]+$', c):
+            raise HTTPException(status_code=400, detail=f"Code '{c}' contains invalid characters. Use letters, numbers and underscore only.")
+
+    # Check code uniqueness against any other community
     existing = await db.communities.find_one(
-        {"active_code": normalized_code}
+        {"$or": [
+            {"active_code": {"$in": normalized_codes}},
+            {"access_codes": {"$in": normalized_codes}},
+        ]}
     )
     if existing:
-        raise HTTPException(status_code=400, detail="A community with this code already exists")
+        raise HTTPException(status_code=400, detail="A community with one of these codes already exists")
     
     community = Community(
         name=data.name,
-        active_code=normalized_code,
+        active_code=normalized_codes[0],
+        access_codes=normalized_codes,
         moderator_email=data.moderator_email
     )
     await db.communities.insert_one(community.dict())
@@ -5465,24 +5490,60 @@ async def admin_create_community(data: AdminCommunityCreate, admin: dict = Depen
 
 @api_router.put("/admin/communities/{community_id}/code")
 async def admin_update_community_code(community_id: str, data: AdminCodeUpdate, admin: dict = Depends(require_admin)):
-    """Change a community's active invite code."""
-    normalized_code = data.new_code.strip().upper()
-    # Check code uniqueness
+    """Change a community's invite code(s). Multiple comma-separated codes are accepted.
+
+    Each code is treated as a separate valid join code for the same community.
+    """
+    # Parse comma-separated codes, normalize, dedupe, drop empties
+    raw_codes = [c.strip().upper() for c in (data.new_code or "").split(",") if c.strip()]
+    # Dedupe preserving order
+    seen = set()
+    normalized_codes: list[str] = []
+    for c in raw_codes:
+        if c not in seen:
+            seen.add(c)
+            normalized_codes.append(c)
+
+    if not normalized_codes:
+        raise HTTPException(status_code=400, detail="Please provide at least one code")
+
+    # Each code can be max 32 chars, alphanumeric/underscore
+    for c in normalized_codes:
+        if len(c) > 32:
+            raise HTTPException(status_code=400, detail=f"Code '{c}' is too long (max 32 chars)")
+        if not re.match(r'^[A-Z0-9_]+$', c):
+            raise HTTPException(status_code=400, detail=f"Code '{c}' contains invalid characters. Use letters, numbers and underscore only.")
+
+    # Check that none of the codes are already used by a DIFFERENT community
     existing = await db.communities.find_one(
-        {"active_code": normalized_code, "id": {"$ne": community_id}}
+        {
+            "$and": [
+                {"id": {"$ne": community_id}},
+                {"$or": [
+                    {"active_code": {"$in": normalized_codes}},
+                    {"access_codes": {"$in": normalized_codes}},
+                ]},
+            ]
+        },
+        {"_id": 0, "id": 1, "name": 1, "active_code": 1, "access_codes": 1}
     )
     if existing:
-        raise HTTPException(status_code=400, detail="This code is already in use by another community")
+        raise HTTPException(status_code=400, detail=f"One of these codes is already in use by community '{existing.get('name', 'Unknown')}'")
     
+    # active_code = first code (primary). access_codes = full list.
+    update_payload = {
+        "active_code": normalized_codes[0],
+        "access_codes": normalized_codes,
+    }
     result = await db.communities.update_one(
         {"id": community_id},
-        {"$set": {"active_code": normalized_code}}
+        {"$set": update_payload}
     )
-    if result.modified_count == 0:
+    if result.matched_count == 0:
         raise HTTPException(status_code=404, detail="Community not found")
     
-    await log_admin_action(admin, "update_community_code", "community", community_id, {"new_code": data.new_code})
-    return {"success": True}
+    await log_admin_action(admin, "update_community_code", "community", community_id, {"codes": normalized_codes})
+    return {"success": True, "active_code": normalized_codes[0], "access_codes": normalized_codes}
 
 @api_router.get("/admin/communities")
 async def admin_list_communities(search: Optional[str] = None, limit: int = 50, skip: int = 0, admin: dict = Depends(require_admin)):
@@ -5494,6 +5555,10 @@ async def admin_list_communities(search: Optional[str] = None, limit: int = 50, 
     communities = await db.communities.find(query, {"_id": 0}).sort("created_at", -1).skip(skip).limit(limit).to_list(limit)
     
     for c in communities:
+        # Backward compatibility: if a community was created before multi-code support
+        # was added it won't have access_codes. Normalize so the UI always has it.
+        if not c.get("access_codes"):
+            c["access_codes"] = [c["active_code"]] if c.get("active_code") else []
         c["member_count"] = await db.community_members.count_documents({"community_id": c["id"]})
         c["frikt_count"] = await db.problems.count_documents({"community_id": c["id"], "is_local": True, "status": "active"})
         c["pending_join_requests"] = await db.community_join_requests.count_documents({
