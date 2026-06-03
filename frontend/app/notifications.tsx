@@ -9,13 +9,13 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { formatDistanceToNow } from 'date-fns';
 import { colors, fonts} from '@/src/theme/colors';
 import { api } from '@/src/services/api';
 import { useNotifications } from '@/src/contexts/NotificationContext';
-import { clearNotificationBadge } from '@/src/services/notifications';
+import { clearNotificationBadge, syncBadgeWithUnreadCount } from '@/src/services/notifications';
 
 export default function Notifications() {
   const router = useRouter();
@@ -40,9 +40,22 @@ export default function Notifications() {
   };
 
   useEffect(() => {
-    // On mount: clear iOS app icon badge + clear pending notifications + mark all as read in DB
-    clearNotificationBadge().catch(() => {});
-    markAllAsRead();
+    // On mount: mark all as read in DB first, then sync the badge with the
+    // server's authoritative unread count (now 0). This avoids a race where
+    // the badge is cleared but a subsequent foreground sync reads the old
+    // unread count and brings the red bubble back.
+    (async () => {
+      try {
+        await markAllAsRead();
+      } catch (_) {}
+      try {
+        await clearNotificationBadge();
+      } catch (_) {}
+      try {
+        // Also sync explicitly from server to confirm the badge stays at 0
+        await syncBadgeWithUnreadCount();
+      } catch (_) {}
+    })();
     loadNotifications();
   }, []);
 
