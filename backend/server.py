@@ -2567,7 +2567,27 @@ async def create_comment(comment_data: CommentCreate, user: dict = Depends(requi
         ).to_list(100)
         
         # Get all follower IDs to exclude current user and problem owner
-        follower_ids = [f["id"] for f in followers if f["id"] != user["id"] and f["id"] != problem["user_id"]]
+        follower_ids = set(
+            f["id"] for f in followers
+            if f["id"] != user["id"] and f["id"] != problem["user_id"]
+        )
+
+        # NEW: Also notify everyone who has previously commented on this Frikt
+        # (excluding the current commenter and the problem owner — they're already handled).
+        # This gives engaged users notifications even if they didn't explicitly follow.
+        prev_commenter_ids = await db.comments.distinct(
+            "user_id",
+            {
+                "problem_id": comment_data.problem_id,
+                "status": "active",
+                "user_id": {"$nin": [user["id"], problem["user_id"]]},
+            }
+        )
+        for cid in prev_commenter_ids:
+            if cid:
+                follower_ids.add(cid)
+
+        follower_ids = list(follower_ids)
     else:
         follower_ids = []
     
@@ -2600,14 +2620,14 @@ async def create_comment(comment_data: CommentCreate, user: dict = Depends(requi
                         user_id=follower_id,
                         type="new_comment",
                         problem_id=comment_data.problem_id,
-                        message="New comment on a Frikt you follow"
+                        message=f"New comment on a Frikt you joined"
                     )
                     await db.notifications.insert_one(notification.dict())
                     
                     await send_notification_to_user(
                         follower_id,
-                        "New comment on followed Frikt",
-                        f"{user['name']} commented on: {problem['title'][:40]}...",
+                        "New comment on a Frikt you joined",
+                        f"{user['name']}: {comment_data.content[:50]}...",
                         {"type": "new_comment", "problemId": comment_data.problem_id}
                     )
     
