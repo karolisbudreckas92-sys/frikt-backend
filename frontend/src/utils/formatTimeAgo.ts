@@ -3,15 +3,26 @@
  * Handles MongoDB UTC timestamps correctly.
  */
 
+/**
+ * Parse a backend ISO date string as UTC.
+ * MongoDB / FastAPI return naive ISO timestamps (no "Z"). Without normalization,
+ * `new Date(str)` treats them as LOCAL time → wrong "X ago" by user's TZ offset.
+ * This helper ensures the string is always interpreted as UTC.
+ */
+export function parseUTCDate(dateString: string): Date {
+  if (!dateString) return new Date(NaN);
+  // If string already has Z or +/-HH:MM offset, leave it alone.
+  const hasTz = /Z$|[+-]\d{2}:?\d{2}$/.test(dateString);
+  return new Date(hasTz ? dateString : dateString + 'Z');
+}
+
 export function formatTimeAgo(dateString: string): string {
   if (!dateString) return 'just now';
   
-  // Parse the date - MongoDB stores in format: "2026-03-07T21:24:19.087000"
+  // Parse the date - MongoDB stores naive UTC; normalize through helper.
   let created: Date;
   try {
-    // If the date doesn't end with Z, append it to treat as UTC
-    const normalizedDate = dateString.endsWith('Z') ? dateString : dateString + 'Z';
-    created = new Date(normalizedDate);
+    created = parseUTCDate(dateString);
     
     // Check if parsing failed
     if (isNaN(created.getTime())) {

@@ -21,6 +21,7 @@ import { colors, radius, fonts} from '@/src/theme/colors';
 import { api } from '@/src/services/api';
 import { useAuth } from '@/src/context/AuthContext';
 import { formatDistanceToNow } from 'date-fns';
+import { parseUTCDate } from '@/src/utils/formatTimeAgo';
 import Toast from 'react-native-root-toast';
 import * as ImagePicker from 'expo-image-picker';
 
@@ -581,7 +582,7 @@ export default function AdminPanel() {
                     <View style={styles.unreadDot} />
                   )}
                   <Text style={styles.feedbackTime}>
-                    {formatDistanceToNow(new Date(feedback.created_at), { addSuffix: true })}
+                    {formatDistanceToNow(parseUTCDate(feedback.created_at), { addSuffix: true })}
                   </Text>
                 </View>
               </View>
@@ -659,7 +660,7 @@ export default function AdminPanel() {
                   <Text style={styles.reasonText}>{report.reason}</Text>
                 </View>
                 <Text style={styles.reportTime}>
-                  {formatDistanceToNow(new Date(report.created_at), { addSuffix: true })}
+                  {formatDistanceToNow(parseUTCDate(report.created_at), { addSuffix: true })}
                 </Text>
               </View>
               
@@ -765,7 +766,7 @@ export default function AdminPanel() {
             )}
 
             <Text style={styles.userJoined}>
-              Joined {formatDistanceToNow(new Date(user.created_at), { addSuffix: true })}
+              Joined {formatDistanceToNow(parseUTCDate(user.created_at), { addSuffix: true })}
             </Text>
 
             {user.role !== 'admin' && (
@@ -966,7 +967,7 @@ export default function AdminPanel() {
               </View>
               <Text style={styles.historyBody} numberOfLines={2}>{broadcast.body}</Text>
               <Text style={styles.historyTime}>
-                {formatDistanceToNow(new Date(broadcast.sent_at), { addSuffix: true })}
+                {formatDistanceToNow(parseUTCDate(broadcast.sent_at), { addSuffix: true })}
               </Text>
             </View>
           ))
@@ -995,7 +996,7 @@ export default function AdminPanel() {
               </View>
               <Text style={styles.auditAction}>{formatAction(log.action)}</Text>
               <Text style={styles.auditTime}>
-                {formatDistanceToNow(new Date(log.created_at), { addSuffix: true })}
+                {formatDistanceToNow(parseUTCDate(log.created_at), { addSuffix: true })}
               </Text>
             </View>
             <Text style={styles.auditAdmin}>by {log.admin_email}</Text>
@@ -1475,7 +1476,7 @@ export default function AdminPanel() {
           activities.map((a, idx) => {
             const ic = iconFor(a.type);
             let timeAgo = '';
-            try { timeAgo = formatDistanceToNow(new Date(a.created_at), { addSuffix: true }); } catch (_) { timeAgo = ''; }
+            try { timeAgo = formatDistanceToNow(parseUTCDate(a.created_at), { addSuffix: true }); } catch (_) { timeAgo = ''; }
             return (
               <View key={`${a.type}-${a.user_id || ''}-${a.created_at}-${idx}`} style={styles.activityItem} data-testid={`activity-item-${idx}`}>
                 <View style={[styles.activityIcon, { backgroundColor: ic.color + '20' }]}>

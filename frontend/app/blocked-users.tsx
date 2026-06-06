@@ -15,6 +15,7 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, radius, fonts} from '@/src/theme/colors';
 import { api } from '@/src/services/api';
+import { parseUTCDate } from '@/src/utils/formatTimeAgo';
 
 interface BlockedUser {
   id: string;
@@ -100,7 +101,7 @@ export default function BlockedUsers() {
         <View style={styles.nameContainer}>
           <Text style={styles.userName}>{item.blocked_user_name || 'Unknown User'}</Text>
           <Text style={styles.blockedDate}>
-            Blocked {new Date(item.created_at).toLocaleDateString()}
+            Blocked {parseUTCDate(item.created_at).toLocaleDateString()}
           </Text>
         </View>
       </View>

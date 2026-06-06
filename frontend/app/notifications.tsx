@@ -12,6 +12,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { formatDistanceToNow } from 'date-fns';
+import { parseUTCDate } from '@/src/utils/formatTimeAgo';
 import { colors, fonts} from '@/src/theme/colors';
 import { api } from '@/src/services/api';
 import { useNotifications } from '@/src/contexts/NotificationContext';
@@ -78,7 +79,7 @@ export default function Notifications() {
 
   const renderNotification = ({ item }: { item: any }) => {
     const icon = getIcon(item.type);
-    const timeAgo = formatDistanceToNow(new Date(item.created_at), { addSuffix: true });
+    const timeAgo = formatDistanceToNow(parseUTCDate(item.created_at), { addSuffix: true });
     
     // Determine navigation based on notification type
     const handlePress = () => {
@@ -155,7 +156,7 @@ export default function Notifications() {
           <View style={styles.emptyContainer}>
             <Ionicons name="notifications-outline" size={64} color={colors.textMuted} />
             <Text style={styles.emptyTitle}>No notifications</Text>
-            <Text style={styles.emptyText}>You'll see updates here</Text>
+            <Text style={styles.emptyText}>You&apos;ll see updates here</Text>
           </View>
         }
       />

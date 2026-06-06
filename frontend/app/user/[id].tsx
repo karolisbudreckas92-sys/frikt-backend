@@ -16,6 +16,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { formatDistanceToNow } from 'date-fns';
+import { parseUTCDate } from '@/src/utils/formatTimeAgo';
 import { colors, radius, fonts} from '@/src/theme/colors';
 import { api } from '@/src/services/api';
 import { getCategoryStyle } from '@/src/theme/categoryStyles';
@@ -370,7 +371,7 @@ export default function UserProfile() {
                       </View>
                     </View>
                     <Text style={styles.postTime}>
-                      {formatDistanceToNow(new Date(post.created_at), { addSuffix: true })}
+                      {formatDistanceToNow(parseUTCDate(post.created_at), { addSuffix: true })}
                     </Text>
                   </View>
                 </TouchableOpacity>

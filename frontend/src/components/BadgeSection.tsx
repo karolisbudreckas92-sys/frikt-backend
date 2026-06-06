@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { api } from '@/src/services/api';
+import { parseUTCDate } from '@/src/utils/formatTimeAgo';
 import { fonts } from '@/src/theme/colors';
 
 const { width } = Dimensions.get('window');
@@ -296,7 +297,7 @@ function BadgeDetailContent({ badge, onClose }: { badge: Badge; onClose: () => v
 
       {isUnlocked && badge.unlocked_at && (
         <Text style={styles.detailDate}>
-          Earned on {new Date(badge.unlocked_at).toLocaleDateString()}
+          Earned on {parseUTCDate(badge.unlocked_at).toLocaleDateString()}
         </Text>
       )}
 
