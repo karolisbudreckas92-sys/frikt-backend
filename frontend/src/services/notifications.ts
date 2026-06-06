@@ -97,19 +97,38 @@ export function usePushNotifications(enabled: boolean = true) {
     });
 
     // Re-register token on app foreground if stale (>7 days) + always sync badge
-    const appStateListener = AppState.addEventListener('change', handleAppStateChange);
+    let appStateListener: any;
+    try {
+      appStateListener = AppState.addEventListener('change', handleAppStateChange);
+    } catch (e) {
+      console.warn('[notifications] AppState.addEventListener failed:', e);
+    }
 
     return () => {
-      if (notificationListener.current) {
-        Notifications.removeNotificationSubscription(notificationListener.current);
+      // Cleanup must be bulletproof: a crash here on logout will hard-crash the app.
+      try {
+        notificationListener.current?.remove?.();
+      } catch (e) {
+        console.warn('[notifications] cleanup notificationListener failed:', e);
       }
-      if (responseListener.current) {
-        Notifications.removeNotificationSubscription(responseListener.current);
+      try {
+        responseListener.current?.remove?.();
+      } catch (e) {
+        console.warn('[notifications] cleanup responseListener failed:', e);
       }
-      if (tokenListener.current) {
-        tokenListener.current.remove();
+      try {
+        tokenListener.current?.remove?.();
+      } catch (e) {
+        console.warn('[notifications] cleanup tokenListener failed:', e);
       }
-      appStateListener.remove();
+      try {
+        appStateListener?.remove?.();
+      } catch (e) {
+        console.warn('[notifications] cleanup appStateListener failed:', e);
+      }
+      notificationListener.current = undefined;
+      responseListener.current = undefined;
+      tokenListener.current = undefined;
     };
   }, [enabled]);
 

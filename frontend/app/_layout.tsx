@@ -62,12 +62,19 @@ function RootLayoutNav() {
   useEffect(() => {
     if (!user) return;
     syncBadgeWithUnreadCount();
-    const sub = require('react-native').AppState.addEventListener('change', (state: string) => {
-      if (state === 'active') {
-        syncBadgeWithUnreadCount();
-      }
-    });
-    return () => sub.remove();
+    let sub: any;
+    try {
+      sub = require('react-native').AppState.addEventListener('change', (state: string) => {
+        if (state === 'active') {
+          syncBadgeWithUnreadCount();
+        }
+      });
+    } catch (e) {
+      console.warn('[layout] AppState listener add failed:', e);
+    }
+    return () => {
+      try { sub?.remove?.(); } catch (e) { console.warn('[layout] AppState cleanup failed:', e); }
+    };
   }, [user]);
 
   useEffect(() => {
