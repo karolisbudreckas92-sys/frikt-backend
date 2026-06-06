@@ -304,8 +304,8 @@ class ApiService {
   }
 
   // Push Notifications
-  async registerPushToken(token: string) {
-    const response = await this.client.post('/push/register', { token });
+  async registerPushToken(token: string, platform?: string) {
+    const response = await this.client.post('/push/register', { token, platform });
     return response.data;
   }
 

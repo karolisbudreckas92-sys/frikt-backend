@@ -88,7 +88,7 @@ export function usePushNotifications(enabled: boolean = true) {
       if (newToken) {
         setExpoPushToken(newToken);
         try {
-          await api.registerPushToken(newToken);
+          await api.registerPushToken(newToken, Platform.OS);
           await AsyncStorage.setItem(LAST_TOKEN_REGISTRATION_KEY, Date.now().toString());
         } catch (e) {
           console.error('Failed to re-register rotated push token:', e);
@@ -158,7 +158,7 @@ export function usePushNotifications(enabled: boolean = true) {
       const token = tokenData.data;
       setExpoPushToken(token);
 
-      await api.registerPushToken(token);
+      await api.registerPushToken(token, Platform.OS);
       await AsyncStorage.setItem(LAST_TOKEN_REGISTRATION_KEY, Date.now().toString());
 
       // After registering token, sync badge with server (catches stale badges after fresh login)

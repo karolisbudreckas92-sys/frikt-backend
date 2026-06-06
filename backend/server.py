@@ -465,11 +465,15 @@ class PushToken(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     user_id: str
     token: str
+    platform: Optional[str] = None  # 'ios' | 'android' | 'web' | None (legacy)
     created_at: datetime = Field(default_factory=datetime.utcnow)
     is_active: bool = True
+    deactivated_at: Optional[datetime] = None
+    deactivation_reason: Optional[str] = None
 
 class PushTokenCreate(BaseModel):
     token: str
+    platform: Optional[str] = None  # 'ios' | 'android' | 'web'
 
 # Notification Settings Model
 class NotificationSettings(BaseModel):
@@ -4369,6 +4373,13 @@ async def get_broadcast_stats(admin: dict = Depends(require_admin)):
     
     # Get total users with active push tokens
     total_tokens = await db.push_tokens.count_documents({"is_active": True})
+    inactive_tokens = await db.push_tokens.count_documents({"is_active": False})
+    ios_tokens = await db.push_tokens.count_documents({"is_active": True, "platform": "ios"})
+    android_tokens = await db.push_tokens.count_documents({"is_active": True, "platform": "android"})
+    unknown_platform_tokens = await db.push_tokens.count_documents({
+        "is_active": True,
+        "$or": [{"platform": None}, {"platform": {"$exists": False}}]
+    })
     
     # Get users who disabled push notifications
     disabled_count = await db.notification_settings.count_documents({"push_notifications": False})
@@ -4378,6 +4389,12 @@ async def get_broadcast_stats(admin: dict = Depends(require_admin)):
         "max_broadcasts_per_day": 3,
         "remaining_broadcasts": max(0, 3 - broadcasts_today),
         "total_push_tokens": total_tokens,
+        "inactive_push_tokens": inactive_tokens,
+        "tokens_by_platform": {
+            "ios": ios_tokens,
+            "android": android_tokens,
+            "unknown": unknown_platform_tokens,
+        },
         "users_with_disabled_notifications": disabled_count
     }
 
@@ -4915,9 +4932,16 @@ async def send_push_notification(tokens: List[str], title: str, body: str, data:
                         logger.error(f"Push ticket error: {error_type} - {error_message} for token: {messages[i]['to'][:30]}...")
                         
                         if error_type in ["DeviceNotRegistered", "InvalidCredentials"]:
-                            # Remove invalid token
-                            await db.push_tokens.delete_one({"token": messages[i]["to"]})
-                            logger.info(f"Removed invalid push token: {messages[i]['to'][:30]}...")
+                            # Mark invalid token as inactive (keep historical record)
+                            await db.push_tokens.update_one(
+                                {"token": messages[i]["to"]},
+                                {"$set": {
+                                    "is_active": False,
+                                    "deactivated_at": datetime.utcnow(),
+                                    "deactivation_reason": error_type,
+                                }}
+                            )
+                            logger.info(f"Deactivated invalid push token ({error_type}): {messages[i]['to'][:30]}...")
                 
                 logger.info(f"Push notification results: {success_count} success, {error_count} errors")
             else:
@@ -5102,10 +5126,18 @@ async def register_push_token(token_data: PushTokenCreate, user: dict = Depends(
     })
     
     if existing:
-        # Update to active
+        # Update to active (and refresh platform/timestamp + clear any prior deactivation)
+        update_fields = {
+            "is_active": True,
+            "created_at": datetime.utcnow(),
+            "deactivated_at": None,
+            "deactivation_reason": None,
+        }
+        if token_data.platform:
+            update_fields["platform"] = token_data.platform
         await db.push_tokens.update_one(
             {"id": existing["id"]},
-            {"$set": {"is_active": True, "created_at": datetime.utcnow()}}
+            {"$set": update_fields}
         )
         return {"success": True, "message": "Token updated"}
     
@@ -5117,7 +5149,8 @@ async def register_push_token(token_data: PushTokenCreate, user: dict = Depends(
     # Create new token
     push_token = PushToken(
         user_id=user["id"],
-        token=token_data.token
+        token=token_data.token,
+        platform=token_data.platform,
     )
     await db.push_tokens.insert_one(push_token.dict())
     
