@@ -1,5 +1,8 @@
-import React, { createContext, useContext, useState, useCallback, ReactNode, useEffect } from 'react';
+import React, { createContext, useContext, useState, useCallback, ReactNode, useEffect, useRef } from 'react';
+import { AppState, AppStateStatus } from 'react-native';
+import * as Notifications from 'expo-notifications';
 import { api } from '../services/api';
+import { useAuth } from '../context/AuthContext';
 
 interface NotificationContextType {
   unreadCount: number;
@@ -12,8 +15,15 @@ const NotificationContext = createContext<NotificationContextType | undefined>(u
 
 export function NotificationProvider({ children }: { children: ReactNode }) {
   const [unreadCount, setUnreadCount] = useState(0);
+  const { user } = useAuth();
+  const userRef = useRef(user);
+  userRef.current = user;
 
   const refreshCount = useCallback(async () => {
+    if (!userRef.current) {
+      setUnreadCount(0);
+      return;
+    }
     try {
       const data = await api.getNotifications();
       setUnreadCount(data.unread_count || 0);
@@ -25,7 +35,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   const markAllAsRead = useCallback(async () => {
     // Optimistically set count to 0
     setUnreadCount(0);
-    
+
     try {
       await api.markNotificationsRead();
     } catch (error) {
@@ -35,12 +45,55 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     }
   }, [refreshCount]);
 
+  // Refresh count on login / when user changes
+  useEffect(() => {
+    if (user) {
+      refreshCount();
+    } else {
+      setUnreadCount(0);
+    }
+  }, [user, refreshCount]);
+
+  // Refresh count when app comes to foreground (catches pushes that arrived while
+  // the app was in background or killed).
+  useEffect(() => {
+    let sub: { remove: () => void } | undefined;
+    const handler = (state: AppStateStatus) => {
+      if (state === 'active') {
+        refreshCount();
+      }
+    };
+    try {
+      sub = AppState.addEventListener('change', handler);
+    } catch (e) {
+      console.warn('[NotificationContext] AppState listener failed:', e);
+    }
+    return () => {
+      try { sub?.remove?.(); } catch (e) { /* noop */ }
+    };
+  }, [refreshCount]);
+
+  // Refresh count when a push notification arrives while the app is in foreground.
+  useEffect(() => {
+    let sub: { remove: () => void } | undefined;
+    try {
+      sub = Notifications.addNotificationReceivedListener(() => {
+        refreshCount();
+      });
+    } catch (e) {
+      console.warn('[NotificationContext] addNotificationReceivedListener failed:', e);
+    }
+    return () => {
+      try { sub?.remove?.(); } catch (e) { /* noop */ }
+    };
+  }, [refreshCount]);
+
   return (
-    <NotificationContext.Provider value={{ 
-      unreadCount, 
-      setUnreadCount, 
-      markAllAsRead, 
-      refreshCount 
+    <NotificationContext.Provider value={{
+      unreadCount,
+      setUnreadCount,
+      markAllAsRead,
+      refreshCount
     }}>
       {children}
     </NotificationContext.Provider>
