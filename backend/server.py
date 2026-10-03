@@ -1,4 +1,4 @@
-from fastapi import FastAPI, APIRouter, HTTPException, Depends, status, BackgroundTasks, UploadFile
+from fastapi import FastAPI, APIRouter, HTTPException, Depends, BackgroundTasks, UploadFile
 from fastapi import File as FastAPIFile
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.staticfiles import StaticFiles
@@ -519,6 +519,7 @@ class CommunityJoinRequest(BaseModel):
     message: Optional[str] = None
     status: str = "pending"  # "pending" | "sent"
     created_at: datetime = Field(default_factory=datetime.utcnow)
+    expires_at: datetime = Field(default_factory=lambda: datetime.utcnow() + timedelta(days=7))
 
 class CommunityRequest(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
@@ -526,6 +527,7 @@ class CommunityRequest(BaseModel):
     community_name: str
     description: Optional[str] = None
     created_at: datetime = Field(default_factory=datetime.utcnow)
+    expires_at: datetime = Field(default_factory=lambda: datetime.utcnow() + timedelta(days=3))
 
 class CommunityJoinCode(BaseModel):
     code: str
@@ -1276,7 +1278,7 @@ def calculate_signal_score(problem: dict, include_breakdown: bool = False) -> fl
     if isinstance(created_at, str):
         try:
             created_at = datetime.fromisoformat(created_at.replace('Z', '+00:00'))
-        except:
+        except Exception:
             created_at = datetime.utcnow()
     
     hours_old = (datetime.utcnow() - created_at.replace(tzinfo=None)).total_seconds() / 3600
@@ -3459,13 +3461,13 @@ async def get_reports(
 @api_router.get("/admin/reported-problems")
 async def get_reported_problems(limit: int = 50, skip: int = 0, admin: dict = Depends(require_admin)):
     """Get problems sorted by report count"""
-    problems = await db.problems.find({"reports_count": {"$gt": 0}}).sort("reports_count", -1).skip(skip).limit(limit).to_list(limit)
+    problems = await db.problems.find({"reports_count": {"$gt": 0}}, {"_id": 0}).sort("reports_count", -1).skip(skip).limit(limit).to_list(limit)
     return problems
 
 @api_router.get("/admin/reported-comments")
 async def get_reported_comments(limit: int = 50, skip: int = 0, admin: dict = Depends(require_admin)):
     """Get comments sorted by report count"""
-    comments = await db.comments.find({"reports_count": {"$gt": 0}}).sort("reports_count", -1).skip(skip).limit(limit).to_list(limit)
+    comments = await db.comments.find({"reports_count": {"$gt": 0}}, {"_id": 0}).sort("reports_count", -1).skip(skip).limit(limit).to_list(limit)
     return comments
 
 @api_router.post("/admin/reports/{report_id}/dismiss")
@@ -3527,7 +3529,7 @@ async def unhide_problem(problem_id: str, admin: dict = Depends(require_admin)):
     return {"success": True, "status": "active"}
 
 @api_router.delete("/admin/problems/{problem_id}")
-async def delete_problem(problem_id: str, admin: dict = Depends(require_admin)):
+async def admin_delete_problem(problem_id: str, admin: dict = Depends(require_admin)):
     """Permanently delete a problem"""
     problem = await db.problems.find_one({"id": problem_id})
     if not problem:
@@ -3894,7 +3896,7 @@ async def unhide_comment(comment_id: str, admin: dict = Depends(require_admin)):
     return {"success": True, "status": "active"}
 
 @api_router.delete("/admin/comments/{comment_id}")
-async def delete_comment(comment_id: str, admin: dict = Depends(require_admin)):
+async def admin_delete_comment(comment_id: str, admin: dict = Depends(require_admin)):
     """Permanently delete a comment"""
     comment = await db.comments.find_one({"id": comment_id})
     if not comment:
@@ -3938,7 +3940,7 @@ async def get_users(
 @api_router.get("/admin/users/{user_id}")
 async def get_user_detail(user_id: str, admin: dict = Depends(require_admin)):
     """Get detailed user info"""
-    user = await db.users.find_one({"id": user_id}, {"password_hash": 0})
+    user = await db.users.find_one({"id": user_id}, {"password_hash": 0, "_id": 0})
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     
@@ -4368,7 +4370,7 @@ async def update_push_settings(
     return {"success": True, "updated": update_data}
 
 @api_router.post("/push/test")
-async def test_push_notification(user: dict = Depends(require_auth)):
+async def user_test_push_notification(user: dict = Depends(require_auth)):
     """Send a test push notification to the user"""
     await send_notification_to_user(
         user["id"],
@@ -4594,7 +4596,8 @@ async def get_community(community_id: str, user: dict = Depends(require_auth)):
     pending_request = await db.community_join_requests.find_one({
         "user_id": user["id"],
         "community_id": community_id,
-        "status": "pending"
+        "status": "pending",
+        "expires_at": {"$gte": datetime.utcnow()}
     })
     community["has_pending_request"] = pending_request is not None
     
@@ -4627,7 +4630,8 @@ async def request_join_community(community_id: str, data: CommunityJoinRequestCr
     existing_request = await db.community_join_requests.find_one({
         "user_id": user["id"],
         "community_id": community_id,
-        "status": "pending"
+        "status": "pending",
+        "expires_at": {"$gte": datetime.utcnow()}
     })
     if existing_request:
         raise HTTPException(status_code=400, detail="You already have a pending request for this community")
@@ -4696,7 +4700,8 @@ async def admin_list_communities(search: Optional[str] = None, limit: int = 50, 
         c["frikt_count"] = await db.problems.count_documents({"community_id": c["id"], "is_local": True, "status": "active"})
         c["pending_join_requests"] = await db.community_join_requests.count_documents({
             "community_id": c["id"],
-            "status": "pending"
+            "status": "pending",
+            "expires_at": {"$gte": datetime.utcnow()}
         })
     
     total = await db.communities.count_documents(query)
@@ -4706,7 +4711,7 @@ async def admin_list_communities(search: Optional[str] = None, limit: int = 50, 
 async def admin_get_community_requests(admin: dict = Depends(require_admin)):
     """Get pending community creation requests."""
     requests = await db.community_requests.find(
-        {},
+        {"expires_at": {"$gte": datetime.utcnow()}},
         {"_id": 0}
     ).sort("created_at", -1).to_list(100)
     return requests
@@ -4717,7 +4722,8 @@ async def admin_get_join_requests(community_id: str, admin: dict = Depends(requi
     requests = await db.community_join_requests.find(
         {
             "community_id": community_id,
-            "status": "pending"
+            "status": "pending",
+            "expires_at": {"$gte": datetime.utcnow()}
         },
         {"_id": 0}
     ).sort("created_at", -1).to_list(100)
@@ -4751,11 +4757,9 @@ async def admin_export_community_data(community_id: str, period: str = "all", ad
     
     problems = await db.problems.find(query, {"_id": 0}).sort("created_at", -1).to_list(500)
     
-    # Count total members
     member_count = await db.community_members.count_documents({"community_id": community_id})
-    
-    # Header
     period_label = {"all": "All time", "7d": "Last 7 days", "30d": "Last 30 days", "90d": "Last 90 days"}.get(period, period)
+    
     lines = [
         f"COMMUNITY EXPORT: {community['name']}",
         f"Period: {period_label}",
@@ -4768,37 +4772,35 @@ async def admin_export_community_data(community_id: str, period: str = "all", ad
     for i, p in enumerate(problems, 1):
         created = p.get('created_at', '')
         if hasattr(created, 'strftime'):
-            created = created.strftime('%Y-%m-%d %H:%M')
+            created = created.strftime('%Y-%m-%d')
+        
         lines.append("")
-        lines.append(f"[{i}] {p['title']}")
-        lines.append(f"    Author: {p.get('user_name', 'Unknown')}")
-        lines.append(f"    Posted: {created}")
-        lines.append(f"    Relates: {p.get('relates_count', 0)} | Comments: {p.get('comments_count', 0)} | Signal: {p.get('signal_score', 0):.1f}")
-        if p.get('frequency'):
-            lines.append(f"    Frequency: {p.get('frequency')}")
-        if p.get('pain_level'):
-            lines.append(f"    Pain level: {p.get('pain_level')}/5")
-        if p.get('when_happens'):
-            lines.append(f"    When: {p.get('when_happens')}")
-        if p.get('who_affected'):
-            lines.append(f"    Who: {p.get('who_affected')}")
-        if p.get('what_tried'):
-            lines.append(f"    Tried: {p.get('what_tried')}")
+        lines.append(f"FRIKT{i}: {p['title']}")
+        lines.append(f"RELATES: {p.get('relates_count', 0)}")
+        lines.append(f"DATE: {created}")
         
         # Get comments with threading
-        comments = await db.comments.find({"problem_id": p["id"], "status": "active"}, {"_id": 0}).sort("created_at", 1).to_list(100)
-        if comments:
-            lines.append("    ---")
-            for c in comments:
-                prefix = "      > " if c.get("parent_comment_id") else "    - "
-                c_time = c.get('created_at', '')
-                if hasattr(c_time, 'strftime'):
-                    c_time = c_time.strftime('%Y-%m-%d %H:%M')
-                lines.append(f"{prefix}{c.get('user_name', 'Unknown')} ({c_time}): {c.get('content', '')}")
-        lines.append("    " + "-" * 56)
+        all_comments = await db.comments.find({"problem_id": p["id"], "status": "active"}, {"_id": 0}).sort("created_at", 1).to_list(100)
+        
+        # Separate top-level and replies
+        top_level = [c for c in all_comments if not c.get("parent_comment_id")]
+        replies_map = {}
+        for c in all_comments:
+            pid = c.get("parent_comment_id")
+            if pid:
+                replies_map.setdefault(pid, []).append(c)
+        
+        lines.append(f"COMMENTS: {len(all_comments)}")
+        
+        for ci, comment in enumerate(top_level, 1):
+            lines.append(f"  COM{ci}: {comment.get('content', '')}")
+            child_replies = replies_map.get(comment["id"], [])
+            for ri, reply in enumerate(child_replies, 1):
+                lines.append(f"    COM{ci}.{ri}: {reply.get('content', '')}")
     
     lines.append("")
-    lines.append(f"END OF EXPORT - {community['name']} - {period_label}")
+    lines.append("=" * 60)
+    lines.append(f"END OF EXPORT")
     
     return {"content": "\n".join(lines), "filename": f"{community['name']}_export_{period}.txt"}
 

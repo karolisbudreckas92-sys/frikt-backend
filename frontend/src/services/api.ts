@@ -1,7 +1,7 @@
 import axios, { AxiosInstance } from 'axios';
 
-// Production backend URL - HARDCODED for reliability
-const BASE_URL = 'https://frikt-backend-production.up.railway.app';
+// Use environment variable for backend URL, fallback to production for native builds
+const BASE_URL = process.env.EXPO_PUBLIC_BACKEND_URL || 'https://frikt-backend-production.up.railway.app';
 
 // Log the URL being used (for debugging)
 console.log('[API] Using backend URL:', BASE_URL);

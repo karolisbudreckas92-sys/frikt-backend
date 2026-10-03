@@ -11,7 +11,7 @@ import { BadgeProvider } from '@/src/contexts/BadgeContext';
 import { NotificationProvider } from '@/src/contexts/NotificationContext';
 
 // Debug: Show backend URL on first launch
-const BACKEND_URL = 'https://frikt-backend-production.up.railway.app';
+const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL || 'https://frikt-backend-production.up.railway.app';
 let hasShownDebug = false;
 
 function RootLayoutNav() {
