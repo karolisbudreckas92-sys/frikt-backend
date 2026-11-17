@@ -1,7 +1,7 @@
 from fastapi import FastAPI, APIRouter, HTTPException, Depends, BackgroundTasks, UploadFile
 from fastapi import File as FastAPIFile
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from fastapi.staticfiles import StaticFiles
+from fastapi.responses import Response
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
@@ -18,6 +18,8 @@ from datetime import datetime, timedelta
 import jwt
 from passlib.context import CryptContext
 import httpx
+from starlette.concurrency import run_in_threadpool
+from storage import init_storage, put_object, get_object
 
 # Optional import for resend (email service)
 try:
@@ -62,13 +64,6 @@ security = HTTPBearer(auto_error=False)
 # Create the main app
 app = FastAPI(title="FRIKT API")
 api_router = APIRouter(prefix="/api")
-
-# Create uploads directory
-UPLOADS_DIR = Path("/app/backend/uploads/avatars")
-UPLOADS_DIR.mkdir(parents=True, exist_ok=True)
-
-# Mount static files for serving uploaded avatars
-app.mount("/api/uploads", StaticFiles(directory="/app/backend/uploads"), name="uploads")
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -2999,10 +2994,7 @@ async def update_profile(profile: ProfileUpdate, user: dict = Depends(require_au
 
 @api_router.post("/users/me/avatar")
 async def upload_avatar(file: UploadFile = FastAPIFile(...), user: dict = Depends(require_auth)):
-    """Upload avatar image"""
-    import base64
-    import os
-    
+    """Upload avatar image via Emergent Object Storage"""
     # Validate file type
     if not file.content_type or not file.content_type.startswith('image/'):
         raise HTTPException(status_code=400, detail="File must be an image")
@@ -3014,26 +3006,25 @@ async def upload_avatar(file: UploadFile = FastAPIFile(...), user: dict = Depend
     if len(content) > 2 * 1024 * 1024:
         raise HTTPException(status_code=400, detail="File too large (max 2MB)")
     
-    # Create uploads directory if it doesn't exist
-    upload_dir = "/app/backend/uploads/avatars"
-    os.makedirs(upload_dir, exist_ok=True)
-    
     # Generate unique filename
     file_ext = file.filename.split('.')[-1] if file.filename else 'jpg'
     filename = f"{user['id']}_{str(uuid.uuid4())[:8]}.{file_ext}"
-    filepath = os.path.join(upload_dir, filename)
+    storage_path = f"frikt/uploads/{user['id']}/{filename}"
     
-    # Save file
-    with open(filepath, 'wb') as f:
-        f.write(content)
+    # Upload to object storage
+    try:
+        await run_in_threadpool(put_object, storage_path, content, file.content_type)
+    except Exception as e:
+        logging.error(f"Object storage upload failed: {e}")
+        raise HTTPException(status_code=500, detail="Failed to upload avatar")
     
-    # Generate URL (served via static files)
-    avatar_url = f"/api/uploads/avatars/{filename}"
+    # Generate URL (served via our download proxy)
+    avatar_url = f"/api/files/{storage_path}"
     
     # Update user record
     await db.users.update_one(
         {"id": user["id"]},
-        {"$set": {"avatarUrl": avatar_url}}
+        {"$set": {"avatarUrl": avatar_url, "avatar_storage_path": storage_path}}
     )
     
     return {"url": avatar_url, "message": "Avatar uploaded successfully"}
@@ -3044,9 +3035,8 @@ class AvatarBase64Upload(BaseModel):
 
 @api_router.post("/users/me/avatar-base64")
 async def upload_avatar_base64(data: AvatarBase64Upload, user: dict = Depends(require_auth)):
-    """Upload avatar image as base64"""
+    """Upload avatar image as base64 via Emergent Object Storage"""
     import base64
-    import os
     
     # Decode base64
     try:
@@ -3057,10 +3047,6 @@ async def upload_avatar_base64(data: AvatarBase64Upload, user: dict = Depends(re
     # Limit file size (2MB)
     if len(image_data) > 2 * 1024 * 1024:
         raise HTTPException(status_code=400, detail="File too large (max 2MB)")
-    
-    # Create uploads directory if it doesn't exist
-    upload_dir = "/app/backend/uploads/avatars"
-    os.makedirs(upload_dir, exist_ok=True)
     
     # Determine file extension from mimeType
     ext = 'jpg'
@@ -3073,24 +3059,39 @@ async def upload_avatar_base64(data: AvatarBase64Upload, user: dict = Depends(re
     
     # Generate unique filename
     filename = f"{user['id']}_{str(uuid.uuid4())[:8]}.{ext}"
-    filepath = os.path.join(upload_dir, filename)
+    storage_path = f"frikt/uploads/{user['id']}/{filename}"
     
-    # Save file
-    with open(filepath, 'wb') as f:
-        f.write(image_data)
+    # Upload to object storage
+    try:
+        await run_in_threadpool(put_object, storage_path, image_data, data.mimeType)
+    except Exception as e:
+        logging.error(f"Object storage upload failed: {e}")
+        raise HTTPException(status_code=500, detail="Failed to upload avatar")
     
-    # Generate URL (served via static files)
-    avatar_url = f"/api/uploads/avatars/{filename}"
+    # Generate URL (served via our download proxy)
+    avatar_url = f"/api/files/{storage_path}"
     
     # Update user record
     await db.users.update_one(
         {"id": user["id"]},
-        {"$set": {"avatarUrl": avatar_url}}
+        {"$set": {"avatarUrl": avatar_url, "avatar_storage_path": storage_path}}
     )
     
     return {"url": avatar_url, "message": "Avatar uploaded successfully"}
 
 # ===================== DELETE ACCOUNT =====================
+
+
+@api_router.get("/files/{path:path}")
+async def serve_file(path: str):
+    """Serve files from Emergent Object Storage"""
+    try:
+        content, content_type = await run_in_threadpool(get_object, path)
+        return Response(content=content, media_type=content_type, headers={"Cache-Control": "public, max-age=86400"})
+    except Exception as e:
+        logging.error(f"Object storage download failed for {path}: {e}")
+        raise HTTPException(status_code=404, detail="File not found")
+
 
 @api_router.delete("/users/me")
 async def delete_account(user: dict = Depends(require_auth)):
@@ -4830,6 +4831,12 @@ async def startup_event():
     """Start background tasks on app startup."""
     asyncio.create_task(notification_batch_processor())
     logger.info("Notification batch processor started")
+    # Initialize object storage
+    try:
+        await run_in_threadpool(init_storage)
+        logger.info("Object storage initialized")
+    except Exception as e:
+        logger.warning(f"Object storage init deferred: {e}")
 
 @app.on_event("shutdown")
 async def shutdown_db_client():
