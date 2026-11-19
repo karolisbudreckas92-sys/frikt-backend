@@ -5337,10 +5337,10 @@ async def delete_feedback(feedback_id: str, admin: dict = Depends(require_admin)
 
 # ===================== COMMUNITY ROUTES =====================
 
-COMMUNITY_SECRET_FIELDS = ("active_code", "access_codes")
+COMMUNITY_SECRET_FIELDS = ("active_code", "access_codes", "moderator_email")
 
 def public_community(community: Optional[dict]) -> Optional[dict]:
-    """Strip invite codes from a community before returning it to regular users.
+    """Strip invite codes and the moderator email from a community before returning it to regular users.
 
     Codes are only for admins (see /admin/communities); exposing them would let anyone
     join any community without an invite.

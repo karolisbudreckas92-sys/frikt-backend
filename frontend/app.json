@@ -16,7 +16,6 @@
         "NSCameraUsageDescription": "Take photos for your profile",
         "NSPhotoLibraryUsageDescription": "Upload a profile photo",
         "UIBackgroundModes": [
-          "remote-notification",
           "remote-notification"
         ],
         "NSAppTransportSecurity": {
@@ -35,7 +34,9 @@
       "versionCode": 16,
       "permissions": [
         "android.permission.RECEIVE_BOOT_COMPLETED",
-        "android.permission.VIBRATE",
+        "android.permission.VIBRATE"
+      ],
+      "blockedPermissions": [
         "android.permission.RECORD_AUDIO"
       ],
       "useNextNotificationsApi": true,
@@ -67,7 +68,8 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "Upload a profile photo"
+          "photosPermission": "Upload a profile photo",
+          "microphonePermission": false
         }
       ],
       "expo-secure-store",
