@@ -11,7 +11,7 @@ BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'http://localhost:8001').rstr
 
 # Test credentials
 TEST_EMAIL = "karolisbudreckas92@gmail.com"
-TEST_PASSWORD = "Admin123!"
+TEST_PASSWORD = os.environ.get("FRIKT_ADMIN_PASSWORD", "")
 
 class TestUserSearchAPI:
     """Test the /api/users/search endpoint"""

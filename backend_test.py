@@ -4,6 +4,7 @@ PathGro Backend API Testing Suite
 Tests admin functionality and role-based access control
 """
 
+import os
 import requests
 import json
 import sys
@@ -495,7 +496,7 @@ class PathGroTester:
             # Now test admin credentials
             admin_login_data = {
                 "email": "karolisbudreckas92@gmail.com",
-                "password": "Admin123!"
+                "password": os.environ.get("FRIKT_ADMIN_PASSWORD", "")
             }
             admin_login_response = requests.post(f"{BACKEND_URL}/auth/login", json=admin_login_data)
             

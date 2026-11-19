@@ -19,7 +19,7 @@ BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', '').rstrip('/')
 
 # Test credentials from test_credentials.md
 ADMIN_EMAIL = "karolisbudreckas92@gmail.com"
-ADMIN_PASSWORD = "Admin123!"
+ADMIN_PASSWORD = os.environ.get("FRIKT_ADMIN_PASSWORD", "")
 
 # Known community with avatar from context
 KNOWN_COMMUNITY_WITH_AVATAR_ID = "dc5f2c0e-6ab2-488c-bb2e-abf6de068c98"

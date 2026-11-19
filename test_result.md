@@ -529,7 +529,7 @@ agent_communication:
       
       Test Credentials:
       - Admin email: karolisbudreckas92@gmail.com
-      - Admin password: Admin123!
+      - Admin password: <redacted>
       - Can also register new test users
       
       Key Backend Endpoints to Test:
@@ -731,7 +731,7 @@ agent_communication:
       
       TEST CREDENTIALS VERIFIED:
       ✅ Regular user: testfeedback@test.com / Test123!
-      ✅ Admin user: karolisbudreckas92@gmail.com / Admin123!
+      ✅ Admin user: karolisbudreckas92@gmail.com / <redacted>
       
       🎯 FEEDBACK FEATURE IS PRODUCTION READY!
   - agent: "testing"

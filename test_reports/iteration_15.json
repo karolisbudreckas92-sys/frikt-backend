@@ -37,7 +37,7 @@
   },
   "test_credentials": {
     "admin_email": "karolisbudreckas92@gmail.com",
-    "admin_password": "Admin123!",
+    "admin_password": "<redacted>",
     "preview_api_url": "https://frikt-bugfix-release.preview.emergentagent.com"
   },
   "seed_data_creation": "Test user created with prefix 'TEST_AvatarUser_' for non-admin security testing. Avatar uploaded to community 'First Community 7a3574' (id: dc5f2c0e-6ab2-488c-bb2e-abf6de068c98).",

@@ -2,6 +2,7 @@
 """
 Simple Feedback API Test - Individual endpoint testing
 """
+import os
 import requests
 import json
 import time
@@ -16,7 +17,7 @@ def test_auth_and_feedback():
     # Login as admin
     admin_login = {
         "email": "karolisbudreckas92@gmail.com",
-        "password": "Admin123!"
+        "password": os.environ.get("FRIKT_ADMIN_PASSWORD", "")
     }
     
     admin_response = requests.post(f"{BACKEND_URL}/auth/login", json=admin_login)

@@ -22,7 +22,7 @@ if not BASE_URL:
 
 # Admin credentials
 ADMIN_EMAIL = "karolisbudreckas92@gmail.com"
-ADMIN_PASSWORD = "Admin123!"
+ADMIN_PASSWORD = os.environ.get("FRIKT_ADMIN_PASSWORD", "")
 
 
 class TestSetup:
