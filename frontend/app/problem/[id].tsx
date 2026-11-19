@@ -56,6 +56,9 @@ const showToast = (message: string, isError: boolean = false) => {
   });
 };
 
+// Must match the server's minimum (CommentCreate.content min_length)
+const MIN_COMMENT_LENGTH = 10;
+
 export default function ProblemDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
@@ -85,6 +88,16 @@ export default function ProblemDetail() {
     userName: string;
   } | null>(null);
   const [expandedReplies, setExpandedReplies] = useState<Set<string>>(new Set());
+
+  // Apply a change to a comment wherever it lives: top level or inside a parent's replies.
+  const updateCommentById = (list: any[], commentId: string, updater: (c: any) => any) =>
+    list.map(c => {
+      if (c.id === commentId) return updater(c);
+      if (c.replies?.some((r: any) => r.id === commentId)) {
+        return { ...c, replies: c.replies.map((r: any) => (r.id === commentId ? updater(r) : r)) };
+      }
+      return c;
+    });
 
   const loadData = async () => {
     if (!id) return;
@@ -271,8 +284,8 @@ export default function ProblemDetail() {
   };
 
   const handleAddComment = async () => {
-    if (!commentText.trim() || commentText.trim().length < 5) {
-      Alert.alert('Too Short', 'Comment must be at least 5 characters');
+    if (!commentText.trim() || commentText.trim().length < MIN_COMMENT_LENGTH) {
+      Alert.alert('Too Short', `Comment must be at least ${MIN_COMMENT_LENGTH} characters`);
       return;
     }
     
@@ -357,16 +370,11 @@ export default function ProblemDetail() {
       } else {
         await api.markHelpful(commentId);
       }
-      setComments(comments.map(c => {
-        if (c.id === commentId) {
-          return {
-            ...c,
-            user_marked_helpful: !isHelpful,
-            helpful_count: isHelpful ? c.helpful_count - 1 : c.helpful_count + 1,
-          };
-        }
-        return c;
-      }));
+      setComments(prev => updateCommentById(prev, commentId, c => ({
+        ...c,
+        user_marked_helpful: !isHelpful,
+        helpful_count: isHelpful ? c.helpful_count - 1 : c.helpful_count + 1,
+      })));
     } catch (error) {
       console.error('Error toggling helpful:', error);
     }
@@ -388,11 +396,10 @@ export default function ProblemDetail() {
     
     try {
       await api.editComment(commentId, editedContent.trim());
-      setComments(comments.map(c => 
-        c.id === commentId 
-          ? { ...c, content: editedContent.trim(), edited_at: new Date().toISOString() }
-          : c
-      ));
+      const newContent = editedContent.trim();
+      setComments(prev => updateCommentById(prev, commentId, c => ({
+        ...c, content: newContent, edited_at: new Date().toISOString(),
+      })));
       setEditingCommentId(null);
       setEditedContent('');
       Toast.show('Comment updated', { duration: Toast.durations.SHORT });
@@ -432,10 +439,25 @@ export default function ProblemDetail() {
 
   const performDeleteComment = async (commentId: string) => {
     try {
-      await api.deleteComment(commentId);
-      setComments(comments.filter(c => c.id !== commentId));
-      if (problem) {
-        setProblem({ ...problem, comments_count: Math.max(0, problem.comments_count - 1) });
+      const result = await api.deleteComment(commentId);
+      if (result?.soft_deleted) {
+        // Server kept the comment because it has replies: show it as deleted, keep the replies
+        setComments(prev => updateCommentById(prev, commentId, c => ({
+          ...c, content: '[deleted]', user_name: '[deleted]',
+        })));
+      } else {
+        setComments(prev => prev
+          .filter(c => c.id !== commentId)
+          .map(c => c.replies?.some((r: any) => r.id === commentId)
+            ? {
+                ...c,
+                replies: c.replies.filter((r: any) => r.id !== commentId),
+                reply_count: Math.max(0, (c.reply_count || c.replies.length) - 1),
+              }
+            : c));
+        if (problem) {
+          setProblem({ ...problem, comments_count: Math.max(0, problem.comments_count - 1) });
+        }
       }
       Toast.show('Comment deleted', { duration: Toast.durations.SHORT });
     } catch (error) {
@@ -580,7 +602,7 @@ export default function ProblemDetail() {
           {/* Actions */}
           <View style={styles.actionsRow}>
             <TouchableOpacity 
-              style={[styles.actionButton, styles.actionButtonRelate, problem.user_has_related && styles.actionButtonActive]} 
+              style={[styles.actionButton, problem.user_has_related && styles.actionButtonActive]} 
               onPress={handleRelate}
             >
               <Ionicons 

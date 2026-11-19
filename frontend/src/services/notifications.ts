@@ -7,6 +7,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { api } from './api';
 
 const LAST_TOKEN_REGISTRATION_KEY = 'last_push_token_registration';
+const PUSH_TOKEN_KEY = 'push_token';
 const TOKEN_REFRESH_INTERVAL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
 
 // Configure notification behavior
@@ -63,12 +64,45 @@ export async function clearNotificationBadge(): Promise<void> {
   await setBadgeCountSafe(0);
 }
 
+async function rememberPushToken(token: string): Promise<void> {
+  try {
+    await AsyncStorage.setItem(PUSH_TOKEN_KEY, token);
+  } catch (e) {
+    console.warn('[notifications] could not store push token:', e);
+  }
+}
+
+/**
+ * Stop push notifications for the current account on THIS device.
+ * Call on logout while the auth token is still set. Never throws.
+ */
+export async function unregisterDevicePushToken(): Promise<void> {
+  try {
+    const token = await AsyncStorage.getItem(PUSH_TOKEN_KEY);
+    if (!token) return;
+    await api.unregisterPushToken(token);
+    await AsyncStorage.multiRemove([PUSH_TOKEN_KEY, LAST_TOKEN_REGISTRATION_KEY]);
+  } catch (e) {
+    console.warn('[notifications] unregister on logout failed:', e);
+  }
+}
+
+/** Whether the OS has granted notification permission to the app. */
+export async function hasPushPermission(): Promise<boolean> {
+  try {
+    const { status } = await Notifications.getPermissionsAsync();
+    return status === 'granted';
+  } catch (e) {
+    return false;
+  }
+}
+
 export function usePushNotifications(enabled: boolean = true) {
   const [expoPushToken, setExpoPushToken] = useState<string | undefined>();
   const [notification, setNotification] = useState<Notifications.Notification | undefined>();
-  const notificationListener = useRef<any>();
-  const responseListener = useRef<any>();
-  const tokenListener = useRef<any>();
+  const notificationListener = useRef<any>(undefined);
+  const responseListener = useRef<any>(undefined);
+  const tokenListener = useRef<any>(undefined);
 
   useEffect(() => {
     if (!enabled) return;
@@ -89,6 +123,7 @@ export function usePushNotifications(enabled: boolean = true) {
         setExpoPushToken(newToken);
         try {
           await api.registerPushToken(newToken, Platform.OS);
+          await rememberPushToken(newToken);
           await AsyncStorage.setItem(LAST_TOKEN_REGISTRATION_KEY, Date.now().toString());
         } catch (e) {
           console.error('Failed to re-register rotated push token:', e);
@@ -178,6 +213,7 @@ export function usePushNotifications(enabled: boolean = true) {
       setExpoPushToken(token);
 
       await api.registerPushToken(token, Platform.OS);
+      await rememberPushToken(token);
       await AsyncStorage.setItem(LAST_TOKEN_REGISTRATION_KEY, Date.now().toString());
 
       // After registering token, sync badge with server (catches stale badges after fresh login)

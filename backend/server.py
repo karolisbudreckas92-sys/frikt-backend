@@ -5176,12 +5176,16 @@ async def register_push_token(token_data: PushTokenCreate, user: dict = Depends(
     return {"success": True, "message": "Token registered"}
 
 @api_router.delete("/push/unregister")
-async def unregister_push_token(user: dict = Depends(require_auth)):
-    """Unregister all push tokens for the user"""
-    await db.push_tokens.update_many(
-        {"user_id": user["id"]},
-        {"$set": {"is_active": False}}
-    )
+async def unregister_push_token(token: Optional[str] = None, user: dict = Depends(require_auth)):
+    """Unregister push tokens for the user.
+
+    With `token`, only that device is unregistered (used on logout); without it, all of the
+    user's devices are (previous behaviour, kept for older app builds).
+    """
+    query = {"user_id": user["id"]}
+    if token:
+        query["token"] = token
+    await db.push_tokens.update_many(query, {"$set": {"is_active": False}})
     return {"success": True, "message": "Tokens unregistered"}
 
 @api_router.get("/push/settings")

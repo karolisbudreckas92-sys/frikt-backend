@@ -33,6 +33,7 @@ interface CommunityResult {
   name: string;
   member_count: number;
   frikt_count: number;
+  avatar_url?: string | null;
   is_member?: boolean;
   has_pending_request?: boolean;
 }

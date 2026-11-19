@@ -1690,6 +1690,36 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
     marginTop: 4,
   },
+  statsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  statCard: {
+    flexBasis: '48%',
+    flexGrow: 1,
+    backgroundColor: colors.surface,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderLeftWidth: 4,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+  },
+  noDataCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    backgroundColor: colors.surface,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+    padding: 16,
+  },
+  noDataText: {
+    fontSize: 14,
+    color: colors.textMuted,
+  },
   statsRow: {
     flexDirection: 'row',
     backgroundColor: colors.surface,
@@ -2120,7 +2150,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
     paddingHorizontal: 6,
     paddingVertical: 2,
-    borderRadius: radius.xs,
+    borderRadius: 4,
   },
   // ========== FEEDBACK STYLES ==========
   feedbackCard: {
@@ -2205,7 +2235,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
     paddingHorizontal: 8,
     paddingVertical: 3,
-    borderRadius: radius.xs,
+    borderRadius: 4,
   },
   feedbackActions: {
     flexDirection: 'row',
@@ -2439,7 +2469,7 @@ const styles = StyleSheet.create({
   activityHeaderTitle: {
     fontSize: 18,
     fontFamily: fonts.bold,
-    color: colors.textPrimary,
+    color: colors.text,
   },
   activityHeaderSubtitle: {
     fontSize: 13,
@@ -2471,12 +2501,12 @@ const styles = StyleSheet.create({
   },
   activityText: {
     fontSize: 14,
-    color: colors.textPrimary,
+    color: colors.text,
     lineHeight: 20,
   },
   activityUsername: {
     fontFamily: fonts.semibold,
-    color: colors.textPrimary,
+    color: colors.text,
   },
   activityTime: {
     fontSize: 12,
