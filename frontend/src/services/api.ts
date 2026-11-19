@@ -62,6 +62,28 @@ class ApiService {
     return response.data;
   }
 
+  // Password reset
+  async forgotPassword(email: string) {
+    const response = await this.client.post('/auth/forgot-password', { email });
+    return response.data;
+  }
+
+  async verifyResetCode(code: string, email: string) {
+    const response = await this.client.post('/auth/verify-reset-code', null, {
+      params: { token: code, email },
+    });
+    return response.data;
+  }
+
+  async resetPassword(code: string, newPassword: string, email: string) {
+    const response = await this.client.post('/auth/reset-password', {
+      token: code,
+      new_password: newPassword,
+      email,
+    });
+    return response.data;
+  }
+
   async getMe() {
     const response = await this.client.get('/auth/me');
     return response.data;
@@ -309,8 +331,12 @@ class ApiService {
     return response.data;
   }
 
-  async unregisterPushToken() {
-    const response = await this.client.delete('/push/unregister');
+  // Pass this device's token to only unregister this device (not the user's other devices).
+  async unregisterPushToken(token?: string) {
+    const response = await this.client.delete('/push/unregister', {
+      params: token ? { token } : undefined,
+      timeout: 5000, // used during logout: don't block it on a slow network
+    });
     return response.data;
   }
 

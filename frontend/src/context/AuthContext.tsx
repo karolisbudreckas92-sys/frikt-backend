@@ -3,6 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
 import { api } from '../services/api';
+import { unregisterDevicePushToken } from '../services/notifications';
 import * as Sentry from '@sentry/react-native';
 
 // Helper functions for secure token storage
@@ -102,9 +103,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           const response = await api.getMe();
           setUser(response);
           await AsyncStorage.setItem('auth_user', JSON.stringify(response));
-        } catch (error) {
-          // Token invalid, clear auth
-          await logout();
+        } catch (error: any) {
+          // Only sign out if the server rejected the session. Network errors, timeouts
+          // or a restarting server must not log the user out: keep the cached session.
+          const status = error?.response?.status;
+          if (status === 401 || status === 403) {
+            await logout();
+          }
         }
       }
     } catch (error) {
@@ -143,6 +148,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const logout = async () => {
+    // Stop this device receiving the account's push notifications (needs the auth token,
+    // so it runs first; it never throws and gives up quickly when offline).
+    await unregisterDevicePushToken();
     // Remove token from secure storage
     await removeSecureToken();
     await AsyncStorage.removeItem('auth_user');
