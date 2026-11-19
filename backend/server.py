@@ -76,6 +76,9 @@ db = client[os.environ.get('DB_NAME', 'pathgro_db')]
 
 # JWT Settings
 SECRET_KEY = os.environ.get('JWT_SECRET', 'pathgro-secret-key-change-in-production')
+if not os.environ.get('JWT_SECRET'):
+    # The fallback above is public (it is in the repository), so anyone could forge tokens.
+    logging.critical("SECURITY: JWT_SECRET is not set - using the public default key. Set JWT_SECRET in the environment!")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_DAYS = 30
 
@@ -104,10 +107,17 @@ app = FastAPI(title="FRIKT API")
 api_router = APIRouter(prefix="/api")
 
 # Rate limiter - use X-Forwarded-For behind reverse proxy (Railway)
+# SECURITY: the left-most X-Forwarded-For entries are supplied by the client and can be
+# forged to dodge rate limits. Only the entries appended by our own proxies can be trusted,
+# so we read the entry TRUSTED_PROXY_HOPS positions from the right (1 = Railway's edge).
+TRUSTED_PROXY_HOPS = int(os.environ.get("TRUSTED_PROXY_HOPS", "1"))
+
 def get_real_ip(request: Request) -> str:
     forwarded = request.headers.get("x-forwarded-for")
-    if forwarded:
-        return forwarded.split(",")[0].strip()
+    if forwarded and TRUSTED_PROXY_HOPS > 0:
+        parts = [p.strip() for p in forwarded.split(",") if p.strip()]
+        if parts:
+            return parts[-min(TRUSTED_PROXY_HOPS, len(parts))]
     return request.client.host if request.client else "unknown"
 
 limiter = Limiter(key_func=get_real_ip)
@@ -533,6 +543,8 @@ class PasswordResetRequest(BaseModel):
 class PasswordResetConfirm(BaseModel):
     token: str
     new_password: str = Field(..., min_length=6)
+    # Optional for backwards compatibility with app builds that only send the code.
+    email: Optional[EmailStr] = None
 
 class PasswordResetToken(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
@@ -1588,43 +1600,56 @@ async def forgot_password(request: Request, reset_request: PasswordResetRequest,
     logger.info(f"Password reset token created for user: {user['id']}")
     return {"success": True, "message": "If an account exists with this email, you will receive a reset code."}
 
-@api_router.post("/auth/reset-password")
-async def reset_password(request: PasswordResetConfirm):
-    """Reset password using the reset token/code"""
-    # Find the token
-    token_doc = await db.password_reset_tokens.find_one({
-        "token": request.token,
-        "used": False
-    }, {"_id": 0})
-    
-    if not token_doc:
-        raise HTTPException(status_code=400, detail="Invalid or expired code")
-    
-    # Check if max attempts exceeded
-    if token_doc.get("attempts", 0) >= 5:
-        await db.password_reset_tokens.update_one(
-            {"id": token_doc["id"]},
-            {"$set": {"used": True}}
-        )
-        raise HTTPException(status_code=400, detail="Invalid or expired code")
-    
-    # Increment attempts
-    await db.password_reset_tokens.update_one(
-        {"id": token_doc["id"]},
-        {"$inc": {"attempts": 1}}
+MAX_RESET_ATTEMPTS = 5
+RESET_INVALID_MSG = "Invalid or expired code"
+
+async def _find_active_reset_token(code: str, email: Optional[str]) -> Optional[dict]:
+    """Look up an unused reset code, scoped to the email when the client sends it."""
+    query = {"token": code, "used": False}
+    if email:
+        query["email"] = email.lower().strip()
+    return await db.password_reset_tokens.find_one(query, {"_id": 0})
+
+async def _register_failed_reset_attempt(email: Optional[str]):
+    """Count a wrong guess so reset codes can't be brute-forced.
+
+    With an email, only that account's active code is charged. Older app builds don't send
+    the email, so in that case every active code is charged: a guessing attacker burns
+    through them after MAX_RESET_ATTEMPTS wrong tries instead of getting unlimited guesses.
+    """
+    query = {"used": False}
+    if email:
+        query["email"] = email.lower().strip()
+    await db.password_reset_tokens.update_many(query, {"$inc": {"attempts": 1}})
+    await db.password_reset_tokens.update_many(
+        {**query, "attempts": {"$gte": MAX_RESET_ATTEMPTS}},
+        {"$set": {"used": True}}
     )
-    
-    # Check expiration
+
+def _reset_token_expired(token_doc: dict) -> bool:
     expires_at = token_doc.get("expires_at")
     if isinstance(expires_at, str):
-        expires_at = datetime.fromisoformat(expires_at.replace("Z", "+00:00"))
-    
-    if datetime.utcnow() > expires_at:
-        await db.password_reset_tokens.update_one(
-            {"id": token_doc["id"]},
-            {"$set": {"used": True}}
-        )
-        raise HTTPException(status_code=400, detail="Invalid or expired code")
+        expires_at = datetime.fromisoformat(expires_at.replace("Z", "+00:00")).replace(tzinfo=None)
+    return expires_at is None or datetime.utcnow() > expires_at
+
+async def _get_usable_reset_token(code: str, email: Optional[str]) -> Optional[dict]:
+    """Return the reset token if the code is valid right now; otherwise record the failure."""
+    token_doc = await _find_active_reset_token(code, email)
+    if not token_doc:
+        await _register_failed_reset_attempt(email)
+        return None
+    if token_doc.get("attempts", 0) >= MAX_RESET_ATTEMPTS or _reset_token_expired(token_doc):
+        await db.password_reset_tokens.update_one({"id": token_doc["id"]}, {"$set": {"used": True}})
+        return None
+    return token_doc
+
+@api_router.post("/auth/reset-password")
+@limiter.limit("5/minute;20/hour")
+async def reset_password(request: Request, reset_data: PasswordResetConfirm):
+    """Reset password using the reset token/code"""
+    token_doc = await _get_usable_reset_token(reset_data.token, reset_data.email)
+    if not token_doc:
+        raise HTTPException(status_code=400, detail=RESET_INVALID_MSG)
     
     # Find the user
     user = await db.users.find_one({"id": token_doc["user_id"]})
@@ -1632,74 +1657,36 @@ async def reset_password(request: PasswordResetConfirm):
         raise HTTPException(status_code=400, detail="User not found")
     
     # Validate new password
-    if len(request.new_password) < 6:
+    if len(reset_data.new_password) < 6:
         raise HTTPException(status_code=400, detail="Password must be at least 6 characters")
     
+    # Mark token as used first so the same code can't be replayed concurrently
+    result = await db.password_reset_tokens.update_one(
+        {"id": token_doc["id"], "used": False},
+        {"$set": {"used": True}}
+    )
+    if result.modified_count == 0:
+        raise HTTPException(status_code=400, detail=RESET_INVALID_MSG)
+    
     # Update password
-    hashed_password = hash_password(request.new_password)
+    hashed_password = hash_password(reset_data.new_password)
     await db.users.update_one(
         {"id": user["id"]},
         {"$set": {"password_hash": hashed_password}}
-    )
-    
-    # Mark token as used
-    await db.password_reset_tokens.update_one(
-        {"id": token_doc["id"]},
-        {"$set": {"used": True}}
     )
     
     logger.info(f"Password reset successful for user: {user['id']}")
     return {"success": True, "message": "Password has been reset successfully. You can now log in with your new password."}
 
 @api_router.post("/auth/verify-reset-code")
-async def verify_reset_code(token: str, email: Optional[str] = None):
+@limiter.limit("10/minute;30/hour")
+async def verify_reset_code(request: Request, token: str, email: Optional[str] = None):
     """Verify if a reset code is valid (without using it)"""
-    # First, try to find by exact token match
-    token_doc = await db.password_reset_tokens.find_one({
-        "token": token,
-        "used": False
-    }, {"_id": 0})
-    
-    if token_doc:
-        # Check if max attempts exceeded
-        if token_doc.get("attempts", 0) >= 5:
-            await db.password_reset_tokens.update_one(
-                {"id": token_doc["id"]},
-                {"$set": {"used": True}}
-            )
-            return {"valid": False, "message": "Invalid or expired code"}
-        
-        # Check expiration
-        expires_at = token_doc.get("expires_at")
-        if isinstance(expires_at, str):
-            expires_at = datetime.fromisoformat(expires_at.replace("Z", "+00:00"))
-        
-        if datetime.utcnow() > expires_at:
-            return {"valid": False, "message": "Invalid or expired code"}
-        
-        return {"valid": True, "email": token_doc.get("email")}
-    
-    # Token not found — if email provided, increment attempts on that email's active token
-    if email:
-        email_lower = email.lower().strip()
-        active_token = await db.password_reset_tokens.find_one({
-            "email": email_lower,
-            "used": False
-        }, {"_id": 0})
-        if active_token:
-            new_attempts = active_token.get("attempts", 0) + 1
-            if new_attempts >= 5:
-                await db.password_reset_tokens.update_one(
-                    {"id": active_token["id"]},
-                    {"$set": {"used": True, "attempts": new_attempts}}
-                )
-            else:
-                await db.password_reset_tokens.update_one(
-                    {"id": active_token["id"]},
-                    {"$inc": {"attempts": 1}}
-                )
-    
-    return {"valid": False, "message": "Invalid or expired code"}
+    token_doc = await _get_usable_reset_token(token, email)
+    if not token_doc:
+        return {"valid": False, "message": RESET_INVALID_MSG}
+    # Don't echo the account email back: the caller must already know it.
+    return {"valid": True}
 
 # ===================== CATEGORIES ROUTES =====================
 
@@ -1827,6 +1814,17 @@ async def update_problem(problem_id: str, update: ProblemUpdate, user: dict = De
     is_admin = user.get("role") == "admin"
     if problem["user_id"] != user["id"] and not is_admin:
         raise HTTPException(status_code=403, detail="Not authorized to edit this problem")
+    
+    # Same content rules as when posting
+    check_profanity(update.title, update.when_happens, update.who_affected, update.what_tried)
+    
+    # A frikt can only be moved into a community the editor belongs to (admins exempt)
+    if update.is_local and update.community_id and not is_admin:
+        membership = await db.community_members.find_one(
+            {"user_id": user["id"], "community_id": update.community_id}, {"_id": 0}
+        )
+        if not membership:
+            raise HTTPException(status_code=403, detail="You can only post to your own community")
     
     # Build update dict with only provided fields
     update_data = {}
@@ -2168,6 +2166,12 @@ async def get_problem(problem_id: str, user: dict = Depends(get_current_user)):
     problem = await db.problems.find_one({"id": problem_id})
     if not problem:
         raise HTTPException(status_code=404, detail="Problem not found")
+    
+    # Hidden/removed frikts are only visible to their author and admins
+    if problem.get("is_hidden") or problem.get("status") in ("hidden", "removed"):
+        can_see = user and (user["id"] == problem["user_id"] or user.get("role") == "admin")
+        if not can_see:
+            raise HTTPException(status_code=404, detail="Problem not found")
     
     category = next((c for c in CATEGORIES if c["id"] == problem["category_id"]), None)
     
@@ -3289,6 +3293,15 @@ async def update_profile(profile: ProfileUpdate, user: dict = Depends(require_au
     if profile.showCity is not None:
         update_data["showCity"] = profile.showCity
     if profile.avatarUrl is not None:
+        # Only accept images we host (uploaded via /users/me/avatar*), the user's current
+        # avatar, or an empty value to remove it. Arbitrary URLs would bypass moderation.
+        new_avatar = profile.avatarUrl.strip()
+        if (
+            new_avatar
+            and new_avatar != user.get("avatarUrl")
+            and not new_avatar.startswith("https://res.cloudinary.com/")
+        ):
+            raise HTTPException(status_code=400, detail="Invalid avatar URL. Please upload a photo instead.")
         update_data["avatarUrl"] = profile.avatarUrl
     
     await db.users.update_one(
@@ -5324,8 +5337,21 @@ async def delete_feedback(feedback_id: str, admin: dict = Depends(require_admin)
 
 # ===================== COMMUNITY ROUTES =====================
 
+COMMUNITY_SECRET_FIELDS = ("active_code", "access_codes")
+
+def public_community(community: Optional[dict]) -> Optional[dict]:
+    """Strip invite codes from a community before returning it to regular users.
+
+    Codes are only for admins (see /admin/communities); exposing them would let anyone
+    join any community without an invite.
+    """
+    if not community:
+        return community
+    return {k: v for k, v in community.items() if k not in COMMUNITY_SECRET_FIELDS}
+
 @api_router.post("/communities/join")
-async def join_community(data: CommunityJoinCode, user: dict = Depends(require_auth)):
+@limiter.limit("10/minute;30/hour")
+async def join_community(request: Request, data: CommunityJoinCode, user: dict = Depends(require_auth)):
     """Join a community using an invite code (matches any of the community's codes)."""
     normalized_code = data.code.strip().upper()
     community = await db.communities.find_one(
@@ -5355,10 +5381,11 @@ async def join_community(data: CommunityJoinCode, user: dict = Depends(require_a
     member = CommunityMember(user_id=user["id"], community_id=community["id"])
     await db.community_members.insert_one(member.dict())
     
-    return {"success": True, "community": community}
+    return {"success": True, "community": public_community(community)}
 
 @api_router.post("/communities/switch")
-async def switch_community(data: CommunityJoinCode, user: dict = Depends(require_auth)):
+@limiter.limit("10/minute;30/hour")
+async def switch_community(request: Request, data: CommunityJoinCode, user: dict = Depends(require_auth)):
     """Switch to a new community (leaves old one). Accepts any of the community's codes."""
     normalized_code = data.code.strip().upper()
     community = await db.communities.find_one(
@@ -5378,7 +5405,7 @@ async def switch_community(data: CommunityJoinCode, user: dict = Depends(require
     member = CommunityMember(user_id=user["id"], community_id=community["id"])
     await db.community_members.insert_one(member.dict())
     
-    return {"success": True, "community": community}
+    return {"success": True, "community": public_community(community)}
 
 @api_router.delete("/communities/leave")
 async def leave_community(user: dict = Depends(require_auth)):
@@ -5396,7 +5423,7 @@ async def popular_communities(limit: int = 20):
     for c in communities:
         c["member_count"] = await db.community_members.count_documents({"community_id": c["id"]})
     communities.sort(key=lambda x: x["member_count"], reverse=True)
-    return communities[:limit]
+    return [public_community(c) for c in communities[:limit]]
 
 
 @api_router.get("/communities")
@@ -5413,7 +5440,7 @@ async def list_communities(search: Optional[str] = None, user: dict = Depends(re
         c["member_count"] = await db.community_members.count_documents({"community_id": c["id"]})
         c["frikt_count"] = await db.problems.count_documents({"community_id": c["id"], "is_local": True, "status": "active"})
     
-    return communities
+    return [public_community(c) for c in communities]
 
 @api_router.get("/communities/me")
 async def get_my_community(user: dict = Depends(require_auth)):
@@ -5430,7 +5457,7 @@ async def get_my_community(user: dict = Depends(require_auth)):
     community["frikt_count"] = await db.problems.count_documents({"community_id": community["id"], "is_local": True, "status": "active"})
     community["joined_at"] = membership.get("joined_at")
     
-    return community
+    return public_community(community)
 
 @api_router.get("/communities/{community_id}")
 async def get_community(community_id: str, user: dict = Depends(get_current_user)):
@@ -5457,7 +5484,7 @@ async def get_community(community_id: str, user: dict = Depends(get_current_user
         community["is_member"] = False
         community["has_pending_request"] = False
     
-    return community
+    return public_community(community)
 
 @api_router.post("/community-requests")
 async def create_community_request(data: CommunityRequestCreate, user: dict = Depends(require_auth)):
@@ -5538,7 +5565,7 @@ async def admin_create_community(data: AdminCommunityCreate, admin: dict = Depen
         moderator_email=data.moderator_email
     )
     await db.communities.insert_one(community.dict())
-    await log_admin_action(admin, "create_community", "community", community.id, {"name": data.name, "code": normalized_code})
+    await log_admin_action(admin, "create_community", "community", community.id, {"name": data.name, "code": ",".join(normalized_codes)})
     return {"success": True, "community": community.dict()}
 
 @api_router.put("/admin/communities/{community_id}/code")

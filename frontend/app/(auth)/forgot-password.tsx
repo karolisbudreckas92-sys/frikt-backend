@@ -59,7 +59,9 @@ export default function ForgotPassword() {
 
     setIsLoading(true);
     try {
-      const response = await api.post(`/auth/verify-reset-code?token=${code}`);
+      const response = await api.post(
+        `/auth/verify-reset-code?token=${encodeURIComponent(code)}&email=${encodeURIComponent(email.trim().toLowerCase())}`
+      );
       if (response.data.valid) {
         setStep('newPassword');
       } else {
@@ -94,6 +96,7 @@ export default function ForgotPassword() {
       await api.post('/auth/reset-password', {
         token: code,
         new_password: newPassword,
+        email: email.trim().toLowerCase(),
       });
       Alert.alert(
         'Success',
