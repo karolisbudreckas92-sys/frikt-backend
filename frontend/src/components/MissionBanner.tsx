@@ -118,9 +118,4 @@ const styles = StyleSheet.create({
     fontFamily: fonts.semibold,
     color: colors.white,
   },
-  buttonText: {
-    fontSize: 14,
-    fontFamily: fonts.semibold,
-    color: colors.white,
-  },
 });

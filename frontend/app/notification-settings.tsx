@@ -14,7 +14,7 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, fonts} from '@/src/theme/colors';
 import { api } from '@/src/services/api';
-import { registerForPushNotificationsAsync } from '@/src/services/notifications';
+import { hasPushPermission } from '@/src/services/notifications';
 
 export default function NotificationSettings() {
   const router = useRouter();
@@ -56,10 +56,7 @@ export default function NotificationSettings() {
   };
 
   const checkPushStatus = async () => {
-    const token = await registerForPushNotificationsAsync();
-    // Token is valid if it exists and starts with "ExponentPushToken"
-    const isValid = !!token && token.startsWith('ExponentPushToken');
-    setPushEnabled(isValid);
+    setPushEnabled(await hasPushPermission());
   };
 
   const handleToggle = async (key: string, value: boolean) => {

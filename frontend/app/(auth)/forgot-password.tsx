@@ -15,7 +15,7 @@ import { useRouter, Link } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, fonts} from '@/src/theme/colors';
-import api from '@/src/services/api';
+import { api } from '@/src/services/api';
 
 type Step = 'email' | 'code' | 'newPassword';
 
@@ -37,7 +37,7 @@ export default function ForgotPassword() {
 
     setIsLoading(true);
     try {
-      await api.post('/auth/forgot-password', { email: email.trim().toLowerCase() });
+      await api.forgotPassword(email.trim().toLowerCase());
       Alert.alert(
         'Check Your Email',
         'If an account exists with this email, you will receive a 6-digit reset code.',
@@ -59,13 +59,11 @@ export default function ForgotPassword() {
 
     setIsLoading(true);
     try {
-      const response = await api.post(
-        `/auth/verify-reset-code?token=${encodeURIComponent(code)}&email=${encodeURIComponent(email.trim().toLowerCase())}`
-      );
-      if (response.data.valid) {
+      const result = await api.verifyResetCode(code, email.trim().toLowerCase());
+      if (result.valid) {
         setStep('newPassword');
       } else {
-        Alert.alert('Invalid Code', response.data.message || 'Please check your code and try again');
+        Alert.alert('Invalid Code', result.message || 'Please check your code and try again');
       }
     } catch (error: any) {
       const errorMessage = error.response?.data?.detail || 'Failed to verify code';
@@ -93,11 +91,7 @@ export default function ForgotPassword() {
 
     setIsLoading(true);
     try {
-      await api.post('/auth/reset-password', {
-        token: code,
-        new_password: newPassword,
-        email: email.trim().toLowerCase(),
-      });
+      await api.resetPassword(code, newPassword, email.trim().toLowerCase());
       Alert.alert(
         'Success',
         'Your password has been reset. You can now log in with your new password.',
