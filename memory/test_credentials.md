@@ -2,7 +2,7 @@
 
 ## Admin Account
 - Email: karolisbudreckas92@gmail.com
-- Password: Admin123!
+- Password: <redacted>
 
 ## Test Users
 - Register new test users via POST /api/auth/register with name, email, password

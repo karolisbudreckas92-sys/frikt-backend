@@ -30,7 +30,7 @@
   },
   "test_credentials": {
     "admin_email": "karolisbudreckas92@gmail.com",
-    "admin_password": "Admin123!",
+    "admin_password": "<redacted>",
     "test_email": "testuser.frikt@example.com",
     "test_password": "TestUser123!"
   },

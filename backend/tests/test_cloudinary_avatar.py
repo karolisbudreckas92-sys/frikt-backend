@@ -21,7 +21,7 @@ BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', os.environ.get('EXPO_PUBLIC_B
 
 # Test credentials
 ADMIN_EMAIL = "karolisbudreckas92@gmail.com"
-ADMIN_PASSWORD = "Admin123!"
+ADMIN_PASSWORD = os.environ.get("FRIKT_ADMIN_PASSWORD", "")
 
 
 def create_minimal_png(width=10, height=10, color=(255, 0, 0)):

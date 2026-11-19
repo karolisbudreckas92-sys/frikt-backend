@@ -73,7 +73,7 @@ index ba040b2..e69de29 100644
 -+            admin_data = {
 -+                "name": "Karolis Admin",
 -+                "email": "karolisbudreckas92@gmail.com",
--+                "password": "Admin123!"
+-+                "password": "<redacted>"
 -+            }
 -+            
 -+            response = requests.post(f"{BACKEND_URL}/auth/register", json=admin_data)
@@ -89,7 +89,7 @@ index ba040b2..e69de29 100644
 -+                    return False
 -+            elif response.status_code == 400 and "already registered" in response.text:
 -+                # Try login instead
--+                login_data = {"email": "karolisbudreckas92@gmail.com", "password": "Admin123!"}
+-+                login_data = {"email": "karolisbudreckas92@gmail.com", "password": "<redacted>"}
 -+                login_response = requests.post(f"{BACKEND_URL}/auth/login", json=login_data)
 -+                if login_response.status_code == 200:
 -+                    data = login_response.json()
@@ -153,7 +153,7 @@ index ba040b2..e69de29 100644
 -+        try:
 -+            login_data = {
 -+                "email": "karolisbudreckas92@gmail.com",
--+                "password": "Admin123!"
+-+                "password": "<redacted>"
 -+            }
 -+            
 -+            response = requests.post(f"{BACKEND_URL}/auth/login", json=login_data)

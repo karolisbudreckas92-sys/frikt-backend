@@ -52,7 +52,7 @@
   },
   "test_credentials": {
     "admin_email": "karolisbudreckas92@gmail.com",
-    "admin_password": "Admin123!"
+    "admin_password": "<redacted>"
   },
   "seed_data_creation": "No seed data created",
   "retest_needed": true,

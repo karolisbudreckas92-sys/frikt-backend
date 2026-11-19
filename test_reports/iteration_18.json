@@ -27,7 +27,7 @@
   ],
   "updated_files": [],
   "success_rate": {"backend": "N/A (frontend only)", "frontend": "95%"},
-  "test_credentials": "Admin: karolisbudreckas92@gmail.com / Admin123!, Test: karolis@test.com / Test123!",
+  "test_credentials": "Admin: karolisbudreckas92@gmail.com / <redacted>, Test: karolis@test.com / Test123!",
   "seed_data_creation": "None",
   "retest_needed": false,
   "main_agent_can_self_test": true,

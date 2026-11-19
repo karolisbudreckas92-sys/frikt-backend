@@ -20,7 +20,7 @@ if not BASE_URL:
     BASE_URL = "https://frikt-bugfix-release.preview.emergentagent.com"
 
 ADMIN_EMAIL = "karolisbudreckas92@gmail.com"
-ADMIN_PASSWORD = "Admin123!"
+ADMIN_PASSWORD = os.environ.get("FRIKT_ADMIN_PASSWORD", "")
 
 
 def get_token_from_response(data):
@@ -108,7 +108,7 @@ class TestFix6AvatarPropagation:
         frikt_id = test_user_with_frikt["frikt_id"]
         
         # Update profile with new avatar URL
-        new_avatar_url = f"https://example.com/avatar_{uuid.uuid4()}.jpg"
+        new_avatar_url = f"https://res.cloudinary.com/frikt-test/image/upload/avatar_{uuid.uuid4()}.jpg"
         update_response = requests.put(f"{BASE_URL}/api/users/me/profile", json={
             "displayName": f"AvatarUser{str(uuid.uuid4())[:6]}",
             "bio": "Testing avatar propagation",
