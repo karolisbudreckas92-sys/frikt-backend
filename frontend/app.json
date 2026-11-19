@@ -16,11 +16,13 @@
         "NSCameraUsageDescription": "Take photos for your profile",
         "NSPhotoLibraryUsageDescription": "Upload a profile photo",
         "UIBackgroundModes": [
+          "remote-notification",
           "remote-notification"
         ],
         "NSAppTransportSecurity": {
           "NSAllowsArbitraryLoads": true
-        }
+        },
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
@@ -30,10 +32,11 @@
       },
       "edgeToEdgeEnabled": true,
       "package": "au.path.gro",
-      "versionCode": 7,
+      "versionCode": 16,
       "permissions": [
         "android.permission.RECEIVE_BOOT_COMPLETED",
-        "android.permission.VIBRATE"
+        "android.permission.VIBRATE",
+        "android.permission.RECORD_AUDIO"
       ],
       "useNextNotificationsApi": true,
       "googleServicesFile": "./google-services.json"
