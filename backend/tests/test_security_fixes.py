@@ -23,7 +23,7 @@ DB_NAME = os.environ.get('DB_NAME', 'pathgro_db')
 
 # Admin credentials
 ADMIN_EMAIL = "karolisbudreckas92@gmail.com"
-ADMIN_PASSWORD = "Admin123!"
+ADMIN_PASSWORD = os.environ.get("FRIKT_ADMIN_PASSWORD", "")
 
 # MongoDB connection for direct DB manipulation
 client = MongoClient(MONGO_URL)

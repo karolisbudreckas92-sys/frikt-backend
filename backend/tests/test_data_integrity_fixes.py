@@ -20,7 +20,7 @@ if not BASE_URL:
     BASE_URL = "https://frikt-bugfix-release.preview.emergentagent.com"
 
 ADMIN_EMAIL = "karolisbudreckas92@gmail.com"
-ADMIN_PASSWORD = "Admin123!"
+ADMIN_PASSWORD = os.environ.get("FRIKT_ADMIN_PASSWORD", "")
 
 
 def get_token_from_response(data):

@@ -61,7 +61,7 @@ FRIKT is a social platform for sharing everyday frustrations ("frikts"). Users c
 - `better-profanity==0.7.0` added to ROOT `/app/requirements.txt` (Railway-critical)
 
 ## Auth Credentials
-- Admin: karolisbudreckas92@gmail.com / Admin123!
+- Admin: karolisbudreckas92@gmail.com / <redacted>
 - Test: karolis@test.com / Test123!
 
 ## Backlog

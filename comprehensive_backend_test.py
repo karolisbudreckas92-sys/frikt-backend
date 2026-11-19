@@ -4,6 +4,7 @@ FRIKT Backend API Comprehensive Testing Suite
 AppStore Readiness Test - Tests ALL backend endpoints
 """
 
+import os
 import requests
 import json
 import sys
@@ -50,7 +51,7 @@ class FRIKTTester:
             admin_data = {
                 "name": "Karolis Admin",
                 "email": "karolisbudreckas92@gmail.com",
-                "password": "Admin123!"
+                "password": os.environ.get("FRIKT_ADMIN_PASSWORD", "")
             }
             
             response = requests.post(f"{BACKEND_URL}/auth/register", json=admin_data)
@@ -66,7 +67,7 @@ class FRIKTTester:
                     return False
             elif response.status_code == 400 and "already registered" in response.text:
                 # Try login instead
-                login_data = {"email": "karolisbudreckas92@gmail.com", "password": "Admin123!"}
+                login_data = {"email": "karolisbudreckas92@gmail.com", "password": os.environ.get("FRIKT_ADMIN_PASSWORD", "")}
                 login_response = requests.post(f"{BACKEND_URL}/auth/login", json=login_data)
                 if login_response.status_code == 200:
                     data = login_response.json()
@@ -130,7 +131,7 @@ class FRIKTTester:
         try:
             login_data = {
                 "email": "karolisbudreckas92@gmail.com",
-                "password": "Admin123!"
+                "password": os.environ.get("FRIKT_ADMIN_PASSWORD", "")
             }
             
             response = requests.post(f"{BACKEND_URL}/auth/login", json=login_data)

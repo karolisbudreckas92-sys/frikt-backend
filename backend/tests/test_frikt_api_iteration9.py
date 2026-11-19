@@ -24,7 +24,7 @@ BASE_URL = os.environ.get('EXPO_PUBLIC_BACKEND_URL', 'https://frikt-bugfix-relea
 
 # Test credentials from review request
 ADMIN_EMAIL = "karolisbudreckas92@gmail.com"
-ADMIN_PASSWORD = "Admin123!"
+ADMIN_PASSWORD = os.environ.get("FRIKT_ADMIN_PASSWORD", "")
 
 
 class TestHealthEndpoint:
