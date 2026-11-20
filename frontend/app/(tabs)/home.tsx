@@ -8,7 +8,6 @@ import {
   RefreshControl,
   ActivityIndicator,
   TextInput,
-  Alert,
   ScrollView,
   Image,
 } from 'react-native';
@@ -155,56 +154,52 @@ export default function Home() {
     return () => clearTimeout(t);
   }, [exploreSearch, viewMode, loadExploreSearch]);
 
+  // Join with an access code (e.g. "3182" printed on a poster). Returns true if it was handled.
+  const tryJoinWithCode = async (code: string): Promise<boolean> => {
+    try {
+      const res = await api.joinCommunity(code);
+      setLinkInput('');
+      await loadCommData();
+      if (res?.community?.id) router.push(`/community/${res.community.id}`);
+      return true;
+    } catch (e: any) {
+      if (e.response?.status === 400) {
+        // Already in that community
+        setLinkInput('');
+        showToast(e.response?.data?.detail || "You're already in this community");
+        await loadCommData();
+        return true;
+      }
+      return false;
+    }
+  };
+
   const handleOpenLinkOrCode = async () => {
     const raw = linkInput.trim();
     if (!raw) return;
+    const looksLikeLink = /frikt\.com|\//i.test(raw);
     const slug = extractSlug(raw);
-    if (!slug) {
-      Alert.alert('Invalid link', 'Paste a link like "frikt.com/your-community" or just the handle after the slash.');
-      return;
-    }
     setIsOpeningLink(true);
     try {
-      const data = await api.getCommunityBySlug(slug);
-      if (!data || !data.id) {
-        showToast('Community not found', true);
-        return;
+      if (slug) {
+        try {
+          const data = await api.getCommunityBySlug(slug);
+          if (data?.id) {
+            setLinkInput('');
+            // Private communities without access show their own code screen
+            // (a TextInput, so it works on Android too; Alert.prompt is iOS-only).
+            router.push(`/community/${data.id}`);
+            return;
+          }
+        } catch (e: any) {
+          if (e.response?.status !== 404) throw e;
+        }
       }
-      // If private and no access, prompt for code
-      if (data.requires_code && !data.has_access) {
-        Alert.prompt(
-          data.name || 'Enter access code',
-          'This is a private community. Enter the access code to open it.',
-          [
-            { text: 'Cancel', style: 'cancel' },
-            {
-              text: 'Unlock',
-              onPress: async (code?: string) => {
-                if (!code || !code.trim()) return;
-                try {
-                  await api.accessCommunity(data.id, code.trim());
-                  setLinkInput('');
-                  await loadCommData();
-                  router.push(`/community/${data.id}`);
-                } catch (err: any) {
-                  showToast(err.response?.data?.detail || 'Invalid access code', true);
-                }
-              },
-            },
-          ],
-          'plain-text'
-        );
-        return;
-      }
-      // Public / unlisted / already-has-access → open directly
-      setLinkInput('');
-      router.push(`/community/${data.id}`);
+      // Not a community link: it may be an access code (older communities share codes)
+      if (!looksLikeLink && (await tryJoinWithCode(raw))) return;
+      showToast(looksLikeLink ? 'Community not found' : 'No community found with that link or code', true);
     } catch (e: any) {
-      if (e.response?.status === 404) {
-        showToast('Community not found', true);
-      } else {
-        showToast(e.response?.data?.detail || 'Could not open community', true);
-      }
+      showToast(e.response?.data?.detail || 'Could not open community', true);
     } finally {
       setIsOpeningLink(false);
     }
@@ -315,7 +310,7 @@ export default function Home() {
         <View style={styles.linkRow}>
           <TextInput
             style={styles.linkInput}
-            placeholder="frikt.com/your-community"
+            placeholder="frikt.com/your-community or code"
             placeholderTextColor={colors.textMuted}
             value={linkInput}
             onChangeText={setLinkInput}

@@ -37,8 +37,18 @@ const showToast = (msg: string, isError = false) => {
   });
 };
 
+// The server returns {detail: "..."} or, for validation errors, {detail: [{msg, ...}]}
+const errorText = (err: any, fallback: string): string => {
+  const detail = err?.response?.data?.detail;
+  if (typeof detail === 'string') return detail;
+  if (Array.isArray(detail) && detail[0]?.msg) return String(detail[0].msg);
+  return fallback;
+};
+
+// Same rules as the server: a-z, 0-9 and single hyphens, max 40 characters
 const normalizeSlug = (s: string) =>
-  s.toLowerCase().trim().replace(/[^a-z0-9-]+/g, '-').replace(/^-+|-+$/g, '').replace(/-+/g, '-');
+  s.toLowerCase().trim().replace(/[^a-z0-9-]+/g, '-').replace(/-+/g, '-').replace(/^-+|-+$/g, '')
+    .slice(0, 40).replace(/-+$/g, '');
 
 export default function CommunityEdit() {
   const router = useRouter();
@@ -161,7 +171,7 @@ export default function CommunityEdit() {
       setOriginalSlug(updated.slug);
       showToast('Saved ✓');
     } catch (err: any) {
-      Alert.alert('Error', String(err.response?.data?.detail || 'Failed to save'));
+      Alert.alert('Error', errorText(err, 'Failed to save'));
     } finally {
       setIsSaving(false);
     }

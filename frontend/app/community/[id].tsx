@@ -87,8 +87,10 @@ export default function CommunityDetail() {
       setIsLoading(false);
       return;
     }
-    // Auto-access for public/unlisted communities so they show up in "My communities"
-    if (community.visibility && community.visibility !== 'private' && community.has_access === false) {
+    // Auto-access for public/unlisted communities so they show up in "My communities".
+    // (The server reports has_access=true for every public/unlisted community, so check
+    // membership instead.)
+    if (community.visibility && community.visibility !== 'private' && !community.is_member && !community.is_owner) {
       api.accessCommunity(community.id).catch(() => {});
     }
     loadFeed();

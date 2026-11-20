@@ -31,6 +31,8 @@ export default function PostTab() {
       },
     });
 
+    // Forget the community this post was started from (tab params persist otherwise)
+    router.setParams({ community_id: undefined, community_name: undefined });
     // Navigate to home first
     router.replace('/(tabs)/home');
     
@@ -43,6 +45,7 @@ export default function PostTab() {
   };
 
   const handleCancel = () => {
+    router.setParams({ community_id: undefined, community_name: undefined });
     router.back();
   };
 

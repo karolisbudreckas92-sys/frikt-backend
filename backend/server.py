@@ -6021,6 +6021,9 @@ async def get_community(community_id: str, user: dict = Depends(get_current_user
         community["is_member"] = False
         community["has_pending_request"] = False
     
+    # The owner (and admins) need the access code and contact email to manage it
+    if community["is_owner"] or (user and user.get("role") == "admin"):
+        return owner_community(community)
     return public_community(community)
 
 @api_router.post("/community-requests")
