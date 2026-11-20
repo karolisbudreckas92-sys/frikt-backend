@@ -154,6 +154,10 @@ cloudinary.config(
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
+# An earlier logging.warning() (e.g. "resend package not installed") configures the root
+# logger at WARNING before basicConfig runs, which then does nothing and every INFO log of
+# this app is dropped. Set our own level explicitly so INFO logs always reach the output.
+logger.setLevel(logging.INFO)
 
 # ===================== MODELS =====================
 
