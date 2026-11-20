@@ -6855,6 +6855,52 @@ async def migrate_communities_v2():
     await db.relates.create_index([("problem_id", 1), ("user_id", 1)])
 
 
+async def log_storage_report():
+    """Write a disk usage summary to the logs on startup (search the logs for "STORAGE").
+
+    Read-only: lists every database and, for the app database, each collection's size, so
+    it's easy to see what fills the MongoDB volume. Never raises.
+    """
+    mb = lambda n: f"{(n or 0) / (1024 * 1024):.1f} MB"
+    try:
+        stats = await db.command("dbStats")
+        fs_used, fs_total = stats.get("fsUsedSize"), stats.get("fsTotalSize")
+        if fs_total:
+            logger.info(f"STORAGE disk: {mb(fs_used)} used of {mb(fs_total)} ({mb(fs_total - fs_used)} free)")
+    except Exception as e:
+        logger.info(f"STORAGE disk: unavailable ({e})")
+    try:
+        listing = await client.admin.command("listDatabases")
+        total = 0
+        for d in sorted(listing.get("databases", []), key=lambda d: -(d.get("sizeOnDisk") or 0)):
+            total += d.get("sizeOnDisk") or 0
+            logger.info(f"STORAGE database {d.get('name')}: {mb(d.get('sizeOnDisk'))} on disk")
+        logger.info(f"STORAGE all databases: {mb(total)} on disk (the rest of the used disk is MongoDB's own files: journal, diagnostic.data, logs)")
+    except Exception as e:
+        logger.info(f"STORAGE databases: unavailable ({e})")
+    try:
+        rows = []
+        for name in await db.list_collection_names():
+            try:
+                cs = await db.command("collStats", name)
+            except Exception:
+                # Newer MongoDB versions: the $collStats aggregation stage
+                try:
+                    agg = await db[name].aggregate([{"$collStats": {"storageStats": {}}}]).to_list(1)
+                    cs = agg[0]["storageStats"] if agg else None
+                except Exception:
+                    cs = None
+            if cs:
+                rows.append((cs.get("storageSize", 0) + cs.get("totalIndexSize", 0), name, cs))
+        for total, name, cs in sorted(rows, reverse=True)[:25]:
+            logger.info(
+                f"STORAGE collection {name}: {mb(total)} on disk "
+                f"(data {mb(cs.get('storageSize'))}, indexes {mb(cs.get('totalIndexSize'))}, {cs.get('count', 0)} documents)"
+            )
+    except Exception as e:
+        logger.info(f"STORAGE collections: unavailable ({e})")
+
+
 @app.on_event("startup")
 async def startup_event():
     """Start background tasks on app startup."""
@@ -6898,6 +6944,9 @@ async def startup_event():
         logger.warning(f"Onboarding migration warning: {e}")
     
     logger.info("Notification batch processor started")
+    
+    # Disk usage summary in the logs (read-only, runs in the background)
+    asyncio.create_task(log_storage_report())
 
 @app.on_event("shutdown")
 async def shutdown_db_client():
