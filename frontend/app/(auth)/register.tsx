@@ -85,7 +85,7 @@ export default function Register() {
               <Ionicons name="person-outline" size={20} color={colors.textMuted} style={styles.inputIcon} />
               <TextInput
                 style={styles.input}
-                placeholder="Your name"
+                placeholder="Your name (kept private)"
                 placeholderTextColor={colors.textMuted}
                 value={name}
                 onChangeText={setName}

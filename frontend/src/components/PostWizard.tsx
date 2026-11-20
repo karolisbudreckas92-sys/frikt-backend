@@ -16,11 +16,14 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, shadows, radius, fonts} from '../theme/colors';
 import { api } from '../services/api';
+import { useAuth } from '../context/AuthContext';
 import Toast from 'react-native-root-toast';
 
 interface PostWizardProps {
   onComplete: (problemId?: string, newlyAwardedBadges?: any[]) => void;
   onCancel: () => void;
+  initialCommunityId?: string;
+  initialCommunityName?: string;
 }
 
 const showToast = (message: string, isError: boolean = false) => {
@@ -40,11 +43,6 @@ const showToast = (message: string, isError: boolean = false) => {
     },
   });
 };
-
-interface PostWizardProps {
-  onComplete: (problemId?: string, newlyAwardedBadges?: any[]) => void;
-  onCancel: () => void;
-}
 
 const CATEGORIES = [
   { id: 'money', name: 'Money' },
@@ -68,7 +66,10 @@ const FREQUENCY_OPTIONS = [
 
 const SEVERITY_LEVELS = [1, 2, 3, 4, 5];
 
-export default function PostWizard({ onComplete, onCancel }: PostWizardProps) {
+export default function PostWizard({ onComplete, onCancel, initialCommunityId, initialCommunityName }: PostWizardProps) {
+  const { user } = useAuth();
+  // The name other people see on this frikt (the profile nickname)
+  const publicName = user?.displayName || user?.name || 'your profile name';
   const [step, setStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   
@@ -88,13 +89,27 @@ export default function PostWizard({ onComplete, onCancel }: PostWizardProps) {
   const [whoAffected, setWhoAffected] = useState('');
   const [whatTried, setWhatTried] = useState('');
   
-  // Local community toggle
-  const [isLocal, setIsLocal] = useState(false);
-  const [myCommunity, setMyCommunity] = useState<any>(null);
-  
+  // Local community toggle (now supports multiple communities)
+  const [isLocal, setIsLocal] = useState<boolean>(!!initialCommunityId);
+  const [myCommunities, setMyCommunities] = useState<any[]>([]);
+  const [selectedCommunityId, setSelectedCommunityId] = useState<string | null>(initialCommunityId || null);
+  const [showCommPicker, setShowCommPicker] = useState(false);
+
   useEffect(() => {
-    api.getMyCommunity().then(setMyCommunity).catch(() => setMyCommunity(null));
+    api.getCommunitiesMine()
+      .then((list: any[]) => {
+        const arr = Array.isArray(list) ? list : [];
+        setMyCommunities(arr);
+        // If we were passed an initial id but have none yet, keep it. Otherwise, auto-select first.
+        if (!selectedCommunityId && arr.length > 0 && isLocal) {
+          setSelectedCommunityId(arr[0].id);
+        }
+      })
+      .catch(() => setMyCommunities([]));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const selectedCommunity = myCommunities.find((c: any) => c.id === selectedCommunityId) || (initialCommunityId ? { id: initialCommunityId, name: initialCommunityName || 'Community' } : null);
 
   // Duplicate detection (disabled — Similar Frikts UI removed)
   const searchSimilar = useCallback(async (_text: string) => {
@@ -120,10 +135,16 @@ export default function PostWizard({ onComplete, onCancel }: PostWizardProps) {
 
   const handleSubmit = async () => {
     if (isSubmitting) return; // Prevent double submission
-    
+
+    // Validate community selection when posting local
+    if (isLocal && !selectedCommunityId) {
+      showToast('Pick a community first', true);
+      return;
+    }
+
     setIsSubmitting(true);
     try {
-      const result = await api.createProblem({
+      const payload: any = {
         title: problemText.trim(),
         category_id: isLocal ? 'local' : categoryId,
         frequency: frequency || null,
@@ -132,7 +153,11 @@ export default function PostWizard({ onComplete, onCancel }: PostWizardProps) {
         when_happens: whenHappens.trim() || null,
         who_affected: whoAffected.trim() || null,
         what_tried: whatTried.trim() || null,
-      });
+      };
+      if (isLocal && selectedCommunityId) {
+        payload.community_id = selectedCommunityId;
+      }
+      const result = await api.createProblem(payload);
       
       // Reset state before calling onComplete
       setIsSubmitting(false);
@@ -204,30 +229,73 @@ export default function PostWizard({ onComplete, onCancel }: PostWizardProps) {
         }
       </Text>
       <Text style={styles.anonymousHint} data-testid="anonymous-hint-text">
-        This is anonymous. Focus on the problem, not the person.
+        You'll appear as {publicName}. You can change your name in your profile.
       </Text>
 
-      {/* Local toggle */}
-      {myCommunity && (
-        <View
-          style={[styles.localToggle, isLocal && styles.localToggleActive]}
-          data-testid="local-toggle-post"
-        >
-          <Ionicons name="location" size={18} color={isLocal ? '#fff' : '#E85D3A'} />
-          <View style={{ flex: 1 }}>
-            <Text style={[styles.localToggleText, isLocal && styles.localToggleTextActive]}>
-              Post to {myCommunity.name}
-            </Text>
-            <Text style={[styles.localToggleHint, isLocal && { color: 'rgba(255,255,255,0.7)' }]}>
-              This frikt will appear in your local community feed.
-            </Text>
+      {/* Local toggle: shown only if user has at least 1 community */}
+      {myCommunities.length > 0 && (
+        <View data-testid="local-toggle-post-wrapper">
+          <View
+            style={[styles.localToggle, isLocal && styles.localToggleActive]}
+            data-testid="local-toggle-post"
+          >
+            <Ionicons name="people" size={18} color={isLocal ? '#fff' : '#E85D3A'} />
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.localToggleText, isLocal && styles.localToggleTextActive]}>
+                Post to a community
+              </Text>
+              <Text style={[styles.localToggleHint, isLocal && { color: 'rgba(255,255,255,0.7)' }]}>
+                Your frikt will appear in that community's feed.
+              </Text>
+            </View>
+            <Switch
+              value={isLocal}
+              onValueChange={(v) => {
+                setIsLocal(v);
+                if (v && !selectedCommunityId && myCommunities.length > 0) {
+                  setSelectedCommunityId(myCommunities[0].id);
+                }
+              }}
+              trackColor={{ false: '#E8E1D6', true: 'rgba(255,255,255,0.4)' }}
+              thumbColor={isLocal ? '#FFFFFF' : '#E85D3A'}
+            />
           </View>
-          <Switch
-            value={isLocal}
-            onValueChange={setIsLocal}
-            trackColor={{ false: '#E8E1D6', true: 'rgba(255,255,255,0.4)' }}
-            thumbColor={isLocal ? '#FFFFFF' : '#E85D3A'}
-          />
+
+          {isLocal && (
+            <TouchableOpacity
+              style={styles.commPickerRow}
+              onPress={() => setShowCommPicker((s) => !s)}
+              activeOpacity={0.7}
+              data-testid="community-picker-toggle"
+            >
+              <Ionicons name="location-outline" size={16} color="#E85D3A" />
+              <Text style={styles.commPickerText} numberOfLines={1}>
+                {selectedCommunity ? selectedCommunity.name : 'Pick a community'}
+              </Text>
+              <Ionicons name={showCommPicker ? 'chevron-up' : 'chevron-down'} size={16} color="#E85D3A" />
+            </TouchableOpacity>
+          )}
+
+          {isLocal && showCommPicker && (
+            <View style={styles.commPickerList} data-testid="community-picker-list">
+              {myCommunities.map((c: any) => (
+                <TouchableOpacity
+                  key={c.id}
+                  style={[styles.commPickerItem, c.id === selectedCommunityId && styles.commPickerItemActive]}
+                  onPress={() => {
+                    setSelectedCommunityId(c.id);
+                    setShowCommPicker(false);
+                  }}
+                  data-testid={`community-pick-${c.id}`}
+                >
+                  <Text style={[styles.commPickerItemText, c.id === selectedCommunityId && styles.commPickerItemTextActive]} numberOfLines={1}>
+                    {c.name}
+                  </Text>
+                  {c.id === selectedCommunityId && <Ionicons name="checkmark" size={16} color="#fff" />}
+                </TouchableOpacity>
+              ))}
+            </View>
+          )}
         </View>
       )}
 
@@ -744,6 +812,25 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
     marginTop: 2,
   },
+  commPickerRow: {
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    borderWidth: 1, borderColor: '#E85D3A', borderRadius: 10,
+    paddingVertical: 10, paddingHorizontal: 12, marginTop: 8, marginHorizontal: 16,
+  },
+  commPickerText: { flex: 1, fontSize: 14, color: '#E85D3A', fontFamily: fonts.semibold },
+  commPickerList: {
+    marginTop: 6, marginHorizontal: 16, borderRadius: 10,
+    borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface,
+    overflow: 'hidden',
+  },
+  commPickerItem: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingVertical: 10, paddingHorizontal: 12,
+    borderBottomWidth: 1, borderBottomColor: colors.border,
+  },
+  commPickerItemActive: { backgroundColor: '#E85D3A' },
+  commPickerItemText: { fontSize: 14, color: colors.text, flexShrink: 1, paddingRight: 8 },
+  commPickerItemTextActive: { color: '#fff', fontFamily: fonts.semibold },
   localCheckbox: {
     width: 24,
     height: 24,

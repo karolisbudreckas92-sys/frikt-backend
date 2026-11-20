@@ -696,6 +696,12 @@ async def require_auth(credentials: HTTPAuthorizationCredentials = Depends(secur
         raise HTTPException(status_code=403, detail="Your account has been suspended")
     return user
 
+def public_name(user: dict) -> str:
+    """The name other people see: the profile display name (a nickname), never the private
+    registration name when a display name exists."""
+    return user.get("displayName") or user.get("name") or "Someone"
+
+
 def is_admin(user: dict) -> bool:
     """Check if user has admin role"""
     return user.get("role") == "admin"
@@ -1458,8 +1464,13 @@ async def register(request: Request, user_data: UserCreate):
     )
     user_dict = user.dict()
     user_dict["password_hash"] = hash_password(user_data.password)
+    # Public name starts as a generated nickname (e.g. "Willow482"); the name typed at
+    # sign-up stays private. Users can change the nickname in their profile.
+    nickname = await generate_guest_name()
+    user_dict["displayName"] = nickname
+    user_dict["normalizedDisplayName"] = nickname.lower()
     
-    await db.users.insert_one(user_dict)
+    await db.users.insert_one(dict(user_dict))
     
     # Log if admin user created
     if role == "admin":
@@ -1794,7 +1805,7 @@ async def create_problem(problem_data: ProblemCreate, user: dict = Depends(requi
                 problem_id=problem.id,
                 problem_title=problem.title,
                 author_id=user["id"],
-                author_name=user["name"],
+                author_name=public_name(user),
             )
         )
     
@@ -2385,7 +2396,7 @@ async def record_relate(problem: dict, user: dict) -> dict:
                 target_id=problem_id,
                 target_title=problem.get("title", "your Frikt"),
                 actor_user_id=user["id"],
-                actor_user_name=user["name"]
+                actor_user_name=public_name(user)
             )
             
             if should_send_immediate:
@@ -2394,14 +2405,14 @@ async def record_relate(problem: dict, user: dict) -> dict:
                     user_id=problem["user_id"],
                     type="new_relate",
                     problem_id=problem_id,
-                    message=f"{user['name']} related to your Frikt"
+                    message=f"{public_name(user)} related to your Frikt"
                 )
                 await db.notifications.insert_one(notification.dict())
                 
                 await send_notification_to_user(
                     problem["user_id"],
                     "Someone related to your Frikt",
-                    f"{user['name']} related to: {problem['title'][:50]}...",
+                    f"{public_name(user)} related to: {problem['title'][:50]}...",
                     {"type": "new_relate", "problemId": problem_id}
                 )
             # If not immediate, the batch processor will send later
@@ -2597,7 +2608,7 @@ async def create_comment(comment_data: CommentCreate, user: dict = Depends(requi
                 target_id=comment_data.problem_id,
                 target_title=problem.get("title", "your Frikt"),
                 actor_user_id=user["id"],
-                actor_user_name=user["name"]
+                actor_user_name=public_name(user)
             )
             
             if should_send_immediate:
@@ -2606,14 +2617,14 @@ async def create_comment(comment_data: CommentCreate, user: dict = Depends(requi
                     user_id=problem["user_id"],
                     type="new_comment",
                     problem_id=comment_data.problem_id,
-                    message=f"{user['name']} commented on your Frikt"
+                    message=f"{public_name(user)} commented on your Frikt"
                 )
                 await db.notifications.insert_one(notification.dict())
                 
                 await send_notification_to_user(
                     problem["user_id"],
                     "New comment on your Frikt",
-                    f"{user['name']}: {comment_data.content[:50]}...",
+                    f"{public_name(user)}: {comment_data.content[:50]}...",
                     {"type": "new_comment", "problemId": comment_data.problem_id}
                 )
             # If not immediate, the batch processor will send later
@@ -2672,7 +2683,7 @@ async def create_comment(comment_data: CommentCreate, user: dict = Depends(requi
                     target_id=comment_data.problem_id,
                     target_title=problem.get("title", "a followed Frikt"),
                     actor_user_id=user["id"],
-                    actor_user_name=user["name"]
+                    actor_user_name=public_name(user)
                 )
                 
                 if should_send:
@@ -2687,7 +2698,7 @@ async def create_comment(comment_data: CommentCreate, user: dict = Depends(requi
                     await send_notification_to_user(
                         follower_id,
                         "New comment on a Frikt you joined",
-                        f"{user['name']}: {comment_data.content[:50]}...",
+                        f"{public_name(user)}: {comment_data.content[:50]}...",
                         {"type": "new_comment", "problemId": comment_data.problem_id}
                     )
     
@@ -2707,7 +2718,7 @@ async def create_comment(comment_data: CommentCreate, user: dict = Depends(requi
                 target_id=comment_data.problem_id,
                 target_title=f"your comment",
                 actor_user_id=user["id"],
-                actor_user_name=user["name"]
+                actor_user_name=public_name(user)
             )
             
             if should_send_reply_notif:
@@ -2715,14 +2726,14 @@ async def create_comment(comment_data: CommentCreate, user: dict = Depends(requi
                     user_id=reply_to_user_id,
                     type="comment_reply",
                     problem_id=comment_data.problem_id,
-                    message=f"{user['name']} replied to your comment"
+                    message=f"{public_name(user)} replied to your comment"
                 )
                 await db.notifications.insert_one(reply_notification.dict())
                 
                 await send_notification_to_user(
                     reply_to_user_id,
                     "Someone replied to your comment",
-                    f"{user['name']}: {comment_data.content[:50]}...",
+                    f"{public_name(user)}: {comment_data.content[:50]}...",
                     {"type": "comment_reply", "problemId": comment_data.problem_id}
                 )
     
@@ -2992,7 +3003,9 @@ async def search_users(
     query = {
         "$or": [
             {"normalizedDisplayName": {"$regex": safe_regex(search_term), "$options": "i"}},
-            {"name": {"$regex": safe_regex(search_term), "$options": "i"}},
+            # Registration names are private: only match them for users without a nickname
+            {"name": {"$regex": safe_regex(search_term), "$options": "i"},
+             "$or": [{"displayName": None}, {"displayName": ""}, {"displayName": {"$exists": False}}]},
         ],
         "status": "active",
         "is_guest": {"$ne": True},
@@ -3230,7 +3243,7 @@ async def follow_user(user_id: str, user: dict = Depends(require_auth)):
             user_id=user_id,
             type="new_follower",
             problem_id="",  # No problem associated
-            message=f"{user['name']} started following you"
+            message=f"{public_name(user)} started following you"
         )
         await db.notifications.insert_one(notification.dict())
         
@@ -3242,7 +3255,7 @@ async def follow_user(user_id: str, user: dict = Depends(require_auth)):
             await send_notification_to_user(
                 user_id,
                 "New follower!",
-                f"{user['name']} started following you",
+                f"{public_name(user)} started following you",
                 {"type": "new_follower", "userId": user["id"]}
             )
     
@@ -6021,6 +6034,9 @@ async def get_community(community_id: str, user: dict = Depends(get_current_user
         community["is_member"] = False
         community["has_pending_request"] = False
     
+    # The owner (and admins) need the access code and contact email to manage it
+    if community["is_owner"] or (user and user.get("role") == "admin"):
+        return owner_community(community)
     return public_community(community)
 
 @api_router.post("/community-requests")
