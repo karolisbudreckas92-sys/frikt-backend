@@ -394,6 +394,7 @@ class Problem(BaseModel):
     # Local community fields
     is_local: bool = False
     community_id: Optional[str] = None
+    source: str = "app"  # "app" | "web" (frikt.com community page)
 
 class ProblemResponse(Problem):
     category_name: str = ""
@@ -597,6 +598,12 @@ class Community(BaseModel):
     moderator_email: str
     avatar_url: Optional[str] = None
     created_at: datetime = Field(default_factory=datetime.utcnow)
+    # Communities v2
+    slug: Optional[str] = None  # frikt.com/<slug>
+    description: Optional[str] = None
+    visibility: str = "private"  # "public" | "unlisted" | "private"
+    owner_user_id: Optional[str] = None
+    owner_email: Optional[str] = None
 
 class CommunityMember(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
@@ -637,6 +644,8 @@ class AdminCommunityCreate(BaseModel):
     name: str
     code: str
     moderator_email: str
+    slug: Optional[str] = None  # generated from the name when empty
+    description: Optional[str] = None
 
 class AdminCodeUpdate(BaseModel):
     new_code: str
@@ -667,6 +676,9 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
         if not user_id:
             return None
         user = await db.users.find_one({"id": user_id})
+        if user and user.get("is_guest"):
+            # Web guest tokens only work on /api/web/* endpoints
+            return None
         return user
     except jwt.PyJWTError:
         return None
@@ -1723,11 +1735,23 @@ async def create_problem(problem_data: ProblemCreate, user: dict = Depends(requi
     is_local = problem_data.is_local
     local_community_id = None
     if is_local:
-        # User must be in a community to post locally
-        membership = await db.community_members.find_one({"user_id": user["id"]}, {"_id": 0})
-        if not membership:
-            raise HTTPException(status_code=403, detail="You must join a community to post locally")
-        local_community_id = membership["community_id"]
+        if problem_data.community_id:
+            target = await db.communities.find_one({"id": problem_data.community_id}, {"_id": 0})
+            if not target:
+                raise HTTPException(status_code=404, detail="Community not found")
+            if not await user_has_community_access(user, target):
+                raise HTTPException(status_code=403, detail="Enter this community's access code first")
+            local_community_id = target["id"]
+            # Posting in a public/unlisted community adds it to the user's list
+            await add_community_access(user["id"], local_community_id)
+        else:
+            # Older app builds don't send community_id: use the most recent community
+            membership = await db.community_members.find_one(
+                {"user_id": user["id"]}, {"_id": 0}, sort=[("joined_at", -1)]
+            )
+            if not membership:
+                raise HTTPException(status_code=403, detail="You must join a community to post locally")
+            local_community_id = membership["community_id"]
         category_id = "local"  # Force category to local
     
     category = next((c for c in CATEGORIES if c["id"] == category_id), CATEGORIES[-1])
@@ -1823,7 +1847,8 @@ async def update_problem(problem_id: str, update: ProblemUpdate, user: dict = De
         membership = await db.community_members.find_one(
             {"user_id": user["id"], "community_id": update.community_id}, {"_id": 0}
         )
-        if not membership:
+        target = await db.communities.find_one({"id": update.community_id}, {"_id": 0})
+        if not membership and not (target and is_community_owner(user, target)):
             raise HTTPException(status_code=403, detail="You can only post to your own community")
     
     # Build update dict with only provided fields
@@ -1850,7 +1875,7 @@ async def update_problem(problem_id: str, update: ProblemUpdate, user: dict = De
                 update_data["community_id"] = update.community_id
             else:
                 creator_membership = await db.community_members.find_one(
-                    {"user_id": problem["user_id"]}, {"_id": 0}
+                    {"user_id": problem["user_id"]}, {"_id": 0}, sort=[("joined_at", -1)]
                 )
                 if creator_membership:
                     update_data["community_id"] = creator_membership["community_id"]
@@ -1913,6 +1938,12 @@ async def get_problems(
     # Exclude local frikts from global feeds (but include in text search)
     if feed in ("new", "trending", "foryou") and not search:
         query["is_local"] = {"$ne": True}
+    
+    # Frikts of unlisted/private communities never leak into search, categories etc.
+    if feed != "local":
+        restricted_ids = await get_restricted_community_ids(user)
+        if restricted_ids:
+            query["community_id"] = {"$nin": restricted_ids}
     
     # Filter out blocked users' content
     if user:
@@ -2029,6 +2060,9 @@ async def get_problems(
         # LOCAL feed: community-specific frikts
         if not community_id:
             raise HTTPException(status_code=400, detail="community_id is required for local feed")
+        feed_community = await db.communities.find_one({"id": community_id}, {"_id": 0})
+        if not await user_has_community_access(user, feed_community):
+            raise HTTPException(status_code=403, detail="Enter this community's access code first")
         query["is_local"] = True
         query["community_id"] = community_id
         # Remove the global exclusion filter for local feed
@@ -2173,6 +2207,12 @@ async def get_problem(problem_id: str, user: dict = Depends(get_current_user)):
         if not can_see:
             raise HTTPException(status_code=404, detail="Problem not found")
     
+    # Frikts of private communities: only for people with access (and the author)
+    if problem.get("is_local") and problem.get("community_id") and not (user and user["id"] == problem["user_id"]):
+        problem_community = await db.communities.find_one({"id": problem["community_id"]}, {"_id": 0})
+        if problem_community and not await user_has_community_access(user, problem_community):
+            raise HTTPException(status_code=404, detail="Problem not found")
+    
     category = next((c for c in CATEGORIES if c["id"] == problem["category_id"]), None)
     
     user_has_related = False
@@ -2258,13 +2298,10 @@ async def relate_to_problem(problem_id: str, user: dict = Depends(require_auth))
     if problem["user_id"] == user["id"]:
         raise HTTPException(status_code=400, detail="Cannot relate to your own post")
     
-    # Restrict relating to local frikts to community members only
+    # Private community frikts: only people with access can relate
     if problem.get("is_local") and problem.get("community_id"):
-        membership = await db.community_members.find_one({
-            "user_id": user["id"],
-            "community_id": problem["community_id"]
-        })
-        if not membership:
+        problem_community = await db.communities.find_one({"id": problem["community_id"]}, {"_id": 0})
+        if problem_community and not await user_has_community_access(user, problem_community):
             raise HTTPException(status_code=403, detail="Only community members can relate to local frikts")
     
     # Check if already related
@@ -2272,6 +2309,13 @@ async def relate_to_problem(problem_id: str, user: dict = Depends(require_auth))
     if existing:
         raise HTTPException(status_code=400, detail="Already related to this problem")
     
+    return await record_relate(problem, user)
+
+
+async def record_relate(problem: dict, user: dict) -> dict:
+    """Store a relate and run its side effects (counts, badges, author notification).
+    Shared by the app and the web. Callers check permissions and duplicates first."""
+    problem_id = problem["id"]
     # Check if problem owner is banned (don't send notifications to banned users)
     problem_owner = await db.users.find_one({"id": problem["user_id"]})
     owner_is_banned = problem_owner and problem_owner.get("status") in ["banned", "shadowbanned"]
@@ -2280,19 +2324,18 @@ async def relate_to_problem(problem_id: str, user: dict = Depends(require_auth))
     relate = Relate(problem_id=problem_id, user_id=user["id"])
     await db.relates.insert_one(relate.dict())
     
-    # Update problem count and signal score
-    new_count = problem["relates_count"] + 1
-    problem["relates_count"] = new_count
-    new_score = calculate_signal_score(problem)
+    # Update problem count (atomically) and signal score
+    await db.problems.update_one({"id": problem_id}, {"$inc": {"relates_count": 1}})
+    fresh = await db.problems.find_one({"id": problem_id}, {"_id": 0})
+    new_count = fresh.get("relates_count", 0)
+    new_score = calculate_signal_score(fresh)
+    await db.problems.update_one({"id": problem_id}, {"$set": {"signal_score": new_score}})
     
-    await db.problems.update_one(
-        {"id": problem_id},
-        {"$set": {"relates_count": new_count, "signal_score": new_score}}
-    )
-    
-    # GAMIFICATION: Update stats for the relater (user giving the relate)
-    relater_stats = await increment_user_stat(user["id"], "total_relates_given")
-    relater_badges = await check_and_award_badges(user["id"], user, relater_stats, "relate")
+    # GAMIFICATION: Update stats for the relater (guests don't collect badges)
+    relater_badges = []
+    if not user.get("is_guest"):
+        relater_stats = await increment_user_stat(user["id"], "total_relates_given")
+        relater_badges = await check_and_award_badges(user["id"], user, relater_stats, "relate")
     
     # GAMIFICATION: Update stats for the post author (receiving the relate)
     post_author_id = problem["user_id"]
@@ -2367,6 +2410,11 @@ async def relate_to_problem(problem_id: str, user: dict = Depends(require_auth))
 
 @api_router.delete("/problems/{problem_id}/relate")
 async def unrelate_to_problem(problem_id: str, user: dict = Depends(require_auth)):
+    return await remove_relate(problem_id, user)
+
+
+async def remove_relate(problem_id: str, user: dict) -> dict:
+    """Remove a user's relate and update the counts. Shared by the app and the web."""
     result = await db.relates.delete_one({"problem_id": problem_id, "user_id": user["id"]})
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Not related to this problem")
@@ -2942,7 +2990,8 @@ async def search_users(
             {"normalizedDisplayName": {"$regex": safe_regex(search_term), "$options": "i"}},
             {"name": {"$regex": safe_regex(search_term), "$options": "i"}},
         ],
-        "status": "active"
+        "status": "active",
+        "is_guest": {"$ne": True},
     }
     
     # Filter out blocked users
@@ -3040,7 +3089,8 @@ async def get_user_posts(
     user_id: str, 
     sort: str = "newest",  # "newest" or "top"
     limit: int = 50,
-    skip: int = 0
+    skip: int = 0,
+    viewer: dict = Depends(get_current_user)
 ):
     """Get a user's public posts"""
     user = await db.users.find_one({"id": user_id})
@@ -3048,6 +3098,10 @@ async def get_user_posts(
         raise HTTPException(status_code=404, detail="User not found")
     
     query = {"user_id": user_id, "is_hidden": False, "status": "active"}
+    if not (viewer and viewer["id"] == user_id):
+        restricted_ids = await get_restricted_community_ids(viewer)
+        if restricted_ids:
+            query["community_id"] = {"$nin": restricted_ids}
     
     if sort == "top":
         sort_order = [("signal_score", -1), ("created_at", -1)]
@@ -5340,80 +5394,208 @@ async def delete_feedback(feedback_id: str, admin: dict = Depends(require_admin)
     return {"success": True}
 
 # ===================== COMMUNITY ROUTES =====================
+#
+# Communities (formerly "Local"):
+#   - visibility "public":   listed in Explore/search, anyone can open and post.
+#   - visibility "unlisted": not listed anywhere; anyone with the link can open and post.
+#   - visibility "private":  not listed; needs the access code (active_code/access_codes).
+# Users are no longer limited to a single community: community_members now records every
+# community a user has accessed. Anyone can create communities from the app (they become
+# the owner). Web visitors (frikt.com/<slug>) post and relate as auto-created guest users.
 
-COMMUNITY_SECRET_FIELDS = ("active_code", "access_codes", "moderator_email")
+COMMUNITY_VISIBILITIES = ("public", "unlisted", "private")
+
+# Never returned to regular users (owners get the access code via owner_community()).
+COMMUNITY_SECRET_FIELDS = ("active_code", "access_codes", "moderator_email", "owner_email")
+
+# Slugs that would collide with frikt.com pages or are otherwise confusing.
+RESERVED_SLUGS = {
+    # current frikt.com (Lovable) pages
+    "letitgo", "privacy", "terms", "vision",
+    # likely future pages / infrastructure
+    "api", "app", "www", "admin", "administrator", "login", "logout", "signin", "signup",
+    "register", "account", "settings", "profile", "dashboard", "about", "help", "support",
+    "contact", "faq", "legal", "pricing", "blog", "news", "press", "careers", "jobs",
+    "explore", "search", "community", "communities", "comm", "c", "u", "user", "users",
+    "frikt", "frikts", "home", "index", "new", "create", "edit", "delete", "static",
+    "assets", "public", "private", "unlisted", "download", "apps", "ios", "android",
+    "status", "health", "null", "undefined", "404", "500", "robots", "sitemap", "favicon",
+}
+
+SLUG_REGEX = re.compile(r'^[a-z0-9](?:[a-z0-9-]{1,38}[a-z0-9])$')
+ACCESS_CODE_REGEX = re.compile(r'^[A-Z0-9_]{4,32}$')
+MAX_COMMUNITIES_PER_USER = 10
+
+
+def normalize_slug(raw: str) -> str:
+    """Turn any text into a URL slug: lowercase letters, digits and single hyphens."""
+    slug = re.sub(r'[^a-z0-9]+', '-', (raw or "").strip().lower())
+    return re.sub(r'-{2,}', '-', slug).strip('-')[:40].strip('-')
+
+
+def validate_slug(slug: str) -> Optional[str]:
+    """Return an error message if the slug can't be used, else None."""
+    if not SLUG_REGEX.match(slug or ""):
+        return "Link must be 3-40 characters: lowercase letters, numbers and hyphens"
+    if slug in RESERVED_SLUGS:
+        return "This link is reserved. Please choose another one"
+    return None
+
+
+async def unique_slug_from(text: str) -> str:
+    """Generate an unused, valid slug from a community name (used for migrations/admin)."""
+    base = normalize_slug(text)
+    if len(base) < 3:
+        base = (base + "-community").strip('-')
+    if base in RESERVED_SLUGS:
+        base = f"{base}-community"
+    base = base[:34].strip('-')
+    candidate = base
+    n = 2
+    while await db.communities.find_one({"slug": candidate}, {"_id": 1}):
+        candidate = f"{base}-{n}"
+        n += 1
+    return candidate
+
+
+def community_requires_code(community: dict) -> bool:
+    # Communities created before visibility existed all worked with invite codes.
+    return (community.get("visibility") or "private") == "private"
+
 
 def public_community(community: Optional[dict]) -> Optional[dict]:
-    """Strip invite codes and the moderator email from a community before returning it to regular users.
+    """Strip invite codes and private emails from a community before returning it to regular users.
 
-    Codes are only for admins (see /admin/communities); exposing them would let anyone
-    join any community without an invite.
+    Codes are only for admins and the community owner; exposing them would let anyone
+    join a private community without an invite.
     """
     if not community:
         return community
-    return {k: v for k, v in community.items() if k not in COMMUNITY_SECRET_FIELDS}
+    result = {k: v for k, v in community.items() if k not in COMMUNITY_SECRET_FIELDS}
+    result["visibility"] = community.get("visibility") or "private"
+    result["requires_code"] = community_requires_code(community)
+    return result
 
-@api_router.post("/communities/join")
-@limiter.limit("10/minute;30/hour")
-async def join_community(request: Request, data: CommunityJoinCode, user: dict = Depends(require_auth)):
-    """Join a community using an invite code (matches any of the community's codes)."""
-    normalized_code = data.code.strip().upper()
-    community = await db.communities.find_one(
+
+def owner_community(community: dict) -> dict:
+    """Community as shown to its owner (or an admin): includes the access code for private ones."""
+    result = public_community(community)
+    if community_requires_code(community):
+        codes = community.get("access_codes") or ([community["active_code"]] if community.get("active_code") else [])
+        result["access_code"] = codes[0] if codes else None
+        result["access_codes"] = codes
+    result["owner_email"] = community.get("owner_email")
+    return result
+
+
+def is_community_owner(user: Optional[dict], community: dict) -> bool:
+    return bool(user) and community.get("owner_user_id") == user["id"]
+
+
+async def user_has_community_access(user: Optional[dict], community: Optional[dict]) -> bool:
+    """Public/unlisted: everyone. Private: members (entered the code), the owner and admins."""
+    if not community:
+        return False
+    if not community_requires_code(community):
+        return True
+    if not user:
+        return False
+    if user.get("role") == "admin" or is_community_owner(user, community):
+        return True
+    return bool(await db.community_members.find_one(
+        {"user_id": user["id"], "community_id": community["id"]}, {"_id": 1}
+    ))
+
+
+async def get_restricted_community_ids(user: Optional[dict]) -> List[str]:
+    """IDs of communities whose frikts must not show up outside the community itself
+    (global search, category feeds, other people's profiles) for this viewer:
+    every non-public community the viewer hasn't accessed."""
+    non_public = await db.communities.find(
+        {"visibility": {"$ne": "public"}}, {"_id": 0, "id": 1, "owner_user_id": 1}
+    ).to_list(10000)
+    if not non_public:
+        return []
+    if user and user.get("role") == "admin":
+        return []
+    allowed = set()
+    if user:
+        allowed = {
+            m["community_id"] async for m in db.community_members.find(
+                {"user_id": user["id"]}, {"_id": 0, "community_id": 1}
+            )
+        }
+        allowed |= {c["id"] for c in non_public if c.get("owner_user_id") == user["id"]}
+    return [c["id"] for c in non_public if c["id"] not in allowed]
+
+
+async def add_community_access(user_id: str, community_id: str) -> bool:
+    """Record that a user has accessed a community. Returns False if it was already recorded."""
+    if await db.community_members.find_one({"user_id": user_id, "community_id": community_id}, {"_id": 1}):
+        return False
+    member = CommunityMember(user_id=user_id, community_id=community_id)
+    try:
+        await db.community_members.insert_one(member.dict())
+    except Exception:
+        # unique (user_id, community_id) index: a concurrent request already added it
+        return False
+    return True
+
+
+async def find_community_by_code(code: str) -> Optional[dict]:
+    normalized_code = (code or "").strip().upper()
+    if not normalized_code:
+        return None
+    return await db.communities.find_one(
         {"$or": [
             {"active_code": normalized_code},
             {"access_codes": normalized_code},
         ]},
         {"_id": 0}
     )
+
+
+async def community_stats(community: dict) -> dict:
+    community["member_count"] = await db.community_members.count_documents({"community_id": community["id"]})
+    community["frikt_count"] = await db.problems.count_documents(
+        {"community_id": community["id"], "is_local": True, "status": "active"}
+    )
+    return community
+
+
+@api_router.post("/communities/join")
+@limiter.limit("10/minute;30/hour")
+async def join_community(request: Request, data: CommunityJoinCode, user: dict = Depends(require_auth)):
+    """Access a community using an invite code (matches any of the community's codes).
+
+    Users can be in many communities now, so this simply adds the community to the user's
+    list. (Older app builds handled a 409 "switch?" answer; it is no longer returned.)
+    """
+    community = await find_community_by_code(data.code)
     if not community:
         raise HTTPException(status_code=404, detail="Invalid community code")
-    
-    # Check if already in this community
-    existing = await db.community_members.find_one({"user_id": user["id"]}, {"_id": 0})
-    if existing:
-        if existing["community_id"] == community["id"]:
-            raise HTTPException(status_code=400, detail="You are already a member of this community")
-        # User is in a different community - return 409 for switch prompt
-        old_community = await db.communities.find_one({"id": existing["community_id"]}, {"_id": 0})
-        raise HTTPException(status_code=409, detail={
-            "message": "You are already in a community. Switch?",
-            "current_community": old_community["name"] if old_community else "Unknown",
-            "new_community": community["name"],
-            "new_community_id": community["id"]
-        })
-    
-    member = CommunityMember(user_id=user["id"], community_id=community["id"])
-    await db.community_members.insert_one(member.dict())
-    
+
+    if not await add_community_access(user["id"], community["id"]):
+        raise HTTPException(status_code=400, detail="You are already a member of this community")
+
     return {"success": True, "community": public_community(community)}
 
 @api_router.post("/communities/switch")
 @limiter.limit("10/minute;30/hour")
 async def switch_community(request: Request, data: CommunityJoinCode, user: dict = Depends(require_auth)):
-    """Switch to a new community (leaves old one). Accepts any of the community's codes."""
-    normalized_code = data.code.strip().upper()
-    community = await db.communities.find_one(
-        {"$or": [
-            {"active_code": normalized_code},
-            {"access_codes": normalized_code},
-        ]},
-        {"_id": 0}
-    )
+    """Kept for older app builds. Communities are no longer exclusive, so "switching" just
+    adds the community without removing the others."""
+    community = await find_community_by_code(data.code)
     if not community:
         raise HTTPException(status_code=404, detail="Invalid community code")
-    
-    # Remove from current community
-    await db.community_members.delete_many({"user_id": user["id"]})
-    
-    # Join new community
-    member = CommunityMember(user_id=user["id"], community_id=community["id"])
-    await db.community_members.insert_one(member.dict())
-    
+
+    await add_community_access(user["id"], community["id"])
     return {"success": True, "community": public_community(community)}
 
 @api_router.delete("/communities/leave")
 async def leave_community(user: dict = Depends(require_auth)):
-    """Leave current community."""
+    """Kept for older app builds: leave all communities. New builds use
+    DELETE /communities/{community_id}/access to remove a single one."""
     result = await db.community_members.delete_many({"user_id": user["id"]})
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="You are not in any community")
@@ -5422,8 +5604,9 @@ async def leave_community(user: dict = Depends(require_auth)):
 
 @api_router.get("/communities/popular")
 async def popular_communities(limit: int = 20):
-    """Top communities by member count. No auth required."""
-    communities = await db.communities.find({}, {"_id": 0}).to_list(500)
+    """Top public communities by member count. No auth required."""
+    limit = max(1, min(limit, 50))
+    communities = await db.communities.find({"visibility": "public"}, {"_id": 0}).to_list(500)
     for c in communities:
         c["member_count"] = await db.community_members.count_documents({"community_id": c["id"]})
     communities.sort(key=lambda x: x["member_count"], reverse=True)
@@ -5432,24 +5615,368 @@ async def popular_communities(limit: int = 20):
 
 @api_router.get("/communities")
 async def list_communities(search: Optional[str] = None, user: dict = Depends(require_auth)):
-    """List all communities with stats."""
-    query = {}
+    """List public communities plus the ones the user has accessed or owns, with stats."""
+    accessed_ids = [
+        m["community_id"] async for m in db.community_members.find({"user_id": user["id"]}, {"_id": 0, "community_id": 1})
+    ]
+    query = {"$or": [
+        {"visibility": "public"},
+        {"id": {"$in": accessed_ids}},
+        {"owner_user_id": user["id"]},
+    ]}
     if search:
         query["name"] = {"$regex": safe_regex(search), "$options": "i"}
-    
+
     communities = await db.communities.find(query, {"_id": 0}).sort("name", 1).to_list(100)
-    
-    # Add member and frikt counts
+
     for c in communities:
-        c["member_count"] = await db.community_members.count_documents({"community_id": c["id"]})
-        c["frikt_count"] = await db.problems.count_documents({"community_id": c["id"], "is_local": True, "status": "active"})
-    
+        await community_stats(c)
+
     return [public_community(c) for c in communities]
+
+
+# ----- Communities v2 (multi-community, visibility, ownership) -----
+# These GET routes must stay above /communities/{community_id}.
+
+class CommunityCreate(BaseModel):
+    name: str = Field(..., min_length=3, max_length=60)
+    description: Optional[str] = Field(None, max_length=280)
+    slug: str = Field(..., min_length=3, max_length=40)
+    visibility: str = "public"
+    access_code: Optional[str] = Field(None, max_length=32)  # private only; generated if empty
+    owner_email: Optional[EmailStr] = None  # contact email; defaults to the account email
+
+
+class CommunityUpdate(BaseModel):
+    name: Optional[str] = Field(None, min_length=3, max_length=60)
+    description: Optional[str] = Field(None, max_length=280)
+    slug: Optional[str] = Field(None, min_length=3, max_length=40)
+    visibility: Optional[str] = None
+    access_code: Optional[str] = Field(None, max_length=32)
+    owner_email: Optional[EmailStr] = None
+
+
+class CommunityAccessRequest(BaseModel):
+    code: Optional[str] = None
+
+
+def generate_access_code() -> str:
+    alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"  # no 0/O/1/I to avoid typos
+    return ''.join(secrets.choice(alphabet) for _ in range(6))
+
+
+async def ensure_codes_available(codes: List[str], exclude_community_id: Optional[str] = None):
+    query = {"$or": [{"active_code": {"$in": codes}}, {"access_codes": {"$in": codes}}]}
+    if exclude_community_id:
+        query["id"] = {"$ne": exclude_community_id}
+    if await db.communities.find_one(query, {"_id": 1}):
+        raise HTTPException(status_code=400, detail="This access code is already used by another community")
+
+
+def normalize_access_code(code: str) -> str:
+    normalized = (code or "").strip().upper()
+    if not ACCESS_CODE_REGEX.match(normalized):
+        raise HTTPException(
+            status_code=400,
+            detail="Access code must be 4-32 characters: letters, numbers and underscore"
+        )
+    return normalized
+
+
+async def get_owned_community_or_403(community_id: str, user: dict) -> dict:
+    community = await db.communities.find_one({"id": community_id}, {"_id": 0})
+    if not community:
+        raise HTTPException(status_code=404, detail="Community not found")
+    if not (is_community_owner(user, community) or user.get("role") == "admin"):
+        raise HTTPException(status_code=403, detail="Only the community owner can do this")
+    return community
+
+
+@api_router.get("/communities/mine")
+async def my_communities(user: dict = Depends(require_auth)):
+    """Every community the user has accessed or owns (newest first), with stats and role."""
+    memberships = await db.community_members.find(
+        {"user_id": user["id"]}, {"_id": 0}
+    ).sort("joined_at", -1).to_list(500)
+    joined_at = {m["community_id"]: m.get("joined_at") for m in memberships}
+    ids = list(joined_at.keys())
+    communities = await db.communities.find(
+        {"$or": [{"id": {"$in": ids}}, {"owner_user_id": user["id"]}]}, {"_id": 0}
+    ).to_list(500)
+    result = []
+    for c in communities:
+        await community_stats(c)
+        owner = is_community_owner(user, c)
+        item = owner_community(c) if owner else public_community(c)
+        item["is_owner"] = owner
+        item["joined_at"] = joined_at.get(c["id"])
+        result.append(item)
+    result.sort(key=lambda c: c.get("joined_at") or c.get("created_at") or datetime.min, reverse=True)
+    return result
+
+
+@api_router.get("/communities/owned")
+async def owned_communities(user: dict = Depends(require_auth)):
+    """Communities the user owns ("My communities" in the profile)."""
+    communities = await db.communities.find(
+        {"owner_user_id": user["id"]}, {"_id": 0}
+    ).sort("created_at", -1).to_list(100)
+    return [owner_community(await community_stats(c)) for c in communities]
+
+
+@api_router.get("/communities/explore")
+async def explore_communities(search: Optional[str] = None, limit: int = 30, skip: int = 0,
+                              user: dict = Depends(get_current_user)):
+    """Public communities only (unlisted and private never appear here)."""
+    limit = max(1, min(limit, 50))
+    query = {"visibility": "public"}
+    if search and search.strip():
+        query["$or"] = [
+            {"name": {"$regex": safe_regex(search), "$options": "i"}},
+            {"description": {"$regex": safe_regex(search), "$options": "i"}},
+        ]
+    communities = await db.communities.find(query, {"_id": 0}).to_list(500)
+    for c in communities:
+        await community_stats(c)
+    communities.sort(key=lambda c: (c["member_count"] + c["frikt_count"]), reverse=True)
+    accessed = set()
+    if user:
+        accessed = {m["community_id"] async for m in db.community_members.find({"user_id": user["id"]}, {"_id": 0, "community_id": 1})}
+    result = []
+    for c in communities[skip:skip + limit]:
+        item = public_community(c)
+        item["has_access"] = c["id"] in accessed
+        result.append(item)
+    return result
+
+
+@api_router.get("/communities/slug-available")
+async def slug_available(slug: str, user: dict = Depends(require_auth)):
+    """Check whether a community link (frikt.com/<slug>) can be used."""
+    normalized = normalize_slug(slug)
+    error = validate_slug(normalized)
+    if not error and await db.communities.find_one({"slug": normalized}, {"_id": 1}):
+        error = "This link is already taken"
+    return {"slug": normalized, "available": error is None, "reason": error}
+
+
+@api_router.get("/communities/by-slug/{slug}")
+async def get_community_by_slug(slug: str, user: dict = Depends(get_current_user)):
+    """Open a community from its link. Private communities only reveal their name until
+    the user has access."""
+    community = await db.communities.find_one({"slug": slug.strip().lower()}, {"_id": 0})
+    if not community:
+        raise HTTPException(status_code=404, detail="Community not found")
+    has_access = await user_has_community_access(user, community)
+    if not has_access:
+        return {
+            "id": community["id"], "slug": community["slug"], "name": community["name"],
+            "avatar_url": community.get("avatar_url"), "visibility": "private",
+            "requires_code": True, "has_access": False, "is_owner": False,
+        }
+    await community_stats(community)
+    owner = is_community_owner(user, community)
+    item = owner_community(community) if owner else public_community(community)
+    item["has_access"] = True
+    item["is_owner"] = owner
+    item["is_member"] = bool(user) and bool(await db.community_members.find_one(
+        {"user_id": user["id"], "community_id": community["id"]}, {"_id": 1}))
+    return item
+
+
+@api_router.post("/communities")
+@limiter.limit("5/hour;20/day")
+async def create_community(request: Request, data: CommunityCreate, user: dict = Depends(require_auth)):
+    """Create a community. The creator becomes its owner and gets frikt.com/<slug>."""
+    is_admin_user = user.get("role") == "admin"
+    if not is_admin_user:
+        owned = await db.communities.count_documents({"owner_user_id": user["id"]})
+        if owned >= MAX_COMMUNITIES_PER_USER:
+            raise HTTPException(status_code=400, detail=f"You can own up to {MAX_COMMUNITIES_PER_USER} communities")
+
+    name = data.name.strip()
+    description = (data.description or "").strip() or None
+    check_profanity(name, description)
+    if len(name) < 3:
+        raise HTTPException(status_code=400, detail="Name must be at least 3 characters")
+
+    visibility = (data.visibility or "").strip().lower()
+    if visibility not in COMMUNITY_VISIBILITIES:
+        raise HTTPException(status_code=400, detail="Visibility must be public, unlisted or private")
+
+    slug = normalize_slug(data.slug)
+    error = validate_slug(slug)
+    if error:
+        raise HTTPException(status_code=400, detail=error)
+    check_profanity(slug.replace("-", " "))
+    if await db.communities.find_one({"slug": slug}, {"_id": 1}):
+        raise HTTPException(status_code=409, detail="This link is already taken")
+
+    if visibility == "private":
+        code = normalize_access_code(data.access_code) if data.access_code else generate_access_code()
+        await ensure_codes_available([code])
+    else:
+        # Public/unlisted communities don't use a code. A random internal one keeps the
+        # unique active_code index (and older admin tools) happy and can't be guessed.
+        code = "INT_" + secrets.token_hex(12).upper()
+
+    owner_email = (data.owner_email or user.get("email") or "").lower().strip()
+    community = Community(
+        name=name,
+        active_code=code,
+        access_codes=[code] if visibility == "private" else [],
+        moderator_email=owner_email,
+        slug=slug,
+        description=description,
+        visibility=visibility,
+        owner_user_id=user["id"],
+        owner_email=owner_email,
+    )
+    doc = community.dict()
+    try:
+        # insert a copy: the driver adds Mongo's _id to the dict it inserts
+        await db.communities.insert_one(dict(doc))
+    except Exception:
+        raise HTTPException(status_code=409, detail="This link is already taken")
+    await add_community_access(user["id"], community.id)
+    logger.info(f"Community created: {slug} by user {user['id']} ({visibility})")
+    result = owner_community(await community_stats(doc))
+    result["is_owner"] = True
+    return result
+
+
+@api_router.patch("/communities/{community_id}")
+async def update_community(community_id: str, data: CommunityUpdate, user: dict = Depends(require_auth)):
+    """Edit a community (owner or admin)."""
+    community = await get_owned_community_or_403(community_id, user)
+    updates = {}
+    if data.name is not None:
+        name = data.name.strip()
+        check_profanity(name)
+        if len(name) < 3:
+            raise HTTPException(status_code=400, detail="Name must be at least 3 characters")
+        updates["name"] = name
+    if data.description is not None:
+        description = data.description.strip()
+        check_profanity(description)
+        updates["description"] = description or None
+    if data.slug is not None:
+        slug = normalize_slug(data.slug)
+        if slug != community.get("slug"):
+            error = validate_slug(slug)
+            if error:
+                raise HTTPException(status_code=400, detail=error)
+            check_profanity(slug.replace("-", " "))
+            if await db.communities.find_one({"slug": slug, "id": {"$ne": community_id}}, {"_id": 1}):
+                raise HTTPException(status_code=409, detail="This link is already taken")
+            updates["slug"] = slug
+    new_visibility = community.get("visibility") or "private"
+    if data.visibility is not None:
+        new_visibility = data.visibility.strip().lower()
+        if new_visibility not in COMMUNITY_VISIBILITIES:
+            raise HTTPException(status_code=400, detail="Visibility must be public, unlisted or private")
+        updates["visibility"] = new_visibility
+    if new_visibility == "private":
+        if data.access_code:
+            code = normalize_access_code(data.access_code)
+            await ensure_codes_available([code], exclude_community_id=community_id)
+            updates["active_code"] = code
+            updates["access_codes"] = [code]
+        elif not community.get("access_codes") or str(community.get("active_code", "")).startswith("INT_"):
+            # Becoming private without a code: generate one so the owner can share it
+            code = generate_access_code()
+            await ensure_codes_available([code], exclude_community_id=community_id)
+            updates["active_code"] = code
+            updates["access_codes"] = [code]
+    if data.owner_email is not None:
+        updates["owner_email"] = data.owner_email.lower().strip()
+        updates["moderator_email"] = updates["owner_email"]
+    if updates:
+        updates["updated_at"] = datetime.utcnow()
+        await db.communities.update_one({"id": community_id}, {"$set": updates})
+    updated = await db.communities.find_one({"id": community_id}, {"_id": 0})
+    result = owner_community(await community_stats(updated))
+    result["is_owner"] = is_community_owner(user, updated)
+    return result
+
+
+@api_router.post("/communities/{community_id}/access")
+@limiter.limit("10/minute;30/hour")
+async def access_community(request: Request, community_id: str, data: CommunityAccessRequest,
+                           user: dict = Depends(require_auth)):
+    """Add a community to the user's list. Private communities need their access code."""
+    community = await db.communities.find_one({"id": community_id}, {"_id": 0})
+    if not community:
+        raise HTTPException(status_code=404, detail="Community not found")
+    if not await user_has_community_access(user, community):
+        code = (data.code or "").strip().upper()
+        codes = community.get("access_codes") or [community.get("active_code")]
+        if not code or code not in codes:
+            raise HTTPException(status_code=403, detail="Invalid access code")
+    await add_community_access(user["id"], community_id)
+    item = public_community(await community_stats(community))
+    item["has_access"] = True
+    item["is_owner"] = is_community_owner(user, community)
+    return item
+
+
+@api_router.delete("/communities/{community_id}/access")
+async def remove_community_access(community_id: str, user: dict = Depends(require_auth)):
+    """Remove a community from the user's list (owners keep ownership)."""
+    result = await db.community_members.delete_many({"user_id": user["id"], "community_id": community_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="This community is not in your list")
+    return {"success": True}
+
+
+@api_router.get("/communities/{community_id}/dashboard")
+async def community_dashboard(community_id: str, days: int = 90, limit: int = 50, skip: int = 0,
+                              user: dict = Depends(require_auth)):
+    """Owner dashboard: total frikts, frikts per day and the list of frikts (newest first)."""
+    community = await get_owned_community_or_403(community_id, user)
+    days = max(1, min(days, 365))
+    limit = max(1, min(limit, 100))
+    base = {"community_id": community_id, "is_local": True, "status": "active"}
+
+    total_frikts = await db.problems.count_documents(base)
+    relates_total = 0
+    async for p in db.problems.find(base, {"_id": 0, "relates_count": 1}):
+        relates_total += p.get("relates_count", 0) or 0
+
+    since = datetime.utcnow() - timedelta(days=days)
+    per_day = {}
+    async for p in db.problems.find({**base, "created_at": {"$gte": since}}, {"_id": 0, "created_at": 1}):
+        day = p["created_at"].strftime("%Y-%m-%d")
+        per_day[day] = per_day.get(day, 0) + 1
+    frikts_by_date = [{"date": d, "count": per_day[d]} for d in sorted(per_day, reverse=True)]
+
+    frikts = await db.problems.find(base, {"_id": 0}).sort("created_at", -1).skip(skip).limit(limit).to_list(limit)
+    return {
+        "community": owner_community(await community_stats(community)),
+        "total_frikts": total_frikts,
+        "total_relates": relates_total,
+        "frikts_by_date": frikts_by_date,
+        "frikts": [
+            {
+                "id": p["id"],
+                "title": p["title"],
+                "created_at": p["created_at"],
+                "relates_count": p.get("relates_count", 0),
+                "comments_count": p.get("comments_count", 0),
+                "author_name": p.get("user_name"),
+                "source": p.get("source", "app"),
+            }
+            for p in frikts
+        ],
+    }
 
 @api_router.get("/communities/me")
 async def get_my_community(user: dict = Depends(require_auth)):
-    """Get the user's current community."""
-    membership = await db.community_members.find_one({"user_id": user["id"]}, {"_id": 0})
+    """Kept for older app builds that show a single community: the most recently accessed one.
+    New builds use GET /communities/mine."""
+    membership = await db.community_members.find_one(
+        {"user_id": user["id"]}, {"_id": 0}, sort=[("joined_at", -1)]
+    )
     if not membership:
         return None
     
@@ -5473,6 +6000,8 @@ async def get_community(community_id: str, user: dict = Depends(get_current_user
     community["member_count"] = await db.community_members.count_documents({"community_id": community_id})
     community["frikt_count"] = await db.problems.count_documents({"community_id": community_id, "is_local": True, "status": "active"})
     
+    community["has_access"] = await user_has_community_access(user, community)
+    community["is_owner"] = is_community_owner(user, community)
     if user:
         membership = await db.community_members.find_one({"user_id": user["id"], "community_id": community_id})
         community["is_member"] = membership is not None
@@ -5532,6 +6061,307 @@ async def request_join_community(community_id: str, data: CommunityJoinRequestCr
     await db.community_join_requests.insert_one(join_request.dict())
     return {"success": True, "message": "Join request submitted"}
 
+# ===================== WEB COMMUNITY PAGES (frikt.com/<slug>) =====================
+#
+# Web visitors don't log in. The first time they post or relate, the server creates a
+# *guest* user for that browser with a generated name (e.g. "Flower590") and returns a
+# long-lived guest token that the page keeps in localStorage. Guests are real users in
+# the database, so their frikts and relates are the same objects the app shows; but guest
+# tokens are rejected by every app endpoint (see get_current_user) and guests can't log in.
+# The visitor's IP is only used for rate limiting; it's never stored.
+
+GUEST_TOKEN_EXPIRE_DAYS = 365
+COMMUNITY_ACCESS_TOKEN_EXPIRE_DAYS = 30
+GUEST_DAILY_POST_LIMIT = 10
+
+GUEST_NAME_WORDS = [
+    "Flower", "River", "Maple", "Comet", "Pebble", "Cloud", "Willow", "Breeze", "Ember", "Coral",
+    "Meadow", "Falcon", "Otter", "Cedar", "Lotus", "Harbor", "Canyon", "Aurora", "Jasper", "Juniper",
+    "Sparrow", "Tide", "Orchid", "Fern", "Summit", "Lagoon", "Nova", "Birch", "Robin", "Sage",
+    "Clover", "Dune", "Echo", "Glacier", "Hazel", "Iris", "Koala", "Lark", "Mango", "Nectar",
+    "Olive", "Panda", "Quartz", "Raven", "Saffron", "Tulip", "Velvet", "Wren", "Yarrow", "Zephyr",
+]
+
+
+async def generate_guest_name() -> str:
+    """A friendly, unique display name like "Flower590" (max 20 chars)."""
+    for _ in range(25):
+        name = f"{secrets.choice(GUEST_NAME_WORDS)}{secrets.randbelow(900) + 100}"
+        if not await db.users.find_one({"normalizedDisplayName": name.lower()}, {"_id": 1}):
+            return name
+    # Extremely unlikely fallback: widen the number range
+    return f"{secrets.choice(GUEST_NAME_WORDS)}{secrets.randbelow(900000) + 100000}"
+
+
+async def create_guest_user() -> dict:
+    name = await generate_guest_name()
+    guest_id = str(uuid.uuid4())
+    guest = {
+        "id": guest_id,
+        # Placeholder address: ".invalid" can never be registered or used to log in
+        "email": f"guest-{guest_id}@guest.frikt.invalid",
+        "name": name,
+        "displayName": name,
+        "normalizedDisplayName": name.lower(),
+        "is_guest": True,
+        "role": "user",
+        "status": "active",
+        "created_at": datetime.utcnow(),
+        "onboarding_completed": True,
+        "followed_categories": [],
+        "followed_problems": [],
+        "saved_problems": [],
+    }
+    await db.users.insert_one(guest)
+    return guest
+
+
+def create_guest_token(guest_id: str) -> str:
+    expire = datetime.utcnow() + timedelta(days=GUEST_TOKEN_EXPIRE_DAYS)
+    return jwt.encode({"sub": guest_id, "guest": True, "exp": expire}, SECRET_KEY, algorithm=ALGORITHM)
+
+
+async def get_guest_from_credentials(credentials: Optional[HTTPAuthorizationCredentials]) -> Optional[dict]:
+    """The guest user behind a web guest token, or None (missing/invalid/not a guest)."""
+    if not credentials:
+        return None
+    try:
+        payload = jwt.decode(credentials.credentials, SECRET_KEY, algorithms=[ALGORITHM])
+    except jwt.PyJWTError:
+        return None
+    if not payload.get("guest") or not payload.get("sub"):
+        return None
+    guest = await db.users.find_one({"id": payload["sub"], "is_guest": True})
+    return guest
+
+
+async def get_or_create_guest(credentials: Optional[HTTPAuthorizationCredentials]) -> tuple:
+    """(guest, new_token_or_None). Creates a guest if the request has no valid guest token."""
+    guest = await get_guest_from_credentials(credentials)
+    if guest:
+        if guest.get("status") == "banned":
+            raise HTTPException(status_code=403, detail="You can't post in Frikt communities anymore")
+        return guest, None
+    guest = await create_guest_user()
+    return guest, create_guest_token(guest["id"])
+
+
+def create_community_access_token(community_id: str) -> str:
+    expire = datetime.utcnow() + timedelta(days=COMMUNITY_ACCESS_TOKEN_EXPIRE_DAYS)
+    return jwt.encode({"cid": community_id, "type": "community_access", "exp": expire}, SECRET_KEY, algorithm=ALGORITHM)
+
+
+def has_valid_community_access_token(request: Request, community_id: str) -> bool:
+    token = request.headers.get("x-community-access")
+    if not token:
+        return False
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+    except jwt.PyJWTError:
+        return False
+    return payload.get("type") == "community_access" and payload.get("cid") == community_id
+
+
+async def get_web_community(slug: str) -> dict:
+    community = await db.communities.find_one({"slug": (slug or "").strip().lower()}, {"_id": 0})
+    if not community:
+        raise HTTPException(status_code=404, detail="Community not found")
+    return community
+
+
+def web_can_read(request: Request, community: dict) -> bool:
+    return not community_requires_code(community) or has_valid_community_access_token(request, community["id"])
+
+
+def require_web_access(request: Request, community: dict):
+    if not web_can_read(request, community):
+        raise HTTPException(status_code=403, detail="This is a private Frikt community. Enter the access code.")
+
+
+def web_frikt(problem: dict, guest: Optional[dict], related_ids: set) -> dict:
+    return {
+        "id": problem["id"],
+        "title": problem["title"],
+        "created_at": problem["created_at"],
+        "relates_count": problem.get("relates_count", 0),
+        "comments_count": problem.get("comments_count", 0),
+        "author_name": problem.get("user_name"),
+        "author_avatar_url": problem.get("user_avatar_url"),
+        "is_mine": bool(guest) and problem.get("user_id") == guest["id"],
+        "user_has_related": problem["id"] in related_ids,
+    }
+
+
+class WebFriktCreate(BaseModel):
+    title: str = Field(..., min_length=10, max_length=200)
+
+
+class WebUnlockRequest(BaseModel):
+    code: str = Field(..., min_length=1, max_length=32)
+
+
+@api_router.get("/web/communities/{slug}")
+async def web_get_community(slug: str, request: Request):
+    """Community header for frikt.com/<slug>. Private ones only show their name until unlocked."""
+    community = await get_web_community(slug)
+    base = {
+        "id": community["id"],
+        "slug": community["slug"],
+        "name": community["name"],
+        "avatar_url": community.get("avatar_url"),
+        "requires_code": community_requires_code(community),
+    }
+    if not web_can_read(request, community):
+        return {**base, "unlocked": False}
+    await community_stats(community)
+    return {
+        **base,
+        "unlocked": True,
+        "description": community.get("description"),
+        "visibility": community.get("visibility") or "private",
+        "frikt_count": community["frikt_count"],
+    }
+
+
+@api_router.post("/web/communities/{slug}/unlock")
+@limiter.limit("10/minute;30/hour")
+async def web_unlock_community(slug: str, data: WebUnlockRequest, request: Request):
+    """Check a private community's access code and return an access token for this browser."""
+    community = await get_web_community(slug)
+    if not community_requires_code(community):
+        return {"access_token": None, "unlocked": True}
+    code = data.code.strip().upper()
+    codes = community.get("access_codes") or [community.get("active_code")]
+    if code not in codes:
+        raise HTTPException(status_code=403, detail="Invalid access code")
+    return {"access_token": create_community_access_token(community["id"]), "unlocked": True}
+
+
+@api_router.get("/web/communities/{slug}/frikts")
+async def web_list_frikts(slug: str, request: Request, sort: str = "new", limit: int = 30, skip: int = 0,
+                          credentials: HTTPAuthorizationCredentials = Depends(security)):
+    """The community feed. Same frikts as the app's community feed."""
+    community = await get_web_community(slug)
+    require_web_access(request, community)
+    guest = await get_guest_from_credentials(credentials)
+    limit = max(1, min(limit, 50))
+    skip = max(0, skip)
+
+    query = {"community_id": community["id"], "is_local": True, "is_hidden": False, "status": "active"}
+    shadowbanned = [uid for uid in await get_shadowbanned_user_ids() if not guest or uid != guest["id"]]
+    if shadowbanned:
+        query["user_id"] = {"$nin": shadowbanned}
+
+    sort_spec = [("relates_count", -1), ("created_at", -1)] if sort == "top" else [("created_at", -1)]
+    problems = await db.problems.find(query, {"_id": 0}).sort(sort_spec).skip(skip).limit(limit).to_list(limit)
+
+    related_ids = set()
+    if guest and problems:
+        related_ids = {
+            r["problem_id"] async for r in db.relates.find(
+                {"user_id": guest["id"], "problem_id": {"$in": [p["id"] for p in problems]}},
+                {"_id": 0, "problem_id": 1}
+            )
+        }
+    return [web_frikt(p, guest, related_ids) for p in problems]
+
+
+@api_router.post("/web/communities/{slug}/frikts")
+@limiter.limit("5/minute;20/hour")
+async def web_create_frikt(slug: str, data: WebFriktCreate, request: Request,
+                           credentials: HTTPAuthorizationCredentials = Depends(security)):
+    """Post a frikt from the web without an account (as this browser's guest user)."""
+    community = await get_web_community(slug)
+    require_web_access(request, community)
+
+    title = data.title.strip()
+    if len(title) < 10:
+        raise HTTPException(status_code=400, detail="Please write at least 10 characters")
+    check_profanity(title)
+
+    guest, new_token = await get_or_create_guest(credentials)
+
+    today_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+    posted_today = await db.problems.count_documents({"user_id": guest["id"], "created_at": {"$gte": today_start}})
+    if posted_today >= GUEST_DAILY_POST_LIMIT:
+        raise HTTPException(status_code=429, detail="You've reached today's limit. Try again tomorrow.")
+
+    problem = Problem(
+        user_id=guest["id"],
+        user_name=guest["displayName"],
+        user_avatar_url=None,
+        title=title,
+        category_id="local",
+        is_local=True,
+        community_id=community["id"],
+        source="web",
+    )
+    problem_dict = problem.dict()
+    problem_dict["signal_score"] = calculate_signal_score(problem_dict)
+    await db.problems.insert_one(problem_dict)
+
+    asyncio.create_task(
+        notify_local_members_of_new_frikt(
+            community_id=community["id"],
+            problem_id=problem.id,
+            problem_title=problem.title,
+            author_id=guest["id"],
+            author_name=guest["displayName"],
+        )
+    )
+    logger.info(f"Web frikt {problem.id} posted in community {community['slug']}")
+    return {
+        "frikt": web_frikt(problem_dict, guest, set()),
+        "guest_token": new_token,  # only set when a new guest was created: store it
+        "guest_name": guest["displayName"],
+    }
+
+
+async def get_web_frikt_for_relate(problem_id: str, request: Request) -> dict:
+    problem = await db.problems.find_one({"id": problem_id})
+    if not problem or problem.get("is_hidden") or problem.get("status") != "active":
+        raise HTTPException(status_code=404, detail="Frikt not found")
+    if not problem.get("is_local") or not problem.get("community_id"):
+        # The web only shows community frikts
+        raise HTTPException(status_code=404, detail="Frikt not found")
+    community = await db.communities.find_one({"id": problem["community_id"]}, {"_id": 0})
+    if not community:
+        raise HTTPException(status_code=404, detail="Frikt not found")
+    require_web_access(request, community)
+    return problem
+
+
+@api_router.post("/web/frikts/{problem_id}/relate")
+@limiter.limit("30/minute;300/hour")
+async def web_relate(problem_id: str, request: Request,
+                     credentials: HTTPAuthorizationCredentials = Depends(security)):
+    """Relate from the web (one relate per guest per frikt)."""
+    problem = await get_web_frikt_for_relate(problem_id, request)
+    guest, new_token = await get_or_create_guest(credentials)
+    if problem["user_id"] == guest["id"]:
+        raise HTTPException(status_code=400, detail="You can't relate to your own Frikt")
+    if await db.relates.find_one({"problem_id": problem_id, "user_id": guest["id"]}, {"_id": 1}):
+        # Already related from this browser: one relate per guest, nothing to do
+        current = await db.problems.find_one({"id": problem_id}, {"_id": 0, "relates_count": 1})
+        return {"relates_count": current.get("relates_count", 0), "user_has_related": True,
+                "guest_token": new_token, "guest_name": guest["displayName"]}
+    result = await record_relate(problem, guest)
+    return {"relates_count": result["relates_count"], "user_has_related": True,
+            "guest_token": new_token, "guest_name": guest["displayName"]}
+
+
+@api_router.delete("/web/frikts/{problem_id}/relate")
+@limiter.limit("30/minute;300/hour")
+async def web_unrelate(problem_id: str, request: Request,
+                       credentials: HTTPAuthorizationCredentials = Depends(security)):
+    await get_web_frikt_for_relate(problem_id, request)
+    guest = await get_guest_from_credentials(credentials)
+    if not guest:
+        raise HTTPException(status_code=404, detail="Not related to this Frikt")
+    result = await remove_relate(problem_id, guest)
+    return {"relates_count": result["relates_count"], "user_has_related": False}
+
+
 # ===================== ADMIN COMMUNITY ROUTES =====================
 
 @api_router.post("/admin/communities")
@@ -5562,11 +6392,26 @@ async def admin_create_community(data: AdminCommunityCreate, admin: dict = Depen
     if existing:
         raise HTTPException(status_code=400, detail="A community with one of these codes already exists")
     
+    if data.slug:
+        slug = normalize_slug(data.slug)
+        error = validate_slug(slug)
+        if error:
+            raise HTTPException(status_code=400, detail=error)
+        if await db.communities.find_one({"slug": slug}, {"_id": 1}):
+            raise HTTPException(status_code=409, detail="This link is already taken")
+    else:
+        slug = await unique_slug_from(data.name)
+    owner = await db.users.find_one({"email": data.moderator_email.lower().strip()}, {"_id": 0, "id": 1})
     community = Community(
         name=data.name,
         active_code=normalized_codes[0],
         access_codes=normalized_codes,
-        moderator_email=data.moderator_email
+        moderator_email=data.moderator_email,
+        slug=slug,
+        description=(data.description or "").strip() or None,
+        visibility="private",
+        owner_user_id=owner["id"] if owner else None,
+        owner_email=data.moderator_email.lower().strip(),
     )
     await db.communities.insert_one(community.dict())
     await log_admin_action(admin, "create_community", "community", community.id, {"name": data.name, "code": ",".join(normalized_codes)})
@@ -5845,6 +6690,78 @@ async def admin_export_community_data(community_id: str, period: str = "all", ad
     
     return {"content": "\n".join(lines), "filename": f"{community['name']}_export_{period}.txt"}
 
+def _csv_response(rows: List[list], filename: str):
+    import csv, io
+    from fastapi.responses import Response
+    buf = io.StringIO()
+    writer = csv.writer(buf)
+    for row in rows:
+        # Neutralise spreadsheet formulas in user-written text (CSV injection)
+        writer.writerow([("'" + v) if isinstance(v, str) and v[:1] in ("=", "+", "-", "@") else v for v in row])
+    safe_name = re.sub(r'[^A-Za-z0-9_.-]+', '_', filename)
+    return Response(
+        content="\ufeff" + buf.getvalue(),  # BOM so Excel opens UTF-8 correctly
+        media_type="text/csv; charset=utf-8",
+        headers={"Content-Disposition": f'attachment; filename="{safe_name}"'},
+    )
+
+
+def _export_period_query(community_id: str, period: str) -> dict:
+    query = {"community_id": community_id, "is_local": True, "status": "active"}
+    days = {"7d": 7, "30d": 30, "90d": 90}.get(period, 0)
+    if days:
+        query["created_at"] = {"$gte": datetime.utcnow() - timedelta(days=days)}
+    return query
+
+
+@api_router.get("/admin/communities/{community_id}/export.csv")
+async def admin_export_community_frikts_csv(community_id: str, period: str = "all", admin: dict = Depends(require_admin)):
+    """All frikts of a community as CSV, for manual analysis and reports."""
+    community = await db.communities.find_one({"id": community_id}, {"_id": 0})
+    if not community:
+        raise HTTPException(status_code=404, detail="Community not found")
+    problems = await db.problems.find(_export_period_query(community_id, period), {"_id": 0}).sort("created_at", 1).to_list(100000)
+    guest_ids = {
+        u["id"] async for u in db.users.find(
+            {"id": {"$in": list({p["user_id"] for p in problems})}, "is_guest": True}, {"_id": 0, "id": 1}
+        )
+    }
+    rows = [["frikt_id", "created_at", "date", "text", "relates_count", "comments_count",
+             "source", "author_name", "author_is_guest", "author_id", "community_id", "community_name", "community_slug"]]
+    for p in problems:
+        created = p.get("created_at")
+        rows.append([
+            p["id"], created.isoformat() if created else "", created.strftime("%Y-%m-%d") if created else "",
+            p.get("title", ""), p.get("relates_count", 0), p.get("comments_count", 0),
+            p.get("source", "app"), p.get("user_name", ""), p.get("user_id") in guest_ids, p.get("user_id"),
+            community_id, community.get("name"), community.get("slug"),
+        ])
+    await log_admin_action(admin, "export_community_csv", "community", community_id, {"period": period, "rows": len(problems)})
+    return _csv_response(rows, f"{community.get('slug') or community['name']}_frikts_{period}.csv")
+
+
+@api_router.get("/admin/communities/{community_id}/relates.csv")
+async def admin_export_community_relates_csv(community_id: str, period: str = "all", admin: dict = Depends(require_admin)):
+    """Every relate on the community's frikts (who = pseudonymous user id), as CSV."""
+    community = await db.communities.find_one({"id": community_id}, {"_id": 0})
+    if not community:
+        raise HTTPException(status_code=404, detail="Community not found")
+    problems = await db.problems.find(_export_period_query(community_id, period), {"_id": 0, "id": 1, "title": 1}).to_list(100000)
+    titles = {p["id"]: p["title"] for p in problems}
+    relates = await db.relates.find({"problem_id": {"$in": list(titles)}}, {"_id": 0}).sort("created_at", 1).to_list(500000)
+    guest_ids = {
+        u["id"] async for u in db.users.find(
+            {"id": {"$in": list({r["user_id"] for r in relates})}, "is_guest": True}, {"_id": 0, "id": 1}
+        )
+    }
+    rows = [["frikt_id", "frikt_text", "related_at", "user_id", "user_is_guest"]]
+    for r in relates:
+        created = r.get("created_at")
+        rows.append([r["problem_id"], titles.get(r["problem_id"], ""), created.isoformat() if created else "",
+                     r["user_id"], r["user_id"] in guest_ids])
+    await log_admin_action(admin, "export_community_relates_csv", "community", community_id, {"period": period, "rows": len(relates)})
+    return _csv_response(rows, f"{community.get('slug') or community['name']}_relates_{period}.csv")
+
 # ===================== HEALTH CHECK =====================
 
 @api_router.get("/")
@@ -5904,13 +6821,38 @@ app.include_router(api_router)
 
 ALLOWED_ORIGINS = os.environ.get("FRONTEND_ORIGINS", "https://frikt.com,https://www.frikt.com").split(",")
 
+# Lovable preview/staging domains (e.g. https://<id>.lovable.app). The API uses bearer tokens,
+# not cookies, so allowing these origins doesn't expose sessions.
+ALLOWED_ORIGIN_REGEX = os.environ.get(
+    "FRONTEND_ORIGIN_REGEX", r"https://([a-z0-9-]+\.)*(lovable\.app|lovableproject\.com)"
+)
+
 app.add_middleware(
     CORSMiddleware,
     allow_credentials=True,
     allow_origins=ALLOWED_ORIGINS,
+    allow_origin_regex=ALLOWED_ORIGIN_REGEX or None,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+async def migrate_communities_v2():
+    """Idempotent: give every community a slug, a visibility and an owner, and index slugs."""
+    async for c in db.communities.find({"$or": [{"slug": {"$exists": False}}, {"slug": None}]}, {"_id": 0}):
+        updates = {"slug": await unique_slug_from(c.get("name", "community"))}
+        if not c.get("visibility"):
+            updates["visibility"] = "private"  # they all worked with invite codes
+        if not c.get("owner_email") and c.get("moderator_email"):
+            updates["owner_email"] = c["moderator_email"].lower().strip()
+        if not c.get("owner_user_id") and c.get("moderator_email"):
+            owner = await db.users.find_one({"email": c["moderator_email"].lower().strip()}, {"_id": 0, "id": 1})
+            if owner:
+                updates["owner_user_id"] = owner["id"]
+        await db.communities.update_one({"id": c["id"]}, {"$set": updates})
+        logger.info(f"Community {c.get('name')} -> frikt.com/{updates['slug']}")
+    await db.communities.create_index("slug", unique=True, sparse=True)
+    await db.relates.create_index([("problem_id", 1), ("user_id", 1)])
 
 
 @app.on_event("startup")
@@ -5918,9 +6860,24 @@ async def startup_event():
     """Start background tasks on app startup."""
     asyncio.create_task(notification_batch_processor())
     
+    # Communities v2: users can be in many communities. Replace the old one-community-per-user
+    # index with one-row-per-(user, community), and give existing communities a slug.
+    try:
+        existing_indexes = await db.community_members.index_information()
+        for name, info in existing_indexes.items():
+            if info.get("unique") and [k for k, _ in info.get("key", [])] == ["user_id"]:
+                await db.community_members.drop_index(name)
+                logger.info(f"Dropped one-community-per-user index {name}")
+        await db.community_members.create_index([("user_id", 1), ("community_id", 1)], unique=True)
+    except Exception as e:
+        logger.warning(f"community_members index migration warning: {e}")
+    try:
+        await migrate_communities_v2()
+    except Exception as e:
+        logger.error(f"Communities v2 migration failed: {e}")
+    
     # Create unique indexes for data integrity
     try:
-        await db.community_members.create_index("user_id", unique=True)
         await db.communities.create_index("active_code", unique=True)
         await db.blocked_users.create_index(
             [("blocker_user_id", 1), ("blocked_user_id", 1)], unique=True
