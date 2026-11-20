@@ -667,6 +667,78 @@ class ApiService {
     return response.data;
   }
 
+  // ---- Communities v2 ----
+
+  async getCommunitiesMine() {
+    const response = await this.client.get('/communities/mine');
+    return response.data;
+  }
+
+  async getCommunitiesExplore(search?: string, limit: number = 30, skip: number = 0) {
+    const params: any = { limit, skip };
+    if (search) params.search = search;
+    const response = await this.client.get('/communities/explore', { params });
+    return response.data;
+  }
+
+  async getCommunityBySlug(slug: string) {
+    const response = await this.client.get(`/communities/by-slug/${slug}`);
+    return response.data;
+  }
+
+  async accessCommunity(communityId: string, code?: string) {
+    const body: any = {};
+    if (code) body.code = code;
+    const response = await this.client.post(`/communities/${communityId}/access`, body);
+    return response.data;
+  }
+
+  async leaveAccessCommunity(communityId: string) {
+    const response = await this.client.delete(`/communities/${communityId}/access`);
+    return response.data;
+  }
+
+  async getCommunitiesOwned() {
+    const response = await this.client.get('/communities/owned');
+    return response.data;
+  }
+
+  async checkCommunitySlugAvailable(slug: string) {
+    const response = await this.client.get('/communities/slug-available', { params: { slug } });
+    return response.data;
+  }
+
+  async createCommunityV2(payload: {
+    name: string;
+    description?: string;
+    slug: string;
+    visibility: 'public' | 'unlisted' | 'private';
+    access_code?: string;
+    owner_email?: string;
+  }) {
+    const response = await this.client.post('/communities', payload);
+    return response.data;
+  }
+
+  async updateCommunity(communityId: string, payload: {
+    name?: string;
+    description?: string;
+    slug?: string;
+    visibility?: 'public' | 'unlisted' | 'private';
+    access_code?: string;
+    owner_email?: string;
+  }) {
+    const response = await this.client.patch(`/communities/${communityId}`, payload);
+    return response.data;
+  }
+
+  async getCommunityDashboard(communityId: string, days: number = 90, limit: number = 50, skip: number = 0) {
+    const response = await this.client.get(`/communities/${communityId}/dashboard`, {
+      params: { days, limit, skip },
+    });
+    return response.data;
+  }
+
 
   async getCommunity(communityId: string) {
     const response = await this.client.get(`/communities/${communityId}`);
