@@ -16,6 +16,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, shadows, radius, fonts} from '../theme/colors';
 import { api } from '../services/api';
+import { useAuth } from '../context/AuthContext';
 import Toast from 'react-native-root-toast';
 
 interface PostWizardProps {
@@ -66,6 +67,9 @@ const FREQUENCY_OPTIONS = [
 const SEVERITY_LEVELS = [1, 2, 3, 4, 5];
 
 export default function PostWizard({ onComplete, onCancel, initialCommunityId, initialCommunityName }: PostWizardProps) {
+  const { user } = useAuth();
+  // The name other people see on this frikt (the profile nickname)
+  const publicName = user?.displayName || user?.name || 'your profile name';
   const [step, setStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   
@@ -225,7 +229,7 @@ export default function PostWizard({ onComplete, onCancel, initialCommunityId, i
         }
       </Text>
       <Text style={styles.anonymousHint} data-testid="anonymous-hint-text">
-        This is anonymous. Focus on the problem, not the person.
+        You'll appear as {publicName}. You can change your name in your profile.
       </Text>
 
       {/* Local toggle: shown only if user has at least 1 community */}
