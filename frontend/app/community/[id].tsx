@@ -3,19 +3,18 @@ import {
   View,
   Text,
   StyleSheet,
-  FlatList,
   TouchableOpacity,
   RefreshControl,
   ActivityIndicator,
   TextInput,
-  Alert,
   ScrollView,
   Image,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, radius, fonts} from '@/src/theme/colors';
+import { colors, radius, fonts } from '@/src/theme/colors';
 import { api } from '@/src/services/api';
 import ProblemCard from '@/src/components/ProblemCard';
 import Toast from 'react-native-root-toast';
@@ -41,17 +40,23 @@ export default function CommunityDetail() {
   const [sortBy, setSortBy] = useState<SortType>('new');
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [requestMessage, setRequestMessage] = useState('');
-  const [isRequesting, setIsRequesting] = useState(false);
-  const [requestSent, setRequestSent] = useState(false);
+
+  // For private communities without access
+  const [codeInput, setCodeInput] = useState('');
+  const [isUnlocking, setIsUnlocking] = useState(false);
 
   const loadCommunity = useCallback(async () => {
     try {
       const data = await api.getCommunity(id!);
       setCommunity(data);
-      if (data.has_pending_request) setRequestSent(true);
-    } catch (error) {
-      showToast('Failed to load community', true);
+    } catch (error: any) {
+      // 403 → private without access → we already handle that with has_access flag in detail,
+      // but if endpoint throws 403, show a message.
+      if (error.response?.status === 403) {
+        setCommunity({ id, requires_code: true, has_access: false, name: 'Private community' });
+      } else {
+        showToast('Failed to load community', true);
+      }
     }
   }, [id]);
 
@@ -61,39 +66,55 @@ export default function CommunityDetail() {
       const data = await api.getProblems('local', undefined, undefined, 0, id, sortBy);
       setProblems(data);
     } catch (error) {
-      console.error('Error loading local feed:', error);
+      // Community might be private without access; silently keep problems empty.
     } finally {
       setIsLoading(false);
       setIsRefreshing(false);
     }
   }, [id, sortBy]);
 
+  // On first load: fetch community and auto-access if public/unlisted and not in list yet
   useEffect(() => {
-    loadCommunity();
-  }, [id]);
+    (async () => {
+      await loadCommunity();
+    })();
+  }, [id, loadCommunity]);
 
   useEffect(() => {
-    if (community) loadFeed();
-  }, [community, sortBy]);
+    if (!community) return;
+    const canView = !community.requires_code || community.has_access !== false;
+    if (!canView) {
+      setIsLoading(false);
+      return;
+    }
+    // Auto-access for public/unlisted communities so they show up in "My communities"
+    if (community.visibility && community.visibility !== 'private' && community.has_access === false) {
+      api.accessCommunity(community.id).catch(() => {});
+    }
+    loadFeed();
+  }, [community, sortBy, loadFeed]);
 
-  const handleRequestJoin = async () => {
-    setIsRequesting(true);
+  const handleUnlock = async () => {
+    if (!codeInput.trim()) return;
+    setIsUnlocking(true);
     try {
-      await api.requestJoinCommunity(id!, requestMessage.trim() || undefined);
-      setRequestSent(true);
-      showToast('Request submitted!');
-    } catch (error: any) {
-      showToast(error.response?.data?.detail || 'Failed to submit request', true);
+      await api.accessCommunity(id!, codeInput.trim());
+      setCodeInput('');
+      await loadCommunity();
+      showToast('Unlocked ✓');
+    } catch (err: any) {
+      showToast(err.response?.data?.detail || 'Invalid access code', true);
     } finally {
-      setIsRequesting(false);
+      setIsUnlocking(false);
     }
   };
 
+  const handlePost = () => {
+    if (!community || !community.id) return;
+    router.push({ pathname: '/(tabs)/post', params: { community_id: community.id, community_name: community.name } });
+  };
+
   const handleRelate = async (problemId: string, isRelated: boolean) => {
-    if (!community?.is_member) {
-      showToast('Only community members can relate', true);
-      return;
-    }
     setProblems(prev => prev.map(p => {
       if (p.id === problemId) {
         return {
@@ -125,73 +146,105 @@ export default function CommunityDetail() {
     }
   };
 
+  const handleRemoveFromList = () => {
+    Alert.alert(
+      'Remove from my communities?',
+      'You can add it back anytime via its link or code.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Remove',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await api.leaveAccessCommunity(id!);
+              router.back();
+            } catch (err: any) {
+              showToast(err.response?.data?.detail || 'Failed to remove', true);
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const renderLockedView = () => (
+    <View style={styles.lockedWrap} data-testid="locked-community-view">
+      <Ionicons name="lock-closed" size={40} color={CORAL} />
+      <Text style={styles.lockedTitle}>This is a private Frikt Community</Text>
+      <Text style={styles.lockedSubtitle}>Enter the access code to open it.</Text>
+      <TextInput
+        style={styles.codeInput}
+        placeholder="Access code"
+        placeholderTextColor={colors.textMuted}
+        value={codeInput}
+        onChangeText={setCodeInput}
+        autoCapitalize="characters"
+        autoCorrect={false}
+        data-testid="community-code-input"
+      />
+      <TouchableOpacity
+        style={[styles.unlockButton, (!codeInput.trim() || isUnlocking) && styles.unlockButtonDisabled]}
+        onPress={handleUnlock}
+        disabled={!codeInput.trim() || isUnlocking}
+        data-testid="community-unlock-btn"
+      >
+        {isUnlocking ? (
+          <ActivityIndicator size="small" color="#fff" />
+        ) : (
+          <Text style={styles.unlockButtonText}>Unlock</Text>
+        )}
+      </TouchableOpacity>
+    </View>
+  );
+
   const renderHeader = () => (
     <View>
-      {/* Community info */}
       <View style={styles.communityInfo}>
         <View style={styles.communityIcon}>
           {community?.avatar_url ? (
             <Image source={{ uri: community.avatar_url }} style={{ width: 56, height: 56, borderRadius: 28 }} />
           ) : (
-            <Ionicons name="location" size={28} color="#fff" />
+            <Ionicons name="people" size={28} color="#fff" />
           )}
         </View>
         <Text style={styles.communityName}>{community?.name}</Text>
+        {community?.slug ? (
+          <Text style={styles.communitySlug}>frikt.com/{community.slug}</Text>
+        ) : null}
+        {community?.description ? (
+          <Text style={styles.communityDescription}>{community.description}</Text>
+        ) : null}
         <Text style={styles.communityStats}>
-          {community?.member_count || 0} members | {community?.frikt_count || 0} frikts
+          {community?.member_count || 0} members · {community?.frikt_count || 0} frikts
         </Text>
+
+        <View style={styles.actionsRow}>
+          <TouchableOpacity style={styles.primaryBtn} onPress={handlePost} data-testid="community-post-btn">
+            <Ionicons name="add" size={16} color="#fff" />
+            <Text style={styles.primaryBtnText}>Post</Text>
+          </TouchableOpacity>
+          {community?.is_owner ? (
+            <TouchableOpacity
+              style={styles.secondaryBtn}
+              onPress={() => router.push(`/community-edit/${community.id}`)}
+              data-testid="community-manage-btn"
+            >
+              <Ionicons name="settings-outline" size={16} color={CORAL} />
+              <Text style={styles.secondaryBtnText}>Manage</Text>
+            </TouchableOpacity>
+          ) : null}
+          <TouchableOpacity
+            style={styles.secondaryBtn}
+            onPress={handleRemoveFromList}
+            data-testid="community-remove-btn"
+          >
+            <Ionicons name="close-outline" size={16} color={CORAL} />
+            <Text style={styles.secondaryBtnText}>Remove</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
-      {/* Request to Join banner (non-members only) */}
-      {community && !community.is_member && (
-        <View style={styles.joinBanner} data-testid="request-join-banner">
-          {requestSent ? (
-            <View style={styles.requestSentContainer}>
-              <Ionicons name="checkmark-circle" size={20} color={CORAL} />
-              <Text style={styles.requestSentText}>
-                Request sent! We'll review it and share the code with you if approved.
-              </Text>
-            </View>
-          ) : (
-            <>
-              <Text style={styles.joinBannerTitle}>Want to join {community.name}?</Text>
-              <TextInput
-                style={styles.joinMessageInput}
-                placeholder="Add a message (optional)..."
-                placeholderTextColor={colors.textMuted}
-                value={requestMessage}
-                onChangeText={setRequestMessage}
-                multiline
-                data-testid="join-request-message"
-              />
-              <TouchableOpacity
-                style={styles.requestJoinButton}
-                onPress={handleRequestJoin}
-                disabled={isRequesting}
-                data-testid="request-join-btn"
-              >
-                {isRequesting ? (
-                  <ActivityIndicator size="small" color="#fff" />
-                ) : (
-                  <Text style={styles.requestJoinButtonText}>Request to Join</Text>
-                )}
-              </TouchableOpacity>
-            </>
-          )}
-        </View>
-      )}
-
-      {/* Non-member notice */}
-      {community && !community.is_member && (
-        <View style={styles.nonMemberNotice}>
-          <Ionicons name="information-circle-outline" size={16} color={colors.textMuted} />
-          <Text style={styles.nonMemberNoticeText}>
-            You can browse and comment, but only members can relate to local frikts.
-          </Text>
-        </View>
-      )}
-
-      {/* Sort pills */}
       <View style={styles.sortPills}>
         {(['trending', 'new', 'top'] as SortType[]).map((tab) => (
           <TouchableOpacity
@@ -220,6 +273,8 @@ export default function CommunityDetail() {
     );
   }
 
+  const canView = community && (!community.requires_code || community.has_access !== false);
+
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
@@ -230,36 +285,38 @@ export default function CommunityDetail() {
         <View style={{ width: 32 }} />
       </View>
 
-      <ScrollView
-        refreshControl={
-          <RefreshControl
-            refreshing={isRefreshing}
-            onRefresh={() => { loadCommunity(); loadFeed(true); }}
-            tintColor={CORAL}
-          />
-        }
-        contentContainerStyle={styles.listContent}
-      >
-        {renderHeader()}
-        {problems.length > 0 ? (
-          problems.map((item) => (
-            <ProblemCard
-              key={item.id}
-              problem={item}
-              onPress={() => router.push(`/problem/${item.id}`)}
-              onRelate={() => handleRelate(item.id, item.user_has_related)}
+      {!canView ? (
+        renderLockedView()
+      ) : (
+        <ScrollView
+          refreshControl={
+            <RefreshControl
+              refreshing={isRefreshing}
+              onRefresh={() => { loadCommunity(); loadFeed(true); }}
+              tintColor={CORAL}
             />
-          ))
-        ) : (
-          <View style={styles.emptyContainer}>
-            <Ionicons name="chatbubble-ellipses-outline" size={48} color={colors.textMuted} />
-            <Text style={styles.emptyTitle}>No frikts yet</Text>
-            <Text style={styles.emptyText}>
-              {community?.is_member ? 'Be the first to share a local friction!' : 'This community has no posts yet.'}
-            </Text>
-          </View>
-        )}
-      </ScrollView>
+          }
+          contentContainerStyle={styles.listContent}
+        >
+          {renderHeader()}
+          {problems.length > 0 ? (
+            problems.map((item) => (
+              <ProblemCard
+                key={item.id}
+                problem={item}
+                onPress={() => router.push(`/problem/${item.id}`)}
+                onRelate={() => handleRelate(item.id, item.user_has_related)}
+              />
+            ))
+          ) : (
+            <View style={styles.emptyContainer}>
+              <Ionicons name="chatbubble-ellipses-outline" size={48} color={colors.textMuted} />
+              <Text style={styles.emptyTitle}>No frikts yet</Text>
+              <Text style={styles.emptyText}>Be the first to share a friction!</Text>
+            </View>
+          )}
+        </ScrollView>
+      )}
     </SafeAreaView>
   );
 }
@@ -279,32 +336,21 @@ const styles = StyleSheet.create({
     width: 56, height: 56, borderRadius: 28, backgroundColor: CORAL,
     justifyContent: 'center', alignItems: 'center', marginBottom: 10,
   },
-  communityName: { fontSize: 22, color: colors.text, fontFamily: fonts.bold },
-  communityStats: { fontSize: 14, color: colors.textMuted, marginTop: 4 },
-
-  joinBanner: {
-    marginHorizontal: 16, padding: 16, borderRadius: radius.lg,
-    backgroundColor: '#FFF3EF', borderWidth: 1, borderColor: CORAL + '30',
+  communityName: { fontSize: 22, color: colors.text, fontFamily: fonts.bold, textAlign: 'center' },
+  communitySlug: { fontSize: 13, color: colors.textMuted, marginTop: 2 },
+  communityDescription: { fontSize: 14, color: colors.textSecondary, marginTop: 8, textAlign: 'center', paddingHorizontal: 16 },
+  communityStats: { fontSize: 13, color: colors.textMuted, marginTop: 8 },
+  actionsRow: { flexDirection: 'row', gap: 10, marginTop: 14, flexWrap: 'wrap', justifyContent: 'center' },
+  primaryBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    backgroundColor: CORAL, paddingVertical: 10, paddingHorizontal: 18, borderRadius: radius.md,
   },
-  joinBannerTitle: { fontSize: 16, color: colors.text, marginBottom: 10, fontFamily: fonts.semibold },
-  joinMessageInput: {
-    backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border,
-    borderRadius: radius.md, padding: 12, fontSize: 14, color: colors.text,
-    minHeight: 60, textAlignVertical: 'top', marginBottom: 10,
+  primaryBtnText: { color: '#fff', fontSize: 14, fontFamily: fonts.semibold },
+  secondaryBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    borderWidth: 1.5, borderColor: CORAL, paddingVertical: 10, paddingHorizontal: 14, borderRadius: radius.md,
   },
-  requestJoinButton: {
-    backgroundColor: CORAL, borderRadius: radius.md, paddingVertical: 12, alignItems: 'center',
-  },
-  requestJoinButtonText: { color: '#fff', fontSize: 15, fontFamily: fonts.semibold },
-  requestSentContainer: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  requestSentText: { flex: 1, fontSize: 14, color: CORAL, lineHeight: 20 },
-
-  nonMemberNotice: {
-    flexDirection: 'row', alignItems: 'center', gap: 6, marginHorizontal: 16,
-    marginTop: 10, paddingVertical: 8, paddingHorizontal: 12,
-    backgroundColor: colors.surface, borderRadius: radius.sm,
-  },
-  nonMemberNoticeText: { flex: 1, fontSize: 12, color: colors.textMuted, lineHeight: 16, fontFamily: fonts.semibold },
+  secondaryBtnText: { color: CORAL, fontSize: 14, fontFamily: fonts.semibold },
 
   sortPills: { flexDirection: 'row', paddingHorizontal: 16, paddingTop: 14, paddingBottom: 4, gap: 8 },
   pill: { paddingVertical: 8, paddingHorizontal: 16, borderRadius: 20, backgroundColor: colors.surface },
@@ -316,5 +362,17 @@ const styles = StyleSheet.create({
   emptyContainer: { alignItems: 'center', paddingVertical: 60 },
   emptyTitle: { fontSize: 17, color: colors.text, marginTop: 12 },
   emptyText: { fontSize: 14, color: colors.textSecondary, marginTop: 6, textAlign: 'center', paddingHorizontal: 32 },
-});
 
+  lockedWrap: { flex: 1, alignItems: 'center', paddingHorizontal: 32, paddingVertical: 60 },
+  lockedTitle: { fontSize: 18, color: colors.text, marginTop: 14, textAlign: 'center', fontFamily: fonts.semibold },
+  lockedSubtitle: { fontSize: 14, color: colors.textSecondary, marginTop: 6, textAlign: 'center' },
+  codeInput: {
+    marginTop: 24, width: '100%', backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border,
+    borderRadius: 10, paddingVertical: 12, paddingHorizontal: 14, fontSize: 15, color: colors.text, textAlign: 'center',
+  },
+  unlockButton: {
+    marginTop: 14, backgroundColor: CORAL, paddingVertical: 12, paddingHorizontal: 32, borderRadius: 10,
+  },
+  unlockButtonDisabled: { backgroundColor: colors.disabledBg },
+  unlockButtonText: { color: '#fff', fontSize: 15, fontFamily: fonts.bold },
+});

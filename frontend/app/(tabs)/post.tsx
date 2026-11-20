@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { View, StyleSheet } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { colors, fonts} from '@/src/theme/colors';
 import PostWizard from '@/src/components/PostWizard';
 import Toast from 'react-native-root-toast';
@@ -9,6 +9,7 @@ import { ErrorBoundary } from '@/src/components/ErrorBoundary';
 
 export default function PostTab() {
   const router = useRouter();
+  const params = useLocalSearchParams<{ community_id?: string; community_name?: string }>();
   const { showCelebration } = useBadges();
   const [focusKey, setFocusKey] = useState(0);
 
@@ -48,7 +49,13 @@ export default function PostTab() {
   return (
     <ErrorBoundary screenName="CreateFrikt">
     <View style={styles.container}>
-      <PostWizard key={focusKey} onComplete={handleComplete} onCancel={handleCancel} />
+      <PostWizard
+        key={focusKey}
+        initialCommunityId={params.community_id}
+        initialCommunityName={params.community_name}
+        onComplete={handleComplete}
+        onCancel={handleCancel}
+      />
     </View>
     </ErrorBoundary>
   );

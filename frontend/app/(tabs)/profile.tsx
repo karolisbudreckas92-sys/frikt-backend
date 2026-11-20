@@ -368,6 +368,14 @@ export default function Profile() {
             <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
           </TouchableOpacity>
 
+          <TouchableOpacity style={styles.menuItem} onPress={() => router.push('/my-communities')} data-testid="my-communities-link">
+            <View style={styles.menuIcon}>
+              <Ionicons name="people-outline" size={22} color="#E85D3A" />
+            </View>
+            <Text style={styles.menuText}>My Communities</Text>
+            <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
+          </TouchableOpacity>
+
           <TouchableOpacity style={styles.menuItem} onPress={() => router.push('/saved')}>
             <View style={styles.menuIcon}>
               <Ionicons name="bookmark-outline" size={22} color={colors.accent} />
